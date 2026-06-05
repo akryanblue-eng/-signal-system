@@ -59,8 +59,12 @@ export { performanceReducer }              from './core/runtime/performanceReduc
 export { PerformanceRuntime, ChaosSystem, GovernorSystem } from './core/runtime/PerformanceRuntime';
 export type { PerformanceSystem }          from './core/runtime/PerformanceRuntime';
 export type { PerformanceAction, Dispatch } from './core/runtime/PerformanceAction';
-export { parseIntent, compileIntent, handleIntent } from './core/runtime/IntentCompiler';
+export { parseIntent, compileIntent, handleIntent, handleIntentWithStyle } from './core/runtime/IntentCompiler';
 export type { ParsedIntent, IntentTarget } from './core/runtime/IntentCompiler';
+export { applyStyle, STYLES }              from './core/runtime/Style';
+export type { Style }                      from './core/runtime/Style';
+export { IntentMemoryStore, normalizeIntentKey, embedActions, vectorSimilarity, mergeActions, computeDelta } from './core/runtime/IntentMemory';
+export type { IntentMemory, StateDelta }   from './core/runtime/IntentMemory';
 
 // ─── Observability layer ─────────────────────────────────────────────────────
 export { SnapshotRecorder }                from './core/manifold/RuntimeSnapshot';

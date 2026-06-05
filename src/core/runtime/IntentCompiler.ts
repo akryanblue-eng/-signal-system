@@ -1,4 +1,6 @@
 import type { PerformanceAction, Dispatch } from './PerformanceAction';
+import type { Style } from './Style';
+import { applyStyle } from './Style';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,8 +119,25 @@ function deduplicate(actions: PerformanceAction[]): PerformanceAction[] {
 export function handleIntent(input: string, dispatch: Dispatch): ParsedIntent {
   const intent  = parseIntent(input);
   const actions = compileIntent(intent);
-  for (const action of actions) {
-    dispatch(action);
-  }
-  return intent; // return for logging / debug
+  for (const action of actions) dispatch(action);
+  return intent;
+}
+
+/**
+ * Same as handleIntent but routes compiled actions through a Style filter
+ * before dispatch. Same phrase → different emotional weight.
+ *
+ * Usage:
+ *   handleIntentWithStyle("push energy", runtime.dispatch, STYLES.chaoticJazz);
+ */
+export function handleIntentWithStyle(
+  input:    string,
+  dispatch: Dispatch,
+  style:    Style,
+): ParsedIntent {
+  const intent  = parseIntent(input);
+  const raw     = compileIntent(intent);
+  const styled  = applyStyle(raw, style);
+  for (const action of styled) dispatch(action);
+  return intent;
 }
