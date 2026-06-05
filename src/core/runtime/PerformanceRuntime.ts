@@ -15,6 +15,9 @@ import {
 } from './MetaPolicy';
 import type { MetaPolicy } from './MetaPolicy';
 import { normalizeIntentKey } from './IntentMemory';
+import { PolicyModel, distillSample, extractFeatures } from './PolicyDistillation';
+import { evaluateCounterfactual } from './CounterfactualEval';
+import { TraceBuffer } from '../../replay/TraceBuffer';
 
 // ─── System interface ──────────────────────────────────────────────────────────
 
@@ -54,6 +57,7 @@ export interface PerformanceRuntimeOptions {
   memory?:      IntentMemoryStore;
   style?:       Style;
   environment?: EnvironmentManager;
+  policyModel?: PolicyModel;
 }
 
 // ─── Runtime ───────────────────────────────────────────────────────────────────
@@ -82,13 +86,17 @@ export class PerformanceRuntime {
   private memory:       IntentMemoryStore;
   private currentStyle: Style;
   private environment:  EnvironmentManager;
-  private metaPolicy:   MetaPolicy    = { ...BASE_META_POLICY };
-  private metaObserver: MetaObserver  = new MetaObserver();
-  private prevStyle:    Style | null  = null;
-  private stateHistory: PerformanceState[] = []; // last 10 for instability
-  private lastIntentKey = 'general_control';
-  private running       = false;
-  private lastTime      = 0;
+  private metaPolicy:    MetaPolicy    = { ...BASE_META_POLICY };
+  private metaObserver:  MetaObserver  = new MetaObserver();
+  private prevStyle:     Style | null  = null;
+  private stateHistory:  PerformanceState[] = []; // last 10 for instability
+  private lastIntentKey  = 'general_control';
+  private running        = false;
+  private lastTime       = 0;
+  private policyModel:   PolicyModel | null = null;
+  private traceBuffer:   TraceBuffer        = new TraceBuffer();
+  private lastOracleEnv: string             = 'cinematic';
+  private lastCfDelta:   number             = 0;
 
   private pendingInput: {
     text:    string;
@@ -105,6 +113,7 @@ export class PerformanceRuntime {
     this.memory       = options.memory      ?? new IntentMemoryStore();
     this.environment  = options.environment ?? new EnvironmentManager(ENVIRONMENTS.cinematic);
     this.currentStyle = options.style       ?? { ...this.environment.get().style };
+    this.policyModel  = options.policyModel ?? null;
   }
 
   readonly dispatch: Dispatch = (action) => {
@@ -188,6 +197,46 @@ export class PerformanceRuntime {
     // 8. Meta-policy update — every 50 ticks once enough memory exists
     if (this.state.frameIndex % 50 === 0 && this.memory.size >= 5) {
       this.metaPolicy = updateMetaPolicy(this.metaPolicy, this.memory.recent(200));
+
+      // If a PolicyModel is wired up, refresh the counterfactual oracle and
+      // distill a new training sample from the current state.
+      if (this.policyModel) {
+        const cfCases = evaluateCounterfactual(
+          this.state, [], this.metaPolicy, Object.values(ENVIRONMENTS),
+        );
+        if (cfCases.length > 0) {
+          this.lastOracleEnv = cfCases[0]!.environment.name;
+          this.lastCfDelta   = cfCases[0]!.delta;
+        }
+        const sample = distillSample(this.state, [], this.metaPolicy, Object.values(ENVIRONMENTS));
+        if (sample) this.policyModel.update(sample);
+      }
+    }
+
+    // 9. Capture unified trace frame
+    {
+      let policyEnv   = env.name;
+      let usedPolicy  = false;
+      if (this.policyModel) {
+        const features = extractFeatures(this.state);
+        const conf     = this.policyModel.confidence(features);
+        usedPolicy     = conf >= 0.3;
+        if (usedPolicy) {
+          policyEnv = this.policyModel.predict(features) ?? env.name;
+        }
+      }
+      this.traceBuffer.push({
+        t:                   this.state.frameIndex,
+        input:               this.lastIntentKey,
+        state:               { ...this.state },
+        env:                 env.name,
+        policyEnv,
+        oracleEnv:           this.lastOracleEnv,
+        usedPolicy,
+        counterfactualDelta: this.lastCfDelta,
+        identityScore:       this.metaObserver.evaluate(),
+        thought:             usedPolicy ? 'fast-path intuition' : 'oracle simulation fallback',
+      });
     }
 
     return this.state;
@@ -200,6 +249,7 @@ export class PerformanceRuntime {
   getMetaPolicy():      MetaPolicy          { return this.metaPolicy; }
   getMetaObserver():    MetaObserver        { return this.metaObserver; }
   getIdentityQuality(): number              { return this.metaObserver.evaluate(); }
+  getTrace():           TraceBuffer         { return this.traceBuffer; }
 
   start(): void {
     if (this.running) return;

@@ -15,7 +15,7 @@ export interface PolicyFeatures {
   drift:      number; // [0, 1]
 }
 
-function extractFeatures(state: PerformanceState): PolicyFeatures {
+export function extractFeatures(state: PerformanceState): PolicyFeatures {
   return {
     chaos:     state.chaos,
     stability: state.stability,

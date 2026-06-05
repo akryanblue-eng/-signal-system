@@ -104,6 +104,23 @@ export { BidirectionalBrainRuntime }       from './engine/BidirectionalBrainRunt
 export type { BrainRuntimeOutput }         from './engine/BidirectionalBrainRuntime';
 export { MidiBrainBridge }                 from './engine/MidiBrainBridge';
 
+// ─── Replay + Behavior Git ────────────────────────────────────────────────────
+export { TraceBuffer } from './replay/TraceBuffer';
+export type { Frame } from './replay/TraceBuffer';
+export { BehaviorRepository } from './replay/BehaviorRepository';
+export type { BehaviorCommit, Branch, ReplayStepFn } from './replay/BehaviorRepository';
+
+// ─── Synthesis — dominant timeline + Pareto solver ───────────────────────────
+export {
+  dominanceScore, clusterBranches, extractDominant, synthesizePolicy, distillDominantPolicy,
+} from './synthesis/DominantTimeline';
+export type { BranchOutcome, DominantPolicy } from './synthesis/DominantTimeline';
+export {
+  dominates, paretoFrontier, selectEquilibrium,
+  scoreWithControl, selectWithControl, CONTROL_SCENES,
+} from './synthesis/ParetoSolver';
+export type { ObjectiveVector, ControlSurface } from './synthesis/ParetoSolver';
+
 // ─── Visualization — browser/Three.js required ───────────────────────────────
 // FlowFieldScene, FlowFieldMaterial, and RuntimeInspector are NOT re-exported
 // here because they require browser DOM / Three.js. Import them directly:
