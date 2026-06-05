@@ -63,6 +63,25 @@ Clustering dimensions: **stability**, **tension profile**, **recurrence frequenc
 
 Species are the unit that Field Autonomy and the Mutation Engine operate on. Autonomy without species = hallucinated agency (selecting from noise, transient attractors, dead branches).
 
+## Truth Hierarchy
+
+The system has four tiers of truth, each derived from the one above it. Never skip a tier when making decisions:
+
+| Tier | Name | Source | Character |
+|------|------|--------|-----------|
+| 1 | **Audio Truth** | AudioWorklet | Irreducible, causal, irreversible |
+| 2 | **Event Truth** | drift.stream → Genome | Observed, recorded, uncompressed |
+| 3 | **Structural Truth** | Species registry | Interpreted, stable, selectable |
+| 4 | **Decision Layer** | Field Autonomy | Future — not yet active |
+
+**The system is not allowed to decide anything meaningful from raw history (Tier 2).** The mandatory pipeline is:
+
+```
+event → genome → species → (autonomy)
+```
+
+Bypassing the species layer means decisions are made from noise. This produces hallucinated agency: rare events become over-weighted behaviors, transient artifacts solidify into grooves, noise acquires identity.
+
 ## System Architecture
 
 ### Data Flow (Audio-First Topology — the only valid topology right now)
@@ -111,6 +130,21 @@ useEffect(() => {
 - edge insert (optional relaxation step)
 
 This is the first physics optimization boundary and the line between "visualizer" and "field simulator frontend."
+
+## Species Extractor v1 Spec (Stage 2 entry point)
+
+This is the next component to build. Requirements:
+
+- **Input:** windowed slice of the Genome node graph
+- **Algorithm:** deterministic geometric clustering — no ML, no probabilistic models
+- **Clustering dimensions:** stability, tension profile, recurrence frequency
+- **Output:** `SpeciesNode[]` with confidence scores
+- **Guarantee:** fully replay-stable (same genome window → same species output, always)
+
+Three deliverables for Stage 2 completion:
+1. `SpeciesExtractor` — windowed genome collapse → `SpeciesNode[]`
+2. `Genome → Species mapping hook` — read-only feed, zero scheduler influence
+3. Species visualization in Genome Graph — collapsed node view + lineage compression
 
 ## Key Architectural Constraints
 
