@@ -82,6 +82,8 @@ event → genome → species → (autonomy)
 
 Bypassing the species layer means decisions are made from noise. This produces hallucinated agency: rare events become over-weighted behaviors, transient artifacts solidify into grooves, noise acquires identity.
 
+**Core identity invariant:** Identity is never observed directly — it is only ever derived through a pure function over recorded history. There is no direct path from audio behavior to identity.
+
 ## System Architecture
 
 ### Data Flow (Audio-First Topology — the only valid topology right now)
@@ -141,6 +143,7 @@ This is the next component to build. Requirements:
 - **Output:** `SpeciesNode[]` with confidence scores
 - **Contract:** Species layer is a **pure function over history**, not a learned interpretation of it. Same genome window → same species output, always — no runtime-dependent classification, no stochastic embeddings, no learned similarity drift.
 - **Consequence of the contract:** offline replay ≡ live extraction; debugging is deterministic; evolution traces are verifiable
+- **Evolution model: batch-derived, not streaming-learned** — all adaptation happens via structural recomputation over a window, never via incremental weight updates, continuous embedding evolution, or online learning. The identity layer has no mutable internal state between runs.
 
 Three deliverables for Stage 2 completion:
 1. `SpeciesExtractor` — windowed genome collapse → `SpeciesNode[]`
