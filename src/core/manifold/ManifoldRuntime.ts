@@ -62,12 +62,19 @@ export function step(state: ManifoldState, dt: number, force: ManifoldForce): Ma
  */
 export class ManifoldRuntime {
   public  state:    ManifoldState;
+  /** Injectable force vector — set this externally (e.g. from MIDI) to perturb the field. */
+  public  forces:   ManifoldForce = [0, 0];
   private running:  boolean = false;
   private lastTime: number  = 0;
   private rafId:    number  = 0;
 
   constructor(initialState: ManifoldState) {
     this.state = { ...initialState };
+  }
+
+  /** Convenience wrapper: apply `this.forces` unless an explicit force is provided. */
+  step(currentState: ManifoldState, dt: number, force?: ManifoldForce): ManifoldState {
+    return step(currentState, dt, force ?? this.forces);
   }
 
   start(

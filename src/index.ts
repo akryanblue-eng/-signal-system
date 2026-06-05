@@ -43,9 +43,24 @@ export type { PerformerFeedback, BrainLoopOutput } from './engine/BidirectionalB
 export { SharedFieldEngine }      from './engine/SharedFieldEngine';
 export type { PerformerState, PhaseCoupling, SharedFieldState } from './engine/SharedFieldEngine';
 
+// ─── Math utilities ───────────────────────────────────────────────────────────
+export { vec2Add, vec2Scale, vec2Magnitude, vec2Normalize, vec2Dot } from './math/vector';
+export type { Vec2 } from './math/vector';
+
 // ─── Visualization grid sampler (no browser deps) ────────────────────────────
-export { FlowFieldEngine as GridSampler } from './visualization/FlowFieldEngine';
+export { FlowFieldEngine as GridSampler }   from './visualization/FlowFieldEngine';
 export type { ForceFunction, DampingFunction } from './visualization/FlowFieldEngine';
+export { generateFlowField }               from './visualization/generateFlowField';
+export type { FieldCell }                  from './visualization/generateFlowField';
+
+// ─── Engine — MIDI injection + bidirectional brain ───────────────────────────
+export { midiToForce, FlowFieldInjector }  from './engine/MidiForceInjector';
+export type { MidiForceEvent, MidiForceType } from './engine/MidiForceInjector';
+export { computeFieldFeedback, applyFeedbackToInjector } from './engine/FieldFeedback';
+export type { FieldFeedbackSignal }        from './engine/FieldFeedback';
+export { BidirectionalBrainRuntime }       from './engine/BidirectionalBrainRuntime';
+export type { BrainRuntimeOutput }         from './engine/BidirectionalBrainRuntime';
+export { MidiBrainBridge }                 from './engine/MidiBrainBridge';
 
 // ─── Visualization — browser/Three.js required ───────────────────────────────
 // FlowFieldScene and FlowFieldMaterial are NOT re-exported here because they
