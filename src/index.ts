@@ -1,0 +1,54 @@
+// ─── Core types ───────────────────────────────────────────────────────────────
+export type {
+  LatentState, CanvasPoint, CanvasPixel, CanvasRegion, SteeringForce,
+} from './core/types/latent';
+export type { Attractor, AttractorContour }     from './core/types/attractor';
+export type { FlowFieldCell, TrajectoryPoint }  from './core/types/flow';
+export type { Artist, VenueSession }            from './core/types/venue';
+
+// ─── Coordinate mapping ───────────────────────────────────────────────────────
+export { PROJECTION_AXES, RAW_PROJECTION_BOUNDS, DEFAULT_BOUNDS } from './core/mapping/ProjectionAxes';
+export { normalizeDimension, toCanvasPixel, fromCanvasPixel, pressureToHsl } from './core/mapping/normalization';
+export { CoordinateMapper }  from './core/mapping/CoordinateMapper';
+export type { NormalizationBounds } from './core/mapping/CoordinateMapper';
+
+// ─── Manifold ─────────────────────────────────────────────────────────────────
+export { ClusterEngine }     from './core/manifold/ClusterEngine';
+export type { SpeciesNode }  from './core/manifold/ClusterEngine';
+export type { ManifoldSnapshot } from './core/manifold/ManifoldState';
+export { ManifoldRuntime, manifoldGovernor, step as manifoldStep } from './core/manifold/ManifoldRuntime';
+export type { ManifoldState, ManifoldPolicy, ManifoldForce } from './core/manifold/ManifoldRuntime';
+
+// ─── Steering ─────────────────────────────────────────────────────────────────
+export { SteeringField }     from './core/steering/SteeringField';
+export type { SteeringVector } from './core/steering/SteeringField';
+export { DampingEngine }     from './core/steering/DampingEngine';
+
+// ─── Kernel ───────────────────────────────────────────────────────────────────
+export { PerformanceKernel } from './core/kernel/PerformanceKernel';
+export type { KernelOutput, PerformanceMode } from './core/kernel/PerformanceKernel';
+
+// ─── Engine layer ─────────────────────────────────────────────────────────────
+export { FlowFieldEngine }        from './engine/FlowFieldEngine';
+export type { Vector2, FlowCell, AttractorNode } from './engine/FlowFieldEngine';
+export { MidiAttractorController } from './engine/MidiAttractorController';
+export type { LiveAttractor, AttractorType } from './engine/MidiAttractorController';
+export { SteeringFieldEngine }    from './engine/SteeringFieldEngine';
+export type { FieldState }        from './engine/SteeringFieldEngine';
+export { SignalToFlowMapper }     from './engine/SignalToFlowMapper';
+export { FlowKernelBridge }       from './engine/Bridge';
+export type { SceneUniforms }     from './engine/Bridge';
+export { BidirectionalBrainLoop } from './engine/BidirectionalBrainLoop';
+export type { PerformerFeedback, BrainLoopOutput } from './engine/BidirectionalBrainLoop';
+export { SharedFieldEngine }      from './engine/SharedFieldEngine';
+export type { PerformerState, PhaseCoupling, SharedFieldState } from './engine/SharedFieldEngine';
+
+// ─── Visualization grid sampler (no browser deps) ────────────────────────────
+export { FlowFieldEngine as GridSampler } from './visualization/FlowFieldEngine';
+export type { ForceFunction, DampingFunction } from './visualization/FlowFieldEngine';
+
+// ─── Visualization — browser/Three.js required ───────────────────────────────
+// FlowFieldScene and FlowFieldMaterial are NOT re-exported here because they
+// import Three.js types. Import them directly in browser entry points:
+//   import { FlowFieldScene }   from '-signal-system/src/visualization/FlowFieldScene';
+//   import { FlowFieldMaterial } from '-signal-system/src/visualization/FlowFieldMaterial';
