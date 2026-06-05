@@ -9,6 +9,12 @@ import { parseIntent, compileIntent } from './IntentCompiler';
 import { gateActions, clampStyle } from './Constraints';
 import { EnvironmentManager, mergeStyleWithBias, ENVIRONMENTS } from './Environment';
 import type { StyleEnvironment } from './Environment';
+import {
+  BASE_META_POLICY, MetaObserver, updateMetaPolicy,
+  scoreOutcomeWithPolicy, computeStyleDrift, computeInstability,
+} from './MetaPolicy';
+import type { MetaPolicy } from './MetaPolicy';
+import { normalizeIntentKey } from './IntentMemory';
 
 // ─── System interface ──────────────────────────────────────────────────────────
 
@@ -76,6 +82,11 @@ export class PerformanceRuntime {
   private memory:       IntentMemoryStore;
   private currentStyle: Style;
   private environment:  EnvironmentManager;
+  private metaPolicy:   MetaPolicy    = { ...BASE_META_POLICY };
+  private metaObserver: MetaObserver  = new MetaObserver();
+  private prevStyle:    Style | null  = null;
+  private stateHistory: PerformanceState[] = []; // last 10 for instability
+  private lastIntentKey = 'general_control';
   private running       = false;
   private lastTime      = 0;
 
@@ -106,7 +117,8 @@ export class PerformanceRuntime {
     const styled  = applyStyle(raw, this.currentStyle);
     const gated   = gateActions(styled, this.state);
     for (const action of gated) this.dispatch(action);
-    this.pendingInput = { text, actions: gated, before: this.state };
+    this.lastIntentKey = normalizeIntentKey(text);
+    this.pendingInput  = { text, actions: gated, before: this.state };
   }
 
   /** Switch environment manually (bypasses cooldown and auto-select). */
@@ -132,13 +144,15 @@ export class PerformanceRuntime {
       this.state = performanceReducer(this.state, action);
     }
 
-    // 4. Record memory for pending input
+    // 4. Record memory for pending input (policy-aware score)
     if (this.pendingInput) {
       this.memory.record(
         this.pendingInput.text,
         this.pendingInput.actions,
         this.pendingInput.before,
         this.state,
+        undefined,
+        scoreOutcomeWithPolicy(this.state, this.metaPolicy),
       );
       this.pendingInput = null;
     }
@@ -153,13 +167,38 @@ export class PerformanceRuntime {
     // 6. Auto-select environment from state + memory signals
     this.environment.autoSelect(this.state, this.memory.recent(20));
 
+    // 7. Update state history + meta-observer (per tick)
+    this.stateHistory.push(this.state);
+    if (this.stateHistory.length > 10) this.stateHistory.shift();
+
+    const drift = this.prevStyle
+      ? computeStyleDrift(this.currentStyle, this.prevStyle)
+      : 0;
+    this.metaObserver.log({
+      timestamp:   this.state.timestamp,
+      environment: env.name,
+      score:       scoreOutcomeWithPolicy(this.state, this.metaPolicy),
+      drift,
+      instability: computeInstability(this.stateHistory),
+      intentKey:   this.lastIntentKey,
+    });
+    this.prevStyle = { ...this.currentStyle };
+
+    // 8. Meta-policy update — every 50 ticks once enough memory exists
+    if (this.state.frameIndex % 50 === 0 && this.memory.size >= 5) {
+      this.metaPolicy = updateMetaPolicy(this.metaPolicy, this.memory.recent(200));
+    }
+
     return this.state;
   }
 
-  getState():       PerformanceState    { return this.state; }
-  getStyle():       Style               { return this.currentStyle; }
-  getMemory():      IntentMemoryStore   { return this.memory; }
-  getEnvironment(): EnvironmentManager  { return this.environment; }
+  getState():           PerformanceState    { return this.state; }
+  getStyle():           Style               { return this.currentStyle; }
+  getMemory():          IntentMemoryStore   { return this.memory; }
+  getEnvironment():     EnvironmentManager  { return this.environment; }
+  getMetaPolicy():      MetaPolicy          { return this.metaPolicy; }
+  getMetaObserver():    MetaObserver        { return this.metaObserver; }
+  getIdentityQuality(): number              { return this.metaObserver.evaluate(); }
 
   start(): void {
     if (this.running) return;

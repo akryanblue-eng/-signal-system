@@ -61,13 +61,18 @@ export class IntentMemoryStore {
     this.memories.push(memory);
   }
 
-  /** Build and store a memory from runtime snapshot data. Returns the stored entry. */
+  /**
+   * Build and store a memory from runtime snapshot data.
+   * Pass `score` to override the auto-computed scoreOutcome() — used by
+   * PerformanceRuntime to supply a policy-aware score instead.
+   */
   record(
     intent:  string,
     actions: PerformanceAction[],
     before:  PerformanceState,
     after:   PerformanceState,
     rating?: number,
+    score?:  number,
   ): IntentMemory {
     const memory: IntentMemory = {
       intent,
@@ -76,7 +81,7 @@ export class IntentMemoryStore {
       before,
       after,
       delta:        computeDelta(before, after),
-      score:        scoreOutcome(after),
+      score:        score ?? scoreOutcome(after),
       rating,
       timestamp:    Date.now(),
     };

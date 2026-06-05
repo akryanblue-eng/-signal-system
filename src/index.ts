@@ -69,6 +69,12 @@ export { classifyStateSafety, gateActions, clampStyle, DEFAULT_STYLE_BOUNDS } fr
 export type { StyleBounds, SafetyVerdict } from './core/runtime/Constraints';
 export { ENVIRONMENTS, EnvironmentManager, detectEnvironment, mergeStyleWithBias } from './core/runtime/Environment';
 export type { StyleEnvironment, CompilerBias } from './core/runtime/Environment';
+export {
+  BASE_META_POLICY, MetaObserver,
+  scoreOutcomeWithPolicy, evaluatePolicyPerformance, updateMetaPolicy,
+  computeIdentityQuality, computeStyleDrift, computeInstability,
+} from './core/runtime/MetaPolicy';
+export type { MetaPolicy, MetaObservation, ScoringWeights, DriftBias } from './core/runtime/MetaPolicy';
 
 // ─── Observability layer ─────────────────────────────────────────────────────
 export { SnapshotRecorder }                from './core/manifold/RuntimeSnapshot';
