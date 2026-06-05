@@ -153,6 +153,7 @@ export class PerformanceRuntime {
         this.state,
         undefined,
         scoreOutcomeWithPolicy(this.state, this.metaPolicy),
+        this.environment.get().name,
       );
       this.pendingInput = null;
     }

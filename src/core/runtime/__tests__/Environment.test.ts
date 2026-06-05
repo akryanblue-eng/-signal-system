@@ -4,6 +4,7 @@ import {
   EnvironmentManager,
   detectEnvironment,
   mergeStyleWithBias,
+  scoreEnvironmentFromMemory,
 } from '../Environment';
 import { DEFAULT_PERFORMANCE_STATE } from '../../PerformanceState';
 import type { PerformanceState } from '../../PerformanceState';
@@ -28,6 +29,14 @@ const mkMemory = (key: string): IntentMemory => ({
   actions: [], before: safeState, after: safeState,
   delta: { tension: 0, chaos: 0, groove: 0, energy: 0 },
   score: 0.5, timestamp: Date.now(),
+});
+
+const mkEnvMemory = (env: string, score: number): IntentMemory => ({
+  intent: 'test', embeddingKey: 'general_control',
+  environment: env,
+  actions: [], before: safeState, after: safeState,
+  delta: { tension: 0, chaos: 0, groove: 0, energy: 0 },
+  score, timestamp: Date.now(),
 });
 
 describe('ENVIRONMENTS', () => {
@@ -136,6 +145,52 @@ describe('EnvironmentManager', () => {
     mgr.unlock();
     mgr.autoSelect(chaosState, []);
     expect(mgr.get().name).toBe('chaosJam');
+  });
+});
+
+describe('scoreEnvironmentFromMemory', () => {
+  it('returns 0.5 when no memories match the env', () => {
+    const mems = [mkEnvMemory('cinematic', 0.8), mkEnvMemory('cinematic', 0.9)];
+    expect(scoreEnvironmentFromMemory('chaosJam', mems)).toBe(0.5);
+  });
+
+  it('returns the score when only one matching memory exists', () => {
+    expect(scoreEnvironmentFromMemory('chaosJam', [mkEnvMemory('chaosJam', 0.8)])).toBeCloseTo(0.8);
+  });
+
+  it('scores higher when the most recent memories are high quality', () => {
+    // Identical older entries — only the most-recent score differs
+    const lowRecent  = [0.5, 0.5, 0.5, 0.1].map(s => mkEnvMemory('cinematic', s));
+    const highRecent = [0.5, 0.5, 0.5, 0.9].map(s => mkEnvMemory('cinematic', s));
+    expect(scoreEnvironmentFromMemory('cinematic', highRecent)).toBeGreaterThan(
+      scoreEnvironmentFromMemory('cinematic', lowRecent),
+    );
+  });
+
+  it('returns 0.5 for empty memory list', () => {
+    expect(scoreEnvironmentFromMemory('cinematic', [])).toBe(0.5);
+  });
+});
+
+describe('detectEnvironment (memory-weighted)', () => {
+  it('favors env with strong historical memory scores even from a neutral state', () => {
+    const mems = Array.from({ length: 5 }, () => mkEnvMemory('chaosJam', 0.9));
+    const result = detectEnvironment(safeState, mems, ENVIRONMENTS.cinematic);
+    expect(result?.name).toBe('chaosJam');
+  });
+
+  it('avoids env whose memories show poor outcomes, deferring to neutral fallback', () => {
+    const mems = Array.from({ length: 10 }, () => mkEnvMemory('chaosJam', 0.1));
+    // Even a chaotic state with bad chaosJam history should not select chaosJam
+    const result = detectEnvironment(chaosState, mems, ENVIRONMENTS.cinematic);
+    expect(result?.name).not.toBe('chaosJam');
+  });
+
+  it('selects based on memory over state when evidence is dense', () => {
+    // cinematic has consistently good memory; state would normally suggest chaosJam
+    const mems = Array.from({ length: 10 }, () => mkEnvMemory('cinematic', 0.95));
+    const result = detectEnvironment(chaosState, mems, ENVIRONMENTS.chaosJam);
+    expect(result?.name).toBe('cinematic');
   });
 });
 

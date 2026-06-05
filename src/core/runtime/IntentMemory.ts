@@ -14,6 +14,7 @@ export interface StateDelta {
 export interface IntentMemory {
   intent:       string;
   embeddingKey: string;
+  environment?: string;   // active environment when the intent was issued
   actions:      PerformanceAction[];
   before:       PerformanceState;
   after:        PerformanceState;
@@ -67,16 +68,18 @@ export class IntentMemoryStore {
    * PerformanceRuntime to supply a policy-aware score instead.
    */
   record(
-    intent:  string,
-    actions: PerformanceAction[],
-    before:  PerformanceState,
-    after:   PerformanceState,
-    rating?: number,
-    score?:  number,
+    intent:       string,
+    actions:      PerformanceAction[],
+    before:       PerformanceState,
+    after:        PerformanceState,
+    rating?:      number,
+    score?:       number,
+    environment?: string,
   ): IntentMemory {
     const memory: IntentMemory = {
       intent,
       embeddingKey: normalizeIntentKey(intent),
+      environment,
       actions:      [...actions],
       before,
       after,

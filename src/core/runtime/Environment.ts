@@ -77,43 +77,95 @@ export function mergeStyleWithBias(style: Style, bias: CompilerBias): Style {
   };
 }
 
-// ─── Auto-detection ────────────────────────────────────────────────────────────
+// ─── Memory-weighted environment detection ─────────────────────────────────────
 
 /**
- * Suggest an environment based on current state and recent intent patterns.
- * Returns null if the detected env matches the current one (no switch needed).
+ * Recency-weighted average score of memories tagged with envName.
+ * Exponential decay with half-life ≈ 35 ticks (exp(-age/50)).
+ * Returns 0.5 (neutral) when no tagged memories exist.
+ */
+export function scoreEnvironmentFromMemory(
+  envName:  string,
+  memories: IntentMemory[],
+): number {
+  const envMems = memories.filter(m => m.environment === envName);
+  if (envMems.length === 0) return 0.5;
+
+  let weightedScore = 0;
+  let totalWeight   = 0;
+  const n = envMems.length;
+  for (let i = 0; i < n; i++) {
+    const age       = n - 1 - i;           // 0 = most recent
+    const w         = Math.exp(-age / 50);
+    weightedScore  += envMems[i]!.score * w;
+    totalWeight    += w;
+  }
+  return totalWeight > 0 ? weightedScore / totalWeight : 0.5;
+}
+
+/**
+ * Soft state-match score [0, 1] for a candidate environment.
+ * Replaces hard-threshold rules with graduated signals so memory evidence
+ * can override state bias once enough history exists.
+ */
+function stateAffinity(
+  state:          PerformanceState,
+  env:            StyleEnvironment,
+  entropyCount:   number,
+  precisionCount: number,
+): number {
+  if (env.name === 'chaosJam') {
+    const chaosSignal  = Math.max(0, (state.chaos - 0.5) * 2);
+    const driftSignal  = Math.max(0, (state.drift - 0.3) * 1.43);
+    const intentSignal = entropyCount >= 3 ? 0.6 : 0;
+    return Math.min(1, Math.max(chaosSignal, driftSignal, intentSignal));
+  }
+  if (env.name === 'precision') {
+    const stabilitySignal = Math.max(0, (state.stability - 0.6) * 2.5);
+    const chaosOk         = Math.max(0, (0.5 - state.chaos) * 2);
+    const intentBoost     = precisionCount >= 2 ? 0.2 : 0;
+    return Math.min(1, stabilitySignal * chaosOk + intentBoost);
+  }
+  return 0.5; // cinematic: neutral baseline
+}
+
+/**
+ * Suggest an environment using memory-weighted history blended with a soft
+ * state-affinity signal (70 % memory, 30 % state).
  *
- * Heuristics (in priority order):
- *   chaos > 0.7 OR drift > 0.5 OR 3+ entropy intents in last 10  → chaosJam
- *   stability > 0.75 AND chaos < 0.25 AND 2+ precision intents    → precision
- *   otherwise                                                       → cinematic
+ * When no env-tagged memories exist (bootstrap), falls back to pure state
+ * signals and preserves intent-pattern detection behavior.
+ *
+ * Returns null if the best-match environment is already current.
  */
 export function detectEnvironment(
   state:    PerformanceState,
   memories: IntentMemory[],
   current:  StyleEnvironment,
 ): StyleEnvironment | null {
-  const recent10 = memories.slice(-10);
-
-  const entropyCount = recent10.filter(
+  const recent10      = memories.slice(-10);
+  const entropyCount  = recent10.filter(
     m => m.embeddingKey === 'entropy_control' || m.embeddingKey === 'tension_control',
   ).length;
-
   const precisionCount = recent10.filter(
     m => m.embeddingKey === 'stability_control' || m.embeddingKey === 'rhythm_control',
   ).length;
 
-  let target: StyleEnvironment;
+  const envList = Object.values(ENVIRONMENTS);
+  let best      = envList[0]!;
+  let bestScore = -Infinity;
 
-  if (state.chaos > 0.7 || state.drift > 0.5 || entropyCount >= 3) {
-    target = ENVIRONMENTS.chaosJam;
-  } else if (state.stability > 0.75 && state.chaos < 0.25 && precisionCount >= 2) {
-    target = ENVIRONMENTS.precision;
-  } else {
-    target = ENVIRONMENTS.cinematic;
+  for (const env of envList) {
+    const memScore   = scoreEnvironmentFromMemory(env.name, memories);
+    const stateScore = stateAffinity(state, env, entropyCount, precisionCount);
+    const blended    = memScore * 0.7 + stateScore * 0.3;
+    if (blended > bestScore) {
+      bestScore = blended;
+      best      = env;
+    }
   }
 
-  return target.name === current.name ? null : target;
+  return best.name === current.name ? null : best;
 }
 
 // ─── Manager ───────────────────────────────────────────────────────────────────

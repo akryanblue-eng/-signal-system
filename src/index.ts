@@ -67,7 +67,7 @@ export { IntentMemoryStore, normalizeIntentKey, embedActions, vectorSimilarity, 
 export type { IntentMemory, StateDelta }   from './core/runtime/IntentMemory';
 export { classifyStateSafety, gateActions, clampStyle, DEFAULT_STYLE_BOUNDS } from './core/runtime/Constraints';
 export type { StyleBounds, SafetyVerdict } from './core/runtime/Constraints';
-export { ENVIRONMENTS, EnvironmentManager, detectEnvironment, mergeStyleWithBias } from './core/runtime/Environment';
+export { ENVIRONMENTS, EnvironmentManager, detectEnvironment, mergeStyleWithBias, scoreEnvironmentFromMemory } from './core/runtime/Environment';
 export type { StyleEnvironment, CompilerBias } from './core/runtime/Environment';
 export {
   BASE_META_POLICY, MetaObserver,
