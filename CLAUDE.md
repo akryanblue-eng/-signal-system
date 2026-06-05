@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**-signal-system** is a rhythm/music intelligence system ("Beat Mania") that evolves a semantic representation of audio behavior over time. It is NOT a standard audio player — it is a self-observing system where audio generates physics, physics generates a genome, and the genome will eventually guide the scheduler back.
+**-signal-system** is a **deterministic evolutionary recorder with constrained identity formation** — a rhythm/music intelligence system ("Beat Mania") where audio generates physics, physics generates a genome, and the genome will eventually guide the scheduler back. It is not a groove engine with memory. Creativity happens in the field; interpretation happens only in compression; decision-making operates exclusively on stabilized abstractions.
 
 The system is being built in deliberate stages. Do not conflate stages or implement later stages prematurely.
 
@@ -139,7 +139,8 @@ This is the next component to build. Requirements:
 - **Algorithm:** deterministic geometric clustering — no ML, no probabilistic models
 - **Clustering dimensions:** stability, tension profile, recurrence frequency
 - **Output:** `SpeciesNode[]` with confidence scores
-- **Guarantee:** fully replay-stable (same genome window → same species output, always)
+- **Contract:** Species layer is a **pure function over history**, not a learned interpretation of it. Same genome window → same species output, always — no runtime-dependent classification, no stochastic embeddings, no learned similarity drift.
+- **Consequence of the contract:** offline replay ≡ live extraction; debugging is deterministic; evolution traces are verifiable
 
 Three deliverables for Stage 2 completion:
 1. `SpeciesExtractor` — windowed genome collapse → `SpeciesNode[]`
@@ -153,6 +154,7 @@ Three deliverables for Stage 2 completion:
 3. **Genome never controls audio** — until Stage 4 is explicitly started, treat any code path from Genome back to AudioWorklet as a bug.
 4. **Species feeds scheduler read-only first** — when Stage 3 begins, wire species pressure as scheduler input only; no write-back until Stage 4.
 5. **No ML for species extraction** — pure geometry + thresholds (stability, tension profile, recurrence frequency). Keeps compression deterministic and replayable.
+6. **No interpretation leakage** — raw behavior cannot directly influence identity; identity cannot drift based on runtime artifacts; only structured compression (the species layer) is allowed to define "what something is." Violations produce emergent semantics from unbounded feedback — the specific failure mode this architecture exists to prevent.
 
 ## Repository
 
