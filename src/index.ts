@@ -53,6 +53,20 @@ export type { ForceFunction, DampingFunction } from './visualization/FlowFieldEn
 export { generateFlowField }               from './visualization/generateFlowField';
 export type { FieldCell }                  from './visualization/generateFlowField';
 
+// ─── Observability layer ─────────────────────────────────────────────────────
+export { SnapshotRecorder }                from './core/manifold/RuntimeSnapshot';
+export type { RuntimeSnapshot }            from './core/manifold/RuntimeSnapshot';
+export { TrajectoryBuffer }                from './core/manifold/TrajectoryBuffer';
+export type { TrailPoint }                 from './core/manifold/TrajectoryBuffer';
+export { blendSteeringState, forceAlignment } from './core/manifold/SteeringState';
+export type { SteeringState }              from './core/manifold/SteeringState';
+export { fromManifoldState, assessPerformanceState } from './core/PerformanceState';
+export type { PerformanceState }           from './core/PerformanceState';
+
+// ─── Chaos engine ─────────────────────────────────────────────────────────────
+export { ChaosEngine, chaosForce }         from './engine/ChaosEngine';
+export type { ChaosEvent, ChaosEventType, ActiveChaosEvent } from './engine/ChaosEngine';
+
 // ─── Engine — MIDI injection + bidirectional brain ───────────────────────────
 export { midiToForce, FlowFieldInjector }  from './engine/MidiForceInjector';
 export type { MidiForceEvent, MidiForceType } from './engine/MidiForceInjector';
@@ -63,7 +77,8 @@ export type { BrainRuntimeOutput }         from './engine/BidirectionalBrainRunt
 export { MidiBrainBridge }                 from './engine/MidiBrainBridge';
 
 // ─── Visualization — browser/Three.js required ───────────────────────────────
-// FlowFieldScene and FlowFieldMaterial are NOT re-exported here because they
-// import Three.js types. Import them directly in browser entry points:
-//   import { FlowFieldScene }   from '-signal-system/src/visualization/FlowFieldScene';
+// FlowFieldScene, FlowFieldMaterial, and RuntimeInspector are NOT re-exported
+// here because they require browser DOM / Three.js. Import them directly:
+//   import { FlowFieldScene }    from '-signal-system/src/visualization/FlowFieldScene';
 //   import { FlowFieldMaterial } from '-signal-system/src/visualization/FlowFieldMaterial';
+//   import { RuntimeInspector }  from '-signal-system/src/ui/RuntimeInspector';
