@@ -63,8 +63,10 @@ export { parseIntent, compileIntent, handleIntent, handleIntentWithStyle } from 
 export type { ParsedIntent, IntentTarget } from './core/runtime/IntentCompiler';
 export { applyStyle, STYLES }              from './core/runtime/Style';
 export type { Style }                      from './core/runtime/Style';
-export { IntentMemoryStore, normalizeIntentKey, embedActions, vectorSimilarity, mergeActions, computeDelta } from './core/runtime/IntentMemory';
+export { IntentMemoryStore, normalizeIntentKey, embedActions, vectorSimilarity, mergeActions, computeDelta, scoreOutcome, deriveStyle, smoothStyle } from './core/runtime/IntentMemory';
 export type { IntentMemory, StateDelta }   from './core/runtime/IntentMemory';
+export { classifyStateSafety, gateActions, clampStyle, DEFAULT_STYLE_BOUNDS } from './core/runtime/Constraints';
+export type { StyleBounds, SafetyVerdict } from './core/runtime/Constraints';
 
 // ─── Observability layer ─────────────────────────────────────────────────────
 export { SnapshotRecorder }                from './core/manifold/RuntimeSnapshot';

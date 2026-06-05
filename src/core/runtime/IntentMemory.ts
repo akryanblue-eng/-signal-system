@@ -1,5 +1,6 @@
 import type { PerformanceAction } from './PerformanceAction';
 import type { PerformanceState }  from '../PerformanceState';
+import type { Style }             from './Style';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -17,7 +18,8 @@ export interface IntentMemory {
   before:       PerformanceState;
   after:        PerformanceState;
   delta:        StateDelta;
-  rating?:      number;   // [-1, 1] — positive = good outcome, negative = bad
+  score:        number;   // [0, 1] — auto-computed outcome quality (scoreOutcome)
+  rating?:      number;   // [-1, 1] — explicit user feedback (overrides score in queries)
   timestamp:    number;
 }
 
@@ -74,6 +76,7 @@ export class IntentMemoryStore {
       before,
       after,
       delta:        computeDelta(before, after),
+      score:        scoreOutcome(after),
       rating,
       timestamp:    Date.now(),
     };
@@ -155,4 +158,84 @@ export function mergeActions(
 ): PerformanceAction[] {
   const learnedTypes = new Set(learned.map(a => a.type));
   return [...learned, ...base.filter(a => !learnedTypes.has(a.type))];
+}
+
+// ─── Outcome scoring ───────────────────────────────────────────────────────────
+
+const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
+
+/**
+ * Heuristic quality signal for a post-intent state.
+ * "Good performance" = coherent but alive:
+ *   groove (0.5 weight)  — rhythmic lock
+ *   stability (0.3)      — system under control
+ *   chaos near 0.4 (0.2) — some texture, not runaway
+ */
+export function scoreOutcome(state: PerformanceState): number {
+  return clamp01(
+    state.groove    * 0.5 +
+    state.stability * 0.3 +
+    (1 - Math.abs(state.chaos - 0.4)) * 0.2,
+  );
+}
+
+// ─── Learned style derivation ──────────────────────────────────────────────────
+
+/**
+ * Derive a Style vector from recent memory by computing the score-weighted
+ * average of action feature contributions.
+ *
+ * High-score memories bias the style toward "what worked":
+ *   chaos-heavy patterns   → raises aggression
+ *   stable/groove patterns → raises precision + grooveBias
+ *
+ * Returns `NEUTRAL_STYLE` when there are no scored memories.
+ */
+export function deriveStyle(memories: IntentMemory[]): Style {
+  const NEUTRAL: Style = { name: 'learned', aggression: 1.0, precision: 0.7, grooveBias: 1.0 };
+
+  const rated = memories.filter(m => m.score > 0);
+  if (rated.length === 0) return NEUTRAL;
+
+  let totalWeight = 0;
+  let agg         = 0;
+  let prec        = 0;
+  let groove      = 0;
+
+  for (const mem of rated) {
+    const w = mem.score;
+    totalWeight += w;
+
+    for (const a of mem.actions) {
+      if (a.type === 'CHAOS_SPIKE')    agg   += a.amount * w;
+      if (a.type === 'DRIFT_INJECTION') agg  += a.amount * 0.5 * w;
+      if (a.type === 'TENSION_BUILD')  agg   += a.amount * 0.3 * w;
+      if (a.type === 'GROOVE_LOCK')    groove += 0.2 * w;
+      if (a.type === 'STABILITY_RESTORE') prec += a.amount * w;
+      if (a.type === 'ENERGY_PULSE')   prec   += a.amount * 0.5 * w;
+    }
+  }
+
+  const safe = (v: number): number => v / totalWeight;
+
+  return {
+    name:       'learned',
+    aggression: clamp01(0.5 + safe(agg)),
+    precision:  clamp01(0.3 + safe(prec)),
+    grooveBias: clamp01(0.5 + safe(groove)),
+  };
+}
+
+/**
+ * Exponential moving average for style vectors — prevents personality flicker.
+ * alpha = 0.1 (default) means ~10% toward new style per call.
+ */
+export function smoothStyle(prev: Style, next: Style, alpha = 0.1): Style {
+  const lerp = (a: number, b: number): number => a + (b - a) * alpha;
+  return {
+    name:       next.name,
+    aggression: lerp(prev.aggression, next.aggression),
+    precision:  lerp(prev.precision,  next.precision),
+    grooveBias: lerp(prev.grooveBias, next.grooveBias),
+  };
 }

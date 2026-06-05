@@ -2,6 +2,12 @@ import type { PerformanceState } from '../PerformanceState';
 import type { PerformanceAction, Dispatch } from './PerformanceAction';
 import { EventBus } from './EventBus';
 import { performanceReducer } from './performanceReducer';
+import type { Style } from './Style';
+import { STYLES, applyStyle } from './Style';
+import { IntentMemoryStore, deriveStyle, smoothStyle } from './IntentMemory';
+import { parseIntent, compileIntent } from './IntentCompiler';
+import { gateActions, clampStyle, DEFAULT_STYLE_BOUNDS } from './Constraints';
+import type { StyleBounds } from './Constraints';
 
 // ─── System interface ──────────────────────────────────────────────────────────
 
@@ -42,40 +48,77 @@ export class GovernorSystem implements PerformanceSystem {
   }
 }
 
+// ─── Options ───────────────────────────────────────────────────────────────────
+
+export interface PerformanceRuntimeOptions {
+  systems?:     PerformanceSystem[];
+  memory?:      IntentMemoryStore;
+  style?:       Style;
+  styleBounds?: StyleBounds;
+}
+
 // ─── Runtime ───────────────────────────────────────────────────────────────────
 
 /**
- * Orchestrates the per-tick pipeline:
+ * Closed behavioral ecology:
  *
- *   systems.tick() → EventBus.flush() → performanceReducer() → new state
+ *   handleInput(text)
+ *     ↓ compile with currentStyle
+ *   EventBus.dispatch()
+ *     ↓ systems + flush
+ *   performanceReducer()
+ *     ↓ new state
+ *   IntentMemoryStore.record()   ← auto-score via scoreOutcome
+ *     ↓ recent(100)
+ *   deriveStyle() + smoothStyle() ← learned style update
  *
- * Tick order (single causal pass per frame):
- *   1. Advance frame counter + timestamp
- *   2. Systems read current state and queue actions
- *   3. Flush event queue → reducer (atomic per frame)
- *   4. Return new state
- *
- * tickStep() is callable externally for testing; start()/stop() wraps RAF.
+ * tickStep() is RAF-free for test determinism.
  */
 export class PerformanceRuntime {
-  private state:   PerformanceState;
-  private bus:     EventBus<PerformanceAction> = new EventBus();
-  private systems: PerformanceSystem[];
-  private running  = false;
-  private lastTime = 0;
+  private state:        PerformanceState;
+  private bus:          EventBus<PerformanceAction> = new EventBus();
+  private systems:      PerformanceSystem[];
+  private memory:       IntentMemoryStore;
+  private currentStyle: Style;
+  private styleBounds:  StyleBounds;
+  private running       = false;
+  private lastTime      = 0;
+
+  // Intent waiting to be recorded after the current tick completes
+  private pendingInput: {
+    text:    string;
+    actions: PerformanceAction[];
+    before:  PerformanceState;
+  } | null = null;
 
   constructor(
     initialState: PerformanceState,
-    systems: PerformanceSystem[] = [new ChaosSystem(), new GovernorSystem()],
+    options: PerformanceRuntimeOptions = {},
   ) {
-    this.state   = { ...initialState };
-    this.systems = systems;
+    this.state        = { ...initialState };
+    this.systems      = options.systems      ?? [new ChaosSystem(), new GovernorSystem()];
+    this.memory       = options.memory       ?? new IntentMemoryStore();
+    this.currentStyle = options.style        ?? { ...STYLES.neutral };
+    this.styleBounds  = options.styleBounds  ?? DEFAULT_STYLE_BOUNDS;
   }
 
   /** Queue an action for processing in the current (or next) tick. */
   readonly dispatch: Dispatch = (action) => {
     this.bus.dispatch(action);
   };
+
+  /**
+   * Accept a natural-language intent, compile with the current learned style,
+   * and queue the resulting actions. Memory is recorded after the next tickStep.
+   */
+  handleInput(text: string): void {
+    const intent  = parseIntent(text);
+    const raw     = compileIntent(intent);
+    const styled  = applyStyle(raw, this.currentStyle);
+    const gated   = gateActions(styled, this.state); // safety layer
+    for (const action of gated) this.dispatch(action);
+    this.pendingInput = { text, actions: gated, before: this.state };
+  }
 
   /** Single deterministic tick — safe to call in tests without RAF. */
   tickStep(dt: number): PerformanceState {
@@ -96,12 +139,28 @@ export class PerformanceRuntime {
       this.state = performanceReducer(this.state, action);
     }
 
+    // 4. Record memory for any pending input (post-state so delta is accurate)
+    if (this.pendingInput) {
+      this.memory.record(
+        this.pendingInput.text,
+        this.pendingInput.actions,
+        this.pendingInput.before,
+        this.state,
+      );
+      this.pendingInput = null;
+    }
+
+    // 5. Update learned style from recent memory (smoothed + bounded to prevent drift)
+    const derived     = deriveStyle(this.memory.recent(100));
+    const smoothed    = smoothStyle(this.currentStyle, derived);
+    this.currentStyle = clampStyle(smoothed, this.styleBounds);
+
     return this.state;
   }
 
-  getState(): PerformanceState {
-    return this.state;
-  }
+  getState():  PerformanceState  { return this.state; }
+  getStyle():  Style             { return this.currentStyle; }
+  getMemory(): IntentMemoryStore { return this.memory; }
 
   start(): void {
     if (this.running) return;

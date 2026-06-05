@@ -19,28 +19,28 @@ describe('PerformanceRuntime', () => {
   });
 
   it('high tension causes ChaosSystem to dispatch CHAOS_SPIKE', () => {
-    const rt = new PerformanceRuntime(mkState({ tension: 0.9, chaos: 0.1 }), [new ChaosSystem()]);
+    const rt = new PerformanceRuntime(mkState({ tension: 0.9, chaos: 0.1 }), { systems: [new ChaosSystem()] });
     rt.tickStep(0.016);
     expect(rt.getState().chaos).toBeGreaterThan(0.1);
     expect(rt.getState().lastEvent).toBe('CHAOS_SPIKE');
   });
 
   it('high chaos causes GovernorSystem to dispatch TENSION_RELEASE', () => {
-    const rt = new PerformanceRuntime(mkState({ chaos: 0.9, tension: 0.8 }), [new GovernorSystem()]);
+    const rt = new PerformanceRuntime(mkState({ chaos: 0.9, tension: 0.8 }), { systems: [new GovernorSystem()] });
     rt.tickStep(0.016);
     expect(rt.getState().tension).toBeLessThan(0.8);
     expect(rt.getState().lastEvent).toBe('TENSION_RELEASE');
   });
 
   it('external dispatch is processed within the same tickStep', () => {
-    const rt = new PerformanceRuntime(mkState({ energy: 0.3 }), []);
+    const rt = new PerformanceRuntime(mkState({ energy: 0.3 }), { systems: [] });
     rt.dispatch({ type: 'ENERGY_PULSE', amount: 0.3 });
     rt.tickStep(0.016);
     expect(rt.getState().energy).toBeCloseTo(0.6);
   });
 
   it('systems run with no-op array → state advances but is otherwise unchanged', () => {
-    const rt = new PerformanceRuntime(mkState({ chaos: 0.5 }), []);
+    const rt = new PerformanceRuntime(mkState({ chaos: 0.5 }), { systems: [] });
     const before = rt.getState().chaos;
     rt.tickStep(0.016);
     expect(rt.getState().chaos).toBe(before);
@@ -55,9 +55,29 @@ describe('PerformanceRuntime', () => {
         dispatch({ type: 'GROOVE_LOCK' });
       },
     };
-    const rt = new PerformanceRuntime(mkState({ chaos: 0.5, groove: 0.2 }), [spy]);
+    const rt = new PerformanceRuntime(mkState({ chaos: 0.5, groove: 0.2 }), { systems: [spy] });
     rt.tickStep(0.016);
     expect(witnessed).toHaveLength(1);
     expect(rt.getState().groove).toBeCloseTo(0.32);
+  });
+
+  it('handleInput records memory after tickStep', () => {
+    const rt = new PerformanceRuntime(mkState({ chaos: 0.1 }), { systems: [] });
+    rt.handleInput('add chaos glitch');
+    rt.tickStep(0.016);
+    expect(rt.getMemory().size).toBe(1);
+    expect(rt.getMemory().recent(1)[0]?.intent).toBe('add chaos glitch');
+  });
+
+  it('style evolves from neutral after repeated high-chaos inputs', () => {
+    const rt = new PerformanceRuntime(mkState(), { systems: [] });
+    const initialAggression = rt.getStyle().aggression;
+    for (let i = 0; i < 5; i++) {
+      rt.handleInput('chaos glitch break');
+      rt.tickStep(0.016);
+    }
+    // After chaos-heavy inputs, style should drift toward higher aggression
+    // (smoothed, so it may be subtle — just confirm it changed direction)
+    expect(rt.getStyle().aggression).not.toBe(initialAggression);
   });
 });

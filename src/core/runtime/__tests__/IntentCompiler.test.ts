@@ -63,14 +63,14 @@ describe('compileIntent', () => {
 
 describe('handleIntent integration', () => {
   it('dispatches actions into runtime; state reflects change', () => {
-    const rt = new PerformanceRuntime({ ...DEFAULT_PERFORMANCE_STATE, chaos: 0.1 }, []);
+    const rt = new PerformanceRuntime({ ...DEFAULT_PERFORMANCE_STATE, chaos: 0.1 }, { systems: [] });
     handleIntent('add glitch chaos', rt.dispatch);
     rt.tickStep(0.016);
     expect(rt.getState().chaos).toBeGreaterThan(0.1);
   });
 
   it('calm intent reduces tension after tick', () => {
-    const rt = new PerformanceRuntime({ ...DEFAULT_PERFORMANCE_STATE, tension: 0.8 }, []);
+    const rt = new PerformanceRuntime({ ...DEFAULT_PERFORMANCE_STATE, tension: 0.8 }, { systems: [] });
     handleIntent('calm it down', rt.dispatch);
     rt.tickStep(0.016);
     expect(rt.getState().tension).toBeLessThan(0.8);
