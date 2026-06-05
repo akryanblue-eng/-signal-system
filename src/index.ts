@@ -71,6 +71,8 @@ export { ENVIRONMENTS, EnvironmentManager, detectEnvironment, mergeStyleWithBias
 export type { StyleEnvironment, CompilerBias } from './core/runtime/Environment';
 export { simulate, evaluateCounterfactual, recommendEnvironment } from './core/runtime/CounterfactualEval';
 export type { CounterfactualCase } from './core/runtime/CounterfactualEval';
+export { PolicyModel, distillSample, selectEnvironment } from './core/runtime/PolicyDistillation';
+export type { PolicyFeatures, PolicySample } from './core/runtime/PolicyDistillation';
 
 export {
   BASE_META_POLICY, MetaObserver,
