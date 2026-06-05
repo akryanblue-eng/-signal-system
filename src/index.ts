@@ -69,6 +69,9 @@ export { classifyStateSafety, gateActions, clampStyle, DEFAULT_STYLE_BOUNDS } fr
 export type { StyleBounds, SafetyVerdict } from './core/runtime/Constraints';
 export { ENVIRONMENTS, EnvironmentManager, detectEnvironment, mergeStyleWithBias, scoreEnvironmentFromMemory } from './core/runtime/Environment';
 export type { StyleEnvironment, CompilerBias } from './core/runtime/Environment';
+export { simulate, evaluateCounterfactual, recommendEnvironment } from './core/runtime/CounterfactualEval';
+export type { CounterfactualCase } from './core/runtime/CounterfactualEval';
+
 export {
   BASE_META_POLICY, MetaObserver,
   scoreOutcomeWithPolicy, evaluatePolicyPerformance, updateMetaPolicy,
