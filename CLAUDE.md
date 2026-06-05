@@ -144,6 +144,8 @@ This is the next component to build. Requirements:
 - **Contract:** Species layer is a **pure function over history**, not a learned interpretation of it. Same genome window → same species output, always — no runtime-dependent classification, no stochastic embeddings, no learned similarity drift.
 - **Consequence of the contract:** offline replay ≡ live extraction; debugging is deterministic; evolution traces are verifiable
 - **Evolution model: batch-derived, not streaming-learned** — all adaptation happens via structural recomputation over a window, never via incremental weight updates, continuous embedding evolution, or online learning. The identity layer has no mutable internal state between runs.
+- **Species Extractor is a deterministic projection operator, not a model** — it is not adaptive clustering, an evolving model, or a learned representation system. Each invocation is a stateless evaluation of a bounded history slice: `(window input → deterministic transformation → output)`. Nothing outside the input window may influence the output.
+- **The API must fail loudly on violations** — if hidden state, temporal smoothing, incremental updates, or stochastic branching are introduced, the extractor should surface this as an error, not silently degrade replay equivalence.
 
 Three deliverables for Stage 2 completion:
 1. `SpeciesExtractor` — windowed genome collapse → `SpeciesNode[]`
@@ -158,6 +160,7 @@ Three deliverables for Stage 2 completion:
 4. **Species feeds scheduler read-only first** — when Stage 3 begins, wire species pressure as scheduler input only; no write-back until Stage 4.
 5. **No ML for species extraction** — pure geometry + thresholds (stability, tension profile, recurrence frequency). Keeps compression deterministic and replayable.
 6. **No interpretation leakage** — raw behavior cannot directly influence identity; identity cannot drift based on runtime artifacts; only structured compression (the species layer) is allowed to define "what something is." Violations produce emergent semantics from unbounded feedback — the specific failure mode this architecture exists to prevent.
+7. **No tier may remember in order to compute identity** — this is the global invariant across all four tiers. Memory (Genome) records; it does not interpret. Interpretation (Species) derives from a bounded window; it does not accumulate. Any code path where a tier retains state across evaluation boundaries to influence identity output is a violation of this invariant.
 
 ## Repository
 
