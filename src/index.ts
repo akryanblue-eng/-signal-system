@@ -53,6 +53,15 @@ export type { ForceFunction, DampingFunction } from './visualization/FlowFieldEn
 export { generateFlowField }               from './visualization/generateFlowField';
 export type { FieldCell }                  from './visualization/generateFlowField';
 
+// ─── Runtime pipeline (EventBus → reducer → PerformanceRuntime) ─────────────
+export { EventBus }                        from './core/runtime/EventBus';
+export { performanceReducer }              from './core/runtime/performanceReducer';
+export { PerformanceRuntime, ChaosSystem, GovernorSystem } from './core/runtime/PerformanceRuntime';
+export type { PerformanceSystem }          from './core/runtime/PerformanceRuntime';
+export type { PerformanceAction, Dispatch } from './core/runtime/PerformanceAction';
+export { parseIntent, compileIntent, handleIntent } from './core/runtime/IntentCompiler';
+export type { ParsedIntent, IntentTarget } from './core/runtime/IntentCompiler';
+
 // ─── Observability layer ─────────────────────────────────────────────────────
 export { SnapshotRecorder }                from './core/manifold/RuntimeSnapshot';
 export type { RuntimeSnapshot }            from './core/manifold/RuntimeSnapshot';

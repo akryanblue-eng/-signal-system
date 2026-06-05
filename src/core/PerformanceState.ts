@@ -28,9 +28,14 @@ export interface PerformanceState {
   // ── Venue physics ─────────────────────────────────────────────────────────
   venuePressure:   number; // [0, 1]  — accumulated environmental pressure
 
+  // ── Temporal dynamics ────────────────────────────────────────────────────
+  groove:          number; // [0, 1]  — rhythmic coherence / beat-lock depth
+  drift:           number; // [0, 1]  — accumulated long-term deviation pressure
+
   // ── Meta ──────────────────────────────────────────────────────────────────
   timestamp:       number; // performance.now()
   frameIndex:      number;
+  lastEvent?:      string; // most recent action type dispatched (debug tracing)
 }
 
 export const DEFAULT_PERFORMANCE_STATE: PerformanceState = {
@@ -42,6 +47,8 @@ export const DEFAULT_PERFORMANCE_STATE: PerformanceState = {
   crowdResonance:  0.5,
   performerIntent: [0, 0],
   venuePressure:   0.1,
+  groove:          0.4,
+  drift:           0.0,
   timestamp:       0,
   frameIndex:      0,
 };
@@ -65,6 +72,7 @@ export function fromManifoldState(
     chaos,
     tension:         Math.max(0, Math.abs(manifold.drift) - 0.2),
     recovery:        manifold.coherence * (1 - chaos * 0.4),
+    drift:           Math.min(1, Math.abs(manifold.drift)),
     timestamp:       typeof performance !== 'undefined' ? performance.now() : 0,
     frameIndex,
     ...overrides,
