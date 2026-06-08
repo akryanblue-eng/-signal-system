@@ -167,3 +167,29 @@ fn project_entity_delta(
         }
     }
 }
+
+/// Divergence result with completeness annotation.
+/// If either prefix is incomplete (C = bot), comparison is undetermined.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnnotatedDivergence {
+    Determined(DivergenceReport),
+    /// Comparison deferred: one or both states are derived from an incomplete prefix.
+    Undetermined,
+}
+
+/// Compare two states only when both prefixes are complete.
+///
+/// If C(prefix_a) = bot or C(prefix_b) = bot, returns Undetermined.
+/// Prevents comparing states that may still change as more events arrive.
+pub fn detect_if_complete(
+    a: &CompiledState,
+    a_complete: bool,
+    b: &CompiledState,
+    b_complete: bool,
+) -> AnnotatedDivergence {
+    if !a_complete || !b_complete {
+        AnnotatedDivergence::Undetermined
+    } else {
+        AnnotatedDivergence::Determined(detect(a, b))
+    }
+}
