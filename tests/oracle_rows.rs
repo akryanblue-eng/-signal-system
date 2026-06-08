@@ -1,12 +1,12 @@
 // Oracle evidence ledger — machine-readable baseline.
 //
-// Row 1   | Valid input -> deterministic reduction | state_hash STABLE | frontier STABLE | prefix_hash STABLE
-// Row 1b  | Invalid input -> non-admission         | state_hash STABLE | frontier STABLE | prefix_hash STABLE
-// Row 2A  | Readiness boundary (schedule-sensitive)| frontier FROZEN   | readiness STABLE
-// Row 2B  | Interleaving invariance (commutativity)| ingestion order   | ack order       | K-merge order
+// Row 1   | Valid input -> deterministic reduction | state_hash STABLE  | frontier STABLE | prefix_hash STABLE
+// Row 1b  | Invalid input -> non-admission         | state_hash STABLE  | frontier STABLE | prefix_hash STABLE
+// Row 2A  | Readiness boundary (schedule-sensitive)| frontier FROZEN    | readiness STABLE
+// Row 2B  | Interleaving invariance (commutativity)| ingestion order    | ack order       | K-merge order
+// Row 3   | Monotonicity / Drift (time-axis)       | frontier MONOTONE  | null-input STABLE | first_delta CAPTURED
 //
-// Row 1 / Row 1b / Row 2A / Row 2B are frozen; do not modify existing tests in this file.
-// Row 3 (monotonicity / drift) is the next target.
+// Row 1 / Row 1b / Row 2A / Row 2B / Row 3 are frozen; do not modify existing tests in this file.
 
 use signal_system::codec::{decode, encode};
 use signal_system::event::Event;
@@ -619,4 +619,218 @@ fn row2b_cross_node_propagation_paths_converge() {
 
     assert_eq!(snap_a, snap_b,
         "commutativity violation: different cross-node propagation paths must converge");
+}
+
+// -----------------------------------------------------------------------
+// Row 3: Monotonicity / Drift (time-axis integrity — physics layer)
+// -----------------------------------------------------------------------
+//
+// Property: frontier is monotonically non-decreasing across all successive
+// advances. No state drift under null input (no new events, no new acks).
+//
+// Row 3 is clean only because Row 2B passed: any failure here is a genuine
+// temporal violation, not an ordering artifact.
+//
+// Failure taxonomy — delta_frontier direction at the failing step:
+//   delta > 0 when should be 0  -> ghost advancement (scheduler leak / implicit mutation)
+//   delta < 0                   -> frontier regression (illegal state reversal)
+//   first_delta at wrong step   -> premature readiness escalation
+//
+// Verified:
+//   null-input STABLE    : repeated advance without new events/acks -> no snapshot drift
+//   frontier MONOTONE    : each advance produces frontier >= prior frontier
+//   ghost advance ABSENT : stable=false / unacked events never advance frontier
+//   first_delta CAPTURED : earliest delta_frontier != 0 is recorded and classifiable
+//   late event NO REGRESS: admitting a late (low-CCI) event cannot pull frontier back
+
+// Step record for delta-trigger capture.
+// Used in row3_first_delta_trigger_captured to classify the first non-zero delta.
+#[derive(Debug)]
+struct Step {
+    index: usize,
+    label: &'static str,
+    frontier_before: Option<Cci>,
+    frontier_after: Option<Cci>,
+}
+
+impl Step {
+    fn is_delta(&self) -> bool { self.frontier_after != self.frontier_before }
+    fn is_regression(&self) -> bool {
+        matches!((self.frontier_before, self.frontier_after),
+            (Some(a), Some(b)) if b < a)
+    }
+}
+
+// Null-input stability: after a successful advance, repeated try_advance with no
+// new events or acks must produce an identical snapshot on every call.
+#[test]
+fn row3_no_drift_under_null_input() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 5 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    ks.ingest(bytes, 1, node(1));
+    ks.acknowledge(hash, node(1));
+
+    let prefix_first = ks.try_advance(true).expect("first advance must succeed");
+    let snap_first   = snapshot(&prefix_first);
+
+    // Three additional advances with no new input
+    for i in 0..3 {
+        let prefix_n = ks.try_advance(true).expect("null-input advance must succeed");
+        let snap_n   = snapshot(&prefix_n);
+        assert_eq!(snap_first, snap_n,
+            "null-input drift at null-advance #{}: snapshot must be stable", i + 1);
+    }
+}
+
+// Frontier monotonicity: across a sequence of advances each introducing a new event,
+// the frontier must be non-decreasing at every step.
+#[test]
+fn row3_frontier_is_monotone() {
+    let events: Vec<Vec<u8>> = (1u64..=5)
+        .map(|i| encode(&Event::Create { entity_id: i, kind: 0 }))
+        .collect();
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    let mut prev_frontier: Option<Cci> = None;
+
+    for (i, bytes) in events.iter().enumerate() {
+        let hash = sha256_event_hash(bytes);
+        ks.ingest(bytes.clone(), (i + 1) as u64, node(1));
+        ks.acknowledge(hash, node(1));
+
+        let prefix = ks.try_advance(true).expect("advance must succeed");
+        let curr_frontier = prefix.frontier;
+
+        if let (Some(prev), Some(curr)) = (prev_frontier, curr_frontier) {
+            assert!(curr >= prev,
+                "frontier regression at step {}: {:?} -> {:?}", i + 1, prev, curr);
+        }
+        prev_frontier = curr_frontier;
+    }
+
+    assert!(prev_frontier.is_some(), "frontier must be set after all advances");
+}
+
+// Ghost advance absent: neither stable=false nor unacked-event scenarios
+// must ever advance the frontier beyond its last legitimate value.
+#[test]
+fn row3_ghost_advance_absent() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let e2 = encode(&Event::Update { entity_id: 1, field: 0, value: 99 });
+    let h1 = sha256_event_hash(&e1);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    ks.ingest(e1, 1, node(1));
+    ks.acknowledge(h1, node(1));
+
+    let _ = ks.try_advance(true).expect("first advance must succeed");
+    let frontier_legitimate = ks.frontier;
+
+    // Ghost attempt 1: stable=false with same fully-acked state
+    let _ = ks.try_advance(false); // must fail
+    assert_eq!(frontier_legitimate, ks.frontier,
+        "ghost advance (stable=false): frontier must not change");
+
+    // Ghost attempt 2: new event ingested but unacked, stable=true
+    ks.ingest(e2, 2, node(1)); // e2 not acknowledged
+    let _ = ks.try_advance(true); // must fail: e2 unacked
+    assert_eq!(frontier_legitimate, ks.frontier,
+        "ghost advance (unacked event): frontier must not change");
+}
+
+// First delta trigger: captures the earliest step where delta_frontier != 0.
+// On PASS: eprintln reports the trigger (visible with --nocapture).
+// On FAIL: the illegal Step is the first entry where is_regression() is true.
+#[test]
+fn row3_first_delta_trigger_captured() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 5 });
+    let e2 = encode(&Event::Update { entity_id: 1, field: 0, value: 42 });
+    let h1 = sha256_event_hash(&e1);
+    let h2 = sha256_event_hash(&e2);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    let mut steps: Vec<Step> = Vec::new();
+
+    // Step 0: ingest e1, no ack — must not advance
+    ks.ingest(e1.clone(), 1, node(1));
+    let fb = ks.frontier;
+    let _ = ks.try_advance(true); // fails
+    steps.push(Step { index: 0, label: "ingest(e1) no-ack", frontier_before: fb, frontier_after: ks.frontier });
+
+    // Step 1: ack e1 — first legitimate delta expected here
+    ks.acknowledge(h1, node(1));
+    let fb = ks.frontier;
+    let _ = ks.try_advance(true).expect("must succeed after ack");
+    steps.push(Step { index: 1, label: "ack(e1) -> advance", frontier_before: fb, frontier_after: ks.frontier });
+
+    // Step 2: null advance — no delta expected
+    let fb = ks.frontier;
+    let _ = ks.try_advance(true).expect("null advance must succeed");
+    steps.push(Step { index: 2, label: "null advance", frontier_before: fb, frontier_after: ks.frontier });
+
+    // Step 3: ingest e2, no ack — no delta expected
+    ks.ingest(e2.clone(), 2, node(1));
+    let fb = ks.frontier;
+    let _ = ks.try_advance(true); // fails: e2 unacked
+    steps.push(Step { index: 3, label: "ingest(e2) no-ack", frontier_before: fb, frontier_after: ks.frontier });
+
+    // Step 4: ack e2 — second legitimate delta expected here
+    ks.acknowledge(h2, node(1));
+    let fb = ks.frontier;
+    let _ = ks.try_advance(true).expect("must succeed after ack");
+    steps.push(Step { index: 4, label: "ack(e2) -> advance", frontier_before: fb, frontier_after: ks.frontier });
+
+    // Assert no regressions at any step
+    for s in &steps {
+        assert!(!s.is_regression(),
+            "frontier regression at step {} ({}): {:?} -> {:?}",
+            s.index, s.label, s.frontier_before, s.frontier_after);
+    }
+
+    // Assert delta only at expected steps (1 and 4)
+    let unexpected_delta: Vec<_> = steps.iter()
+        .filter(|s| s.is_delta() && s.index != 1 && s.index != 4)
+        .collect();
+    assert!(unexpected_delta.is_empty(),
+        "ghost delta at unexpected steps: {:?}", unexpected_delta);
+
+    // Capture first delta for the ledger record
+    if let Some(first) = steps.iter().find(|s| s.is_delta()) {
+        eprintln!(
+            "Row 3 | first_delta | step={} | label={} | before={:?} | after={:?}",
+            first.index, first.label, first.frontier_before, first.frontier_after
+        );
+    }
+}
+
+// Late event non-regression: admitting an event with a lower CCI than the current
+// frontier must not pull the frontier backward.
+// The frontier is max(CCI of prefix), so late events can only widen the prefix, not reduce the max.
+#[test]
+fn row3_late_event_does_not_regress_frontier() {
+    let e_high = encode(&Event::Create { entity_id: 1, kind: 0 }); // will get tick=10
+    let e_late = encode(&Event::Create { entity_id: 2, kind: 0 }); // will get tick=1 < tick=10
+    let h_high = sha256_event_hash(&e_high);
+    let h_late = sha256_event_hash(&e_late);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    ks.ingest(e_high, 10, node(1));
+    ks.acknowledge(h_high, node(1));
+
+    let _ = ks.try_advance(true).expect("advance on high-tick event must succeed");
+    let frontier_after_high = ks.frontier;
+    assert!(frontier_after_high.is_some());
+
+    // Late event arrives with tick=1 (CCI < CCI of e_high)
+    ks.ingest(e_late, 1, node(1));
+    ks.acknowledge(h_late, node(1));
+
+    let _ = ks.try_advance(true).expect("advance including late event must succeed");
+    let frontier_after_late = ks.frontier;
+
+    assert!(frontier_after_late >= frontier_after_high,
+        "frontier regression after late event: {:?} -> {:?}",
+        frontier_after_high, frontier_after_late);
 }
