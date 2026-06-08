@@ -1,0 +1,81 @@
+name: VDCE v1.1 Verification Contract CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+  GOLDEN_TRACE_PATH: fixtures/golden/golden_trace_v1_1.json
+
+jobs:
+  vdce:
+    name: VDCE Replay + Certification Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      # -------------------------
+      # 1) Build (fail-fast gate)
+      # -------------------------
+      - name: Build (release)
+        run: cargo build --release --locked
+
+      # -------------------------
+      # 2) Contract + golden tests
+      #    (Row 4 / 5 / 5a enforced here)
+      # -------------------------
+      - name: Run tests (release)
+        run: cargo test --release --locked
+
+      # -------------------------
+      # 3) Replay oracle validation
+      # -------------------------
+      - name: Replay golden trace
+        run: |
+          ./target/release/vdce replay \
+            --trace "${GOLDEN_TRACE_PATH}"
+
+      # -------------------------
+      # 4) Certification (run 1)
+      # -------------------------
+      - name: Generate certificate (run 1)
+        run: |
+          mkdir -p artifacts
+          ./target/release/vdce certify \
+            --trace "${GOLDEN_TRACE_PATH}" \
+            --out artifacts/cert_1.json
+
+      - name: Assert artifact exists (fail-closed)
+        run: test -f artifacts/cert_1.json
+
+      # -------------------------
+      # 5) Determinism gate (run 2)
+      # -------------------------
+      - name: Generate certificate (run 2)
+        run: |
+          ./target/release/vdce certify \
+            --trace "${GOLDEN_TRACE_PATH}" \
+            --out artifacts/cert_2.json
+
+      - name: Enforce byte-identical output
+        run: cmp artifacts/cert_1.json artifacts/cert_2.json
+
+      # -------------------------
+      # 6) Publish (only reachable if all gates passed)
+      # -------------------------
+      - name: Upload replay certificate
+        uses: actions/upload-artifact@v4
+        with:
+          name: vdce-replay-certificate
+          path: artifacts/cert_1.json

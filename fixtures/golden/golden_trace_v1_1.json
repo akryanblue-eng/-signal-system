@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "reducer_version": "1.1",
+  "steps": [
+    {
+      "step_id": 0,
+      "operation": "identity",
+      "inputs": {"value": "hello"},
+      "expected_output": {"value": "hello"},
+      "nondet_guards": []
+    },
+    {
+      "step_id": 1,
+      "operation": "add",
+      "inputs": {"a": 3, "b": 4},
+      "expected_output": {"result": 7},
+      "nondet_guards": []
+    },
+    {
+      "step_id": 2,
+      "operation": "concat",
+      "inputs": {"parts": ["foo", "bar"]},
+      "expected_output": {"result": "foobar"},
+      "nondet_guards": []
+    }
+  ]
+}
