@@ -1,0 +1,135 @@
+{
+  "recorded_schema": 1,
+  "trace_id": "7c3a9e",
+  "records": [
+    {
+      "step_index": 0,
+      "previous_post_hash": "ec2bd03bf86b935fa34d71ad7ebb049f1f10f87d343e521511d8f9e6625620cd",
+      "input": {
+        "kind": "event",
+        "bytes": "5349010101000000000000000500",
+        "tick": 1,
+        "node_id": "01010101010101010101010101010101"
+      },
+      "admission_result": "Incomplete { unacknowledged_count: 1 }",
+      "semantic": {
+        "pre_state_hash": "ec2bd03bf86b935fa34d71ad7ebb049f1f10f87d343e521511d8f9e6625620cd",
+        "post_state_hash": "ec2bd03bf86b935fa34d71ad7ebb049f1f10f87d343e521511d8f9e6625620cd",
+        "frontier_digest": "none",
+        "prefix_digest": "none",
+        "ready": false,
+        "ack_closure": false
+      }
+    },
+    {
+      "step_index": 1,
+      "previous_post_hash": "ec2bd03bf86b935fa34d71ad7ebb049f1f10f87d343e521511d8f9e6625620cd",
+      "input": {
+        "kind": "ack",
+        "event_hash": "f5b8aea2fe09f87e111a7847e6c4f67b33f0d86b8694ba31ce04b8d82dc6f6b7",
+        "node_id": "01010101010101010101010101010101"
+      },
+      "admission_result": "Ok",
+      "semantic": {
+        "pre_state_hash": "ec2bd03bf86b935fa34d71ad7ebb049f1f10f87d343e521511d8f9e6625620cd",
+        "post_state_hash": "d7362dcfbbaae20fc742fd9b20f438061c66c5f298ea96e1dc01d129fbbdaa17",
+        "frontier_digest": "000000000000000101010101010101010101010101010101f5b8aea2fe09f87e111a7847e6c4f67b33f0d86b8694ba31ce04b8d82dc6f6b7",
+        "prefix_digest": "f5b8aea2fe09f87e111a7847e6c4f67b33f0d86b8694ba31ce04b8d82dc6f6b7",
+        "ready": true,
+        "ack_closure": true
+      }
+    },
+    {
+      "step_index": 2,
+      "previous_post_hash": "d7362dcfbbaae20fc742fd9b20f438061c66c5f298ea96e1dc01d129fbbdaa17",
+      "input": {
+        "kind": "event",
+        "bytes": "534901020100000000000000002a00000000000000",
+        "tick": 2,
+        "node_id": "01010101010101010101010101010101"
+      },
+      "admission_result": "Incomplete { unacknowledged_count: 1 }",
+      "semantic": {
+        "pre_state_hash": "d7362dcfbbaae20fc742fd9b20f438061c66c5f298ea96e1dc01d129fbbdaa17",
+        "post_state_hash": "d7362dcfbbaae20fc742fd9b20f438061c66c5f298ea96e1dc01d129fbbdaa17",
+        "frontier_digest": "000000000000000101010101010101010101010101010101f5b8aea2fe09f87e111a7847e6c4f67b33f0d86b8694ba31ce04b8d82dc6f6b7",
+        "prefix_digest": "f5b8aea2fe09f87e111a7847e6c4f67b33f0d86b8694ba31ce04b8d82dc6f6b7",
+        "ready": false,
+        "ack_closure": false
+      }
+    },
+    {
+      "step_index": 3,
+      "previous_post_hash": "d7362dcfbbaae20fc742fd9b20f438061c66c5f298ea96e1dc01d129fbbdaa17",
+      "input": {
+        "kind": "ack",
+        "event_hash": "296821c396392c378cdc0da0a957d54bb8654c2214b34ec1c72cab2c425f5242",
+        "node_id": "01010101010101010101010101010101"
+      },
+      "admission_result": "Ok",
+      "semantic": {
+        "pre_state_hash": "d7362dcfbbaae20fc742fd9b20f438061c66c5f298ea96e1dc01d129fbbdaa17",
+        "post_state_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+        "frontier_digest": "000000000000000201010101010101010101010101010101296821c396392c378cdc0da0a957d54bb8654c2214b34ec1c72cab2c425f5242",
+        "prefix_digest": "300860f5c6b55e5107b40f13fdb1568fbff11fd6245c92ed719745847d8e8fa5",
+        "ready": true,
+        "ack_closure": true
+      }
+    },
+    {
+      "step_index": 4,
+      "previous_post_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+      "input": {
+        "kind": "ack",
+        "event_hash": "f5b8aea2fe09f87e111a7847e6c4f67b33f0d86b8694ba31ce04b8d82dc6f6b7",
+        "node_id": "01010101010101010101010101010101"
+      },
+      "admission_result": "Ok",
+      "semantic": {
+        "pre_state_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+        "post_state_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+        "frontier_digest": "000000000000000201010101010101010101010101010101296821c396392c378cdc0da0a957d54bb8654c2214b34ec1c72cab2c425f5242",
+        "prefix_digest": "300860f5c6b55e5107b40f13fdb1568fbff11fd6245c92ed719745847d8e8fa5",
+        "ready": true,
+        "ack_closure": true
+      }
+    },
+    {
+      "step_index": 5,
+      "previous_post_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+      "input": {
+        "kind": "event",
+        "bytes": "534901050100000000000000",
+        "tick": 3,
+        "node_id": "01010101010101010101010101010101"
+      },
+      "admission_result": "Incomplete { unacknowledged_count: 1 }",
+      "semantic": {
+        "pre_state_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+        "post_state_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+        "frontier_digest": "000000000000000201010101010101010101010101010101296821c396392c378cdc0da0a957d54bb8654c2214b34ec1c72cab2c425f5242",
+        "prefix_digest": "300860f5c6b55e5107b40f13fdb1568fbff11fd6245c92ed719745847d8e8fa5",
+        "ready": false,
+        "ack_closure": false
+      }
+    },
+    {
+      "step_index": 6,
+      "previous_post_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+      "input": {
+        "kind": "ack",
+        "event_hash": "4384084ba271564ddfa229ecfed14f15cb9281b31a2616896ae2dc8c787fa118",
+        "node_id": "01010101010101010101010101010101"
+      },
+      "admission_result": "Ok",
+      "semantic": {
+        "pre_state_hash": "ed6d29eb18815bc6f6d97471fbfa49bcb18612bd73ef4e1eeb9c88f928b969b4",
+        "post_state_hash": "74f51a7f2f5a8c4d18f4b9b0e7de96b63597291da86408d39f7bc93f7b88bf8f",
+        "frontier_digest": "0000000000000003010101010101010101010101010101014384084ba271564ddfa229ecfed14f15cb9281b31a2616896ae2dc8c787fa118",
+        "prefix_digest": "83f9cfe91f7816779069e51cab611d6ed8938cb53aaf7e8ca12c0c3ed4a99865",
+        "ready": true,
+        "ack_closure": true
+      }
+    }
+  ]
+}
