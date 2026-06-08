@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 rusqlite = { version = "0.32", features = ["bundled"] }
 blake3 = "1"
+sha2 = "0.10"
 thiserror = "1"
 
 [dev-dependencies]
