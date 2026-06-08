@@ -3,14 +3,15 @@
 // Row 1   | Valid input -> deterministic reduction | state_hash STABLE | frontier STABLE | prefix_hash STABLE
 // Row 1b  | Invalid input -> non-admission         | state_hash STABLE | frontier STABLE | prefix_hash STABLE
 // Row 2A  | Readiness boundary (schedule-sensitive)| frontier FROZEN   | readiness STABLE
+// Row 2B  | Interleaving invariance (commutativity)| ingestion order   | ack order       | K-merge order
 //
-// Row 1 / Row 1b / Row 2A are frozen; do not modify existing tests in this file.
-// Row 2B (interleaving invariance) is the next target.
+// Row 1 / Row 1b / Row 2A / Row 2B are frozen; do not modify existing tests in this file.
+// Row 3 (monotonicity / drift) is the next target.
 
 use signal_system::codec::{decode, encode};
 use signal_system::event::Event;
 use signal_system::index::{sha256_event_hash, Cci};
-use signal_system::ingress::{ExecutionPrefix, KnowledgeState};
+use signal_system::ingress::{ExecutionPrefix, KnowledgeState, StagingBuffer};
 use signal_system::kernel::{compile, genesis};
 
 fn node(id: u8) -> [u8; 16] { [id; 16] }
@@ -420,4 +421,202 @@ fn row2a_snapshot_frozen_on_partial_acks_after_prior_advance() {
 
     assert_ne!(snap_first, snap_second,
         "snapshot must advance once new event is fully acknowledged");
+}
+
+// -----------------------------------------------------------------------
+// Row 2B: Interleaving Invariance (commutativity — algebra layer)
+// -----------------------------------------------------------------------
+//
+// Property: for any permutation of ingestion order and ack order over the
+// same event set, snapshot(trace_A) == snapshot(trace_B) once C = top.
+//
+// Failure taxonomy — which KernelSnapshot field diverges:
+//   state_hash  : reduction is non-commutative (kernel bug)
+//   frontier    : CCI ordering is evaluation-order-sensitive (index bug)
+//   prefix_hash : accumulation is non-commutative (ingress bug)
+//
+// Note on node_id origins: CCI = [tick | node_id | event_hash].
+// Traces must use the same (tick, origin_node) per event for CCI equality.
+// "Interleaving" here is ingestion arrival order and ack sequence — not origin.
+//
+// Verified:
+//   ingestion order COMMUTES : same (tick, origin), different arrival -> same snapshot
+//   ack order COMMUTES       : same events, different ack sequence    -> same snapshot
+//   K-merge COMMUTES         : merge(A, B) hash-set-eq merge(B, A)
+//   cross-node paths CONVERGE: different propagation routes           -> same snapshot
+
+// --- Smoking gun: 2-trace minimal convergence ---
+//
+// Traces differ in BOTH ingestion arrival order AND per-node ack sequence.
+// If any commutativity invariant is violated, exactly one KernelSnapshot field diverges,
+// identifying the violation class without diff-chasing.
+#[test]
+fn row2b_smoking_gun_two_trace_convergence() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 5 });
+    let e2 = encode(&Event::Update { entity_id: 1, field: 0, value: 42 });
+    let e3 = encode(&Event::Commit { entity_id: 1 });
+    let h1 = sha256_event_hash(&e1);
+    let h2 = sha256_event_hash(&e2);
+    let h3 = sha256_event_hash(&e3);
+
+    // Trace A: events arrive e1->e2->e3, node(1) acks before node(2) on every event.
+    let mut ks_a = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ks_a.ingest(e1.clone(), 1, node(1));
+    ks_a.ingest(e2.clone(), 2, node(1));
+    ks_a.ingest(e3.clone(), 3, node(1));
+    ks_a.acknowledge(h1, node(1)); ks_a.acknowledge(h1, node(2));
+    ks_a.acknowledge(h2, node(1)); ks_a.acknowledge(h2, node(2));
+    ks_a.acknowledge(h3, node(1)); ks_a.acknowledge(h3, node(2));
+
+    // Trace B: events arrive e3->e1->e2, node(2) acks before node(1), events acked in reverse order.
+    // Same (tick, origin_node) per event — CCI is identical to trace A.
+    let mut ks_b = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ks_b.ingest(e3.clone(), 3, node(1));
+    ks_b.ingest(e1.clone(), 1, node(1));
+    ks_b.ingest(e2.clone(), 2, node(1));
+    ks_b.acknowledge(h3, node(2)); ks_b.acknowledge(h3, node(1));
+    ks_b.acknowledge(h1, node(2)); ks_b.acknowledge(h1, node(1));
+    ks_b.acknowledge(h2, node(2)); ks_b.acknowledge(h2, node(1));
+
+    let snap_a = snapshot(&ks_a.try_advance(true).expect("trace A must advance"));
+    let snap_b = snapshot(&ks_b.try_advance(true).expect("trace B must advance"));
+
+    assert_eq!(snap_a, snap_b,
+        "commutativity violation: different ingestion/ack orders must produce identical snapshot");
+}
+
+// Ingestion arrival order commutes: same (tick, origin) per event, different arrival sequence.
+#[test]
+fn row2b_ingestion_order_does_not_affect_snapshot() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 5 });
+    let e2 = encode(&Event::Update { entity_id: 1, field: 0, value: 42 });
+    let e3 = encode(&Event::Commit { entity_id: 1 });
+    let h1 = sha256_event_hash(&e1);
+    let h2 = sha256_event_hash(&e2);
+    let h3 = sha256_event_hash(&e3);
+
+    // Forward: e1(t=1), e2(t=2), e3(t=3)
+    let mut ks_fwd = KnowledgeState::new(node(1), [node(1)]);
+    for (bytes, tick, hash) in [(&e1, 1u64, &h1), (&e2, 2, &h2), (&e3, 3, &h3)] {
+        ks_fwd.ingest(bytes.clone(), tick, node(1));
+        ks_fwd.acknowledge(*hash, node(1));
+    }
+    // Reverse: e3(t=3), e2(t=2), e1(t=1)
+    let mut ks_rev = KnowledgeState::new(node(1), [node(1)]);
+    for (bytes, tick, hash) in [(&e3, 3u64, &h3), (&e2, 2, &h2), (&e1, 1, &h1)] {
+        ks_rev.ingest(bytes.clone(), tick, node(1));
+        ks_rev.acknowledge(*hash, node(1));
+    }
+    // Mixed: e2(t=2), e1(t=1), e3(t=3)
+    let mut ks_mix = KnowledgeState::new(node(1), [node(1)]);
+    for (bytes, tick, hash) in [(&e2, 2u64, &h2), (&e1, 1, &h1), (&e3, 3, &h3)] {
+        ks_mix.ingest(bytes.clone(), tick, node(1));
+        ks_mix.acknowledge(*hash, node(1));
+    }
+
+    let snap_f = snapshot(&ks_fwd.try_advance(true).expect("forward must succeed"));
+    let snap_r = snapshot(&ks_rev.try_advance(true).expect("reverse must succeed"));
+    let snap_m = snapshot(&ks_mix.try_advance(true).expect("mixed must succeed"));
+
+    assert_eq!(snap_f, snap_r, "ingestion order forward vs reverse must not affect snapshot");
+    assert_eq!(snap_f, snap_m, "ingestion order forward vs mixed must not affect snapshot");
+}
+
+// Ack sequence commutes: same events, same ingestion order, different per-node ack sequence.
+#[test]
+fn row2b_ack_order_does_not_affect_snapshot() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 5 });
+    let e2 = encode(&Event::Commit { entity_id: 1 });
+    let h1 = sha256_event_hash(&e1);
+    let h2 = sha256_event_hash(&e2);
+
+    let ingest = |ks: &mut KnowledgeState| {
+        ks.ingest(e1.clone(), 1, node(1));
+        ks.ingest(e2.clone(), 2, node(1));
+    };
+
+    // Ack order A: n1 then n2, event order e1 then e2
+    let mut ks_a = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ingest(&mut ks_a);
+    ks_a.acknowledge(h1, node(1)); ks_a.acknowledge(h1, node(2));
+    ks_a.acknowledge(h2, node(1)); ks_a.acknowledge(h2, node(2));
+
+    // Ack order B: n2 then n1, event order e2 then e1 — fully reversed
+    let mut ks_b = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ingest(&mut ks_b);
+    ks_b.acknowledge(h2, node(2)); ks_b.acknowledge(h2, node(1));
+    ks_b.acknowledge(h1, node(2)); ks_b.acknowledge(h1, node(1));
+
+    // Ack order C: interleaved — n1/e1, n2/e2, n1/e2, n2/e1
+    let mut ks_c = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ingest(&mut ks_c);
+    ks_c.acknowledge(h1, node(1)); ks_c.acknowledge(h2, node(2));
+    ks_c.acknowledge(h2, node(1)); ks_c.acknowledge(h1, node(2));
+
+    let snap_a = snapshot(&ks_a.try_advance(true).expect("must succeed"));
+    let snap_b = snapshot(&ks_b.try_advance(true).expect("must succeed"));
+    let snap_c = snapshot(&ks_c.try_advance(true).expect("must succeed"));
+
+    assert_eq!(snap_a, snap_b, "ack order A vs B must not affect snapshot");
+    assert_eq!(snap_a, snap_c, "ack order A vs C must not affect snapshot");
+}
+
+// K-merge is commutative: merge(A, B) and merge(B, A) produce hash-equal buffers.
+// (Hash-set equality is the right invariant: entry metadata differs by which buffer "won",
+//  but the event identity — the hash — is identical regardless of merge order.)
+#[test]
+fn row2b_k_merge_is_commutative() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 5 });
+    let e2 = encode(&Event::Update { entity_id: 1, field: 0, value: 42 });
+    let e3 = encode(&Event::Commit { entity_id: 1 });
+
+    let make_a = || {
+        let mut b = StagingBuffer::new();
+        b.ingest(e1.clone(), 1, node(1));
+        b.ingest(e2.clone(), 2, node(1));
+        b
+    };
+    let make_b = || {
+        let mut b = StagingBuffer::new();
+        b.ingest(e2.clone(), 2, node(2));
+        b.ingest(e3.clone(), 3, node(2));
+        b
+    };
+
+    let mut merged_ab = make_a(); merged_ab.merge(&make_b());
+    let mut merged_ba = make_b(); merged_ba.merge(&make_a());
+
+    assert!(merged_ab.hash_set_eq(&merged_ba),
+        "K-merge commutativity violation: merge(A,B) must equal merge(B,A) by event-hash set");
+}
+
+// Cross-node propagation paths converge: two nodes accumulate the same events
+// via opposite paths (node A sends e1 to B; node B sends e2 to A).
+// Both must produce identical snapshots once C = top.
+#[test]
+fn row2b_cross_node_propagation_paths_converge() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 5 });
+    let e2 = encode(&Event::Update { entity_id: 1, field: 0, value: 42 });
+    let h1 = sha256_event_hash(&e1);
+    let h2 = sha256_event_hash(&e2);
+
+    // Node A: originates e1, receives e2 from node B
+    let mut ks_a = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ks_a.ingest(e1.clone(), 1, node(1));
+    ks_a.ingest(e2.clone(), 2, node(2)); // propagated from node(2)
+    ks_a.acknowledge(h1, node(1)); ks_a.acknowledge(h1, node(2));
+    ks_a.acknowledge(h2, node(2)); ks_a.acknowledge(h2, node(1));
+
+    // Node B: originates e2, receives e1 from node A — opposite propagation path
+    let mut ks_b = KnowledgeState::new(node(2), [node(1), node(2)]);
+    ks_b.ingest(e2.clone(), 2, node(2));
+    ks_b.ingest(e1.clone(), 1, node(1)); // propagated from node(1)
+    ks_b.acknowledge(h2, node(2)); ks_b.acknowledge(h2, node(1));
+    ks_b.acknowledge(h1, node(1)); ks_b.acknowledge(h1, node(2));
+
+    let snap_a = snapshot(&ks_a.try_advance(true).expect("node A must advance"));
+    let snap_b = snapshot(&ks_b.try_advance(true).expect("node B must advance"));
+
+    assert_eq!(snap_a, snap_b,
+        "commutativity violation: different cross-node propagation paths must converge");
 }
