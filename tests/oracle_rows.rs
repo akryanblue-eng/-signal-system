@@ -2,9 +2,10 @@
 //
 // Row 1   | Valid input -> deterministic reduction | state_hash STABLE | frontier STABLE | prefix_hash STABLE
 // Row 1b  | Invalid input -> non-admission         | state_hash STABLE | frontier STABLE | prefix_hash STABLE
+// Row 2A  | Readiness boundary (schedule-sensitive)| frontier FROZEN   | readiness STABLE
 //
-// Row 2A (readiness boundary — schedule-sensitive) is the next target.
-// Row 1 / Row 1b are frozen; do not modify existing tests in this file.
+// Row 1 / Row 1b / Row 2A are frozen; do not modify existing tests in this file.
+// Row 2B (interleaving invariance) is the next target.
 
 use signal_system::codec::{decode, encode};
 use signal_system::event::Event;
@@ -220,4 +221,203 @@ fn row1b_c_predicate_ignores_invalid_entries() {
 
     assert!(ks.try_advance(true).is_ok(),
         "C predicate must evaluate only valid entries; unacknowledged invalid hash must not block");
+}
+
+// -----------------------------------------------------------------------
+// Row 2A: Readiness Boundary (schedule-sensitive)
+// -----------------------------------------------------------------------
+//
+// Property: while C = bot (stable=false OR partial acks), the observable
+// state — frontier, readiness — is frozen.
+//
+// "Readiness" = try_advance(stable).is_ok().
+// Invariant form: assert_eq!(ready_before, ready_after) when preconditions
+// have not changed — not assert!(!ready), which bakes in an assumed initial value.
+//
+// Verified:
+//   frontier FROZEN  : failed advance must not mutate ks.frontier
+//   readiness STABLE : same preconditions -> same readiness result (deterministic probe)
+//   condition boundary: readiness flips exactly when last blocking condition is resolved
+
+// stable=false prevents advance regardless of ack completeness.
+#[test]
+fn row2a_unstable_flag_prevents_advance() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    ks.ingest(bytes, 1, node(1));
+    ks.acknowledge(hash, node(1)); // fully acked
+
+    let frontier_before = ks.frontier;
+    let ready_before    = ks.try_advance(false).is_ok();
+
+    // stable=false must block even when all nodes have acked
+    assert!(!ready_before, "stable=false must prevent advance regardless of ack state");
+    assert_eq!(frontier_before, ks.frontier, "frontier must be frozen");
+}
+
+// stable=true + partial acks prevents advance.
+#[test]
+fn row2a_partial_acks_prevent_advance() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ks.ingest(bytes, 1, node(1));
+    ks.acknowledge(hash, node(1)); // node(2) has not acked
+
+    let frontier_before = ks.frontier;
+    let ready_before    = ks.try_advance(true).is_ok();
+
+    assert!(!ready_before, "partial acks must prevent advance");
+    assert_eq!(frontier_before, ks.frontier, "frontier must be frozen");
+}
+
+// Readiness is deterministic: identical preconditions -> identical result across probes.
+#[test]
+fn row2a_readiness_is_deterministic_under_repeated_probe() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ks.ingest(bytes, 1, node(1));
+    ks.acknowledge(hash, node(1));
+
+    let r0 = ks.try_advance(true).is_ok();
+    let r1 = ks.try_advance(true).is_ok();
+    let r2 = ks.try_advance(true).is_ok();
+
+    assert_eq!(r0, r1, "readiness must be stable across probes");
+    assert_eq!(r1, r2, "readiness must be stable across probes");
+}
+
+// stable=false is stable under repeated probe (same invariant, different flag).
+#[test]
+fn row2a_unstable_readiness_is_deterministic_under_repeated_probe() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    ks.ingest(bytes, 1, node(1));
+    ks.acknowledge(hash, node(1));
+
+    let r0 = ks.try_advance(false).is_ok();
+    let r1 = ks.try_advance(false).is_ok();
+
+    assert_eq!(r0, r1, "readiness under stable=false must be stable across probes");
+}
+
+// Readiness flips exactly at the condition boundary: the last ack resolves C = bot.
+#[test]
+fn row2a_readiness_flips_at_condition_boundary() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ks.ingest(bytes, 1, node(1));
+    ks.acknowledge(hash, node(1));
+
+    let ready_before = ks.try_advance(true).is_ok(); // node(2) not yet acked
+
+    ks.acknowledge(hash, node(2)); // last ack — C transitions to top
+
+    let ready_after = ks.try_advance(true).is_ok();
+
+    assert!(!ready_before, "must not be ready before last ack");
+    assert!( ready_after,  "must be ready immediately after last ack");
+}
+
+// 3-node progression: 0 -> 1 -> 2 -> 3 acks.
+// At each partial step: not ready, frontier frozen.
+// Readiness captured before each step — not assumed.
+#[test]
+fn row2a_three_node_progression_freezes_until_complete() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1), node(2), node(3)]);
+    ks.ingest(bytes, 1, node(1));
+
+    let ready_0    = ks.try_advance(true).is_ok();
+    let frontier_0 = ks.frontier;
+
+    ks.acknowledge(hash, node(1));
+    let ready_1    = ks.try_advance(true).is_ok();
+    let frontier_1 = ks.frontier;
+
+    ks.acknowledge(hash, node(2));
+    let ready_2    = ks.try_advance(true).is_ok();
+    let frontier_2 = ks.frontier;
+
+    ks.acknowledge(hash, node(3));
+    let ready_3 = ks.try_advance(true).is_ok();
+
+    assert!(!ready_0, "0/3 acks: must not be ready");
+    assert!(!ready_1, "1/3 acks: must not be ready");
+    assert!(!ready_2, "2/3 acks: must not be ready");
+    assert!( ready_3, "3/3 acks: must be ready");
+
+    assert_eq!(frontier_0, frontier_1, "frontier frozen at 0->1 acks");
+    assert_eq!(frontier_1, frontier_2, "frontier frozen at 1->2 acks");
+    assert!(ks.frontier.is_some(), "frontier set after full advance");
+}
+
+// stable=false overrides full ack state; stable=true with same acks succeeds.
+// Tests the caller-controlled stability window contract.
+#[test]
+fn row2a_stable_flag_is_the_caller_contract() {
+    let bytes = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let hash  = sha256_event_hash(&bytes);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1)]);
+    ks.ingest(bytes, 1, node(1));
+    ks.acknowledge(hash, node(1));
+
+    let ready_unstable = ks.try_advance(false).is_ok();
+    assert!(!ready_unstable, "stable=false must prevent advance even with full acks");
+    assert!(ks.frontier.is_none(), "frontier must remain None");
+
+    let ready_stable = ks.try_advance(true).is_ok();
+    assert!(ready_stable, "stable=true with full acks must succeed");
+    assert!(ks.frontier.is_some(), "frontier must be set after stable advance");
+}
+
+// After a successful advance, new events with partial acks must not move the snapshot forward.
+// Frontier must remain at the post-first-advance value, not regress or advance.
+#[test]
+fn row2a_snapshot_frozen_on_partial_acks_after_prior_advance() {
+    let e1 = encode(&Event::Create { entity_id: 1, kind: 0 });
+    let h1 = sha256_event_hash(&e1);
+
+    let mut ks = KnowledgeState::new(node(1), [node(1), node(2)]);
+    ks.ingest(e1, 1, node(1));
+    ks.acknowledge(h1, node(1));
+    ks.acknowledge(h1, node(2));
+
+    let prefix_first = ks.try_advance(true).expect("first advance must succeed");
+    let snap_first   = snapshot(&prefix_first);
+    let frontier_after_first = ks.frontier;
+
+    // New event arrives — only node(1) acks it
+    let e2 = encode(&Event::Update { entity_id: 1, field: 0, value: 99 });
+    let h2 = sha256_event_hash(&e2);
+    ks.ingest(e2, 2, node(1));
+    ks.acknowledge(h2, node(1)); // node(2) has not acked e2
+
+    // Advance must fail: e2 is not fully acknowledged
+    let result = ks.try_advance(true);
+    assert!(result.is_err(), "partial acks on new event must block advance");
+
+    // Frontier must not have moved from the value set by the first advance
+    assert_eq!(frontier_after_first, ks.frontier,
+        "frontier must remain at post-first-advance value while new events are unacknowledged");
+
+    // Once node(2) acks e2, advance succeeds and snapshot changes
+    ks.acknowledge(h2, node(2));
+    let prefix_second = ks.try_advance(true).expect("second advance must succeed");
+    let snap_second   = snapshot(&prefix_second);
+
+    assert_ne!(snap_first, snap_second,
+        "snapshot must advance once new event is fully acknowledged");
 }
