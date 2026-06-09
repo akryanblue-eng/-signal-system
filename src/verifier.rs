@@ -2,6 +2,67 @@ use serde::Serialize;
 
 use crate::director_loop::{DirectorLoopRun, Status, compute_input_hash, compute_output_hash};
 
+// ── Gate outcome types ───────────────────────────────────────────────────────
+
+/// Outcome of a single pipeline gate. Field definition order is the
+/// serialization order; never reorder.
+#[derive(Debug, Serialize, PartialEq)]
+pub struct GateOutcome {
+    pub result: GateResult,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failure_code: Option<FailureCode>,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum GateResult {
+    Pass,
+    Fail,
+    NotEvaluated,
+}
+
+/// Typed failure codes — one variant per root cause.
+/// Tests assert on these directly; CI reads them without parsing free text.
+#[derive(Debug, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FailureCode {
+    // schema gate
+    SchemaViolation,
+    // invariants gate — ordering
+    CorrectionsOutOfOrder,
+    AuditNotesOutOfOrder,
+    // invariants gate — state machine
+    PassedBelowThreshold,
+    RegenWithoutEvents,
+    // hash gate
+    InputHashDrift,
+    OutputHashDrift,
+}
+
+impl GateOutcome {
+    fn pass() -> Self {
+        GateOutcome { result: GateResult::Pass, failure_code: None }
+    }
+    fn fail(code: FailureCode) -> Self {
+        GateOutcome { result: GateResult::Fail, failure_code: Some(code) }
+    }
+    fn not_evaluated() -> Self {
+        GateOutcome { result: GateResult::NotEvaluated, failure_code: None }
+    }
+}
+
+// ── Report ───────────────────────────────────────────────────────────────────
+
+/// Gate results in pipeline order. Named fields (not BTreeMap) — type-safe and
+/// deterministically serialized in definition order by serde.
+#[derive(Debug, Serialize)]
+pub struct GateResults {
+    pub schema:      GateOutcome,
+    pub invariants:  GateOutcome,
+    pub input_hash:  GateOutcome,
+    pub output_hash: GateOutcome,
+}
+
 #[derive(Debug, Serialize, PartialEq)]
 pub enum AuditStatus {
     #[serde(rename = "PASS")]
@@ -13,139 +74,132 @@ pub enum AuditStatus {
 #[derive(Debug, Serialize)]
 pub struct VerifierReport {
     pub audit_status: AuditStatus,
-    pub schema_valid: bool,
-    pub transition_valid: bool,
-    pub input_hash_valid: bool,
-    pub output_hash_valid: bool,
+    pub gates: GateResults,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub failure_reason: Option<String>,
-}
-
-impl VerifierReport {
-    fn pass() -> Self {
-        VerifierReport {
-            audit_status: AuditStatus::Pass,
-            schema_valid: true,
-            transition_valid: true,
-            input_hash_valid: true,
-            output_hash_valid: true,
-            failure_reason: None,
-        }
-    }
-
-    fn schema_fail(reason: String) -> Self {
-        VerifierReport {
-            audit_status: AuditStatus::Fail,
-            schema_valid: false,
-            transition_valid: false,
-            input_hash_valid: false,
-            output_hash_valid: false,
-            failure_reason: Some(reason),
-        }
-    }
-
-    fn invariant_fail(reason: String) -> Self {
-        VerifierReport {
-            audit_status: AuditStatus::Fail,
-            schema_valid: true,
-            transition_valid: false,
-            input_hash_valid: false,
-            output_hash_valid: false,
-            failure_reason: Some(reason),
-        }
-    }
-
-    fn input_hash_fail(artifact: &str, computed: &str) -> Self {
-        VerifierReport {
-            audit_status: AuditStatus::Fail,
-            schema_valid: true,
-            transition_valid: true,
-            input_hash_valid: false,
-            output_hash_valid: false,
-            failure_reason: Some(format!(
-                "input_hash mismatch: artifact={artifact} computed={computed}"
-            )),
-        }
-    }
-
-    fn output_hash_fail(artifact: &str, computed: &str) -> Self {
-        VerifierReport {
-            audit_status: AuditStatus::Fail,
-            schema_valid: true,
-            transition_valid: true,
-            input_hash_valid: true,
-            output_hash_valid: false,
-            failure_reason: Some(format!(
-                "output_hash mismatch: artifact={artifact} computed={computed}"
-            )),
-        }
-    }
+    pub failure_detail: Option<String>,
 }
 
 // ── Pipeline ─────────────────────────────────────────────────────────────────
-// Fail-fast order: schema → invariants → input_hash → output_hash.
-// Each stage runs only if the previous passed.
+// Order: schema → invariants → input_hash → output_hash.
+//
+// Invariants gate covers BOTH ordering checks and state-machine semantics.
+// All invariant checks are preconditions for trusting the hashes; running
+// state-machine checks after hash verification would be less fail-fast, not more.
 
-/// Entry point for raw JSON bytes. Schema validation happens at parse time via
-/// `#[serde(deny_unknown_fields)]` on all domain structs.
+/// Entry point for raw JSON bytes.
+/// Schema enforcement happens at parse time via #[serde(deny_unknown_fields)].
+/// Any parse failure → schema gate Fail; downstream gates NotEvaluated.
 pub fn verify_bytes(bytes: &[u8]) -> VerifierReport {
     match serde_json::from_slice::<DirectorLoopRun>(bytes) {
-        Err(e) => VerifierReport::schema_fail(format!("parse error: {e}")),
+        Err(e) => fail_at_schema(e.to_string()),
         Ok(run) => verify(&run),
     }
 }
 
-/// Entry point when the artifact is already parsed.
+/// Entry point when the caller already holds a parsed artifact.
+/// Schema gate is implicitly Pass (deny_unknown_fields already enforced).
 pub fn verify(run: &DirectorLoopRun) -> VerifierReport {
-    if let Some(reason) = check_invariants(run) {
-        return VerifierReport::invariant_fail(reason);
+    // Gate 2: invariants
+    let inv = check_invariants(run);
+    if inv.result == GateResult::Fail {
+        return VerifierReport {
+            audit_status: AuditStatus::Fail,
+            gates: GateResults {
+                schema:      GateOutcome::pass(),
+                invariants:  inv,
+                input_hash:  GateOutcome::not_evaluated(),
+                output_hash: GateOutcome::not_evaluated(),
+            },
+            failure_detail: None,
+        };
     }
 
+    // Gate 3: input_hash
     let expected_input = compute_input_hash(run);
     if run.input_hash != expected_input {
-        return VerifierReport::input_hash_fail(&run.input_hash, &expected_input);
+        return VerifierReport {
+            audit_status: AuditStatus::Fail,
+            gates: GateResults {
+                schema:      GateOutcome::pass(),
+                invariants:  inv,
+                input_hash:  GateOutcome::fail(FailureCode::InputHashDrift),
+                output_hash: GateOutcome::not_evaluated(),
+            },
+            failure_detail: Some(format!(
+                "input_hash: artifact={} computed={}",
+                run.input_hash, expected_input
+            )),
+        };
     }
 
+    // Gate 4: output_hash
     let expected_output = compute_output_hash(run);
     if run.output_hash != expected_output {
-        return VerifierReport::output_hash_fail(&run.output_hash, &expected_output);
+        return VerifierReport {
+            audit_status: AuditStatus::Fail,
+            gates: GateResults {
+                schema:      GateOutcome::pass(),
+                invariants:  inv,
+                input_hash:  GateOutcome::pass(),
+                output_hash: GateOutcome::fail(FailureCode::OutputHashDrift),
+            },
+            failure_detail: Some(format!(
+                "output_hash: artifact={} computed={}",
+                run.output_hash, expected_output
+            )),
+        };
     }
 
-    VerifierReport::pass()
+    VerifierReport {
+        audit_status: AuditStatus::Pass,
+        gates: GateResults {
+            schema:      GateOutcome::pass(),
+            invariants:  inv,
+            input_hash:  GateOutcome::pass(),
+            output_hash: GateOutcome::pass(),
+        },
+        failure_detail: None,
+    }
 }
 
-// ── Structural invariants ────────────────────────────────────────────────────
+// ── Schema failure constructor ────────────────────────────────────────────────
 
-fn check_invariants(run: &DirectorLoopRun) -> Option<String> {
-    // PASSED requires final_coherence >= threshold
-    if run.status == Status::Passed && run.final_coherence < run.threshold {
-        return Some(format!(
-            "invariant: PASSED but final_coherence ({}) < threshold ({})",
-            run.final_coherence, run.threshold
-        ));
+fn fail_at_schema(detail: String) -> VerifierReport {
+    VerifierReport {
+        audit_status: AuditStatus::Fail,
+        gates: GateResults {
+            schema:      GateOutcome::fail(FailureCode::SchemaViolation),
+            invariants:  GateOutcome::not_evaluated(),
+            input_hash:  GateOutcome::not_evaluated(),
+            output_hash: GateOutcome::not_evaluated(),
+        },
+        failure_detail: Some(detail),
     }
+}
 
-    // REGENERATED requires at least one regen_event
-    if run.status == Status::Regenerated && run.regen_events.is_empty() {
-        return Some("invariant: REGENERATED but regen_events is empty".to_string());
-    }
+// ── Invariant checks ─────────────────────────────────────────────────────────
 
-    // corrections must be non-decreasing by beat_id (emission order preserved)
+fn check_invariants(run: &DirectorLoopRun) -> GateOutcome {
+    // Corrections must be in non-decreasing beat_id order (emission order preserved).
     let beats: Vec<&str> = run.corrections.iter().map(|c| c.beat_id.as_str()).collect();
     if beats.windows(2).any(|w| w[0] > w[1]) {
-        return Some(format!(
-            "invariant: corrections not in beat_id order: {:?}",
-            beats
-        ));
+        return GateOutcome::fail(FailureCode::CorrectionsOutOfOrder);
     }
 
-    // audit_notes must be in non-decreasing phase order (prefix sort)
+    // audit_notes must be in non-decreasing phase order.
     if run.audit_notes.windows(2).any(|w| w[0] > w[1]) {
-        return Some(format!(
-            "invariant: audit_notes not in phase order: {:?}",
-            &run.audit_notes
-        ));
+        return GateOutcome::fail(FailureCode::AuditNotesOutOfOrder);
     }
 
-    None
+    // PASSED requires final_coherence >= threshold.
+    if run.status == Status::Passed && run.final_coherence < run.threshold {
+        return GateOutcome::fail(FailureCode::PassedBelowThreshold);
+    }
+
+    // REGENERATED requires at least one regen_event.
+    if run.status == Status::Regenerated && run.regen_events.is_empty() {
+        return GateOutcome::fail(FailureCode::RegenWithoutEvents);
+    }
+
+    GateOutcome::pass()
 }
