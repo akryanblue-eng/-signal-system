@@ -7,9 +7,9 @@ Extends VDCE v1.1 canonicalization patterns to the Director Loop orchestration l
 ## Algorithm
 
 **Hash function:** SHA-256 (matches VDCE v1.1 certificate layer)  
-**Canonicalization:** Compact JSON via `serde_json::to_vec` — no pretty-printing, no whitespace  
-**Field ordering:** Struct definition order (guaranteed by Rust serde derive)  
-**Numeric representation:** Fixed-point integers only — no floats in any hash boundary  
+**Output encoding:** Lowercase hexadecimal, 64 characters, no prefix. Invariant: `^[a-f0-9]{64}$`  
+**Canonicalization:** Compact (non-pretty) JSON via `serde_json::to_vec` over serde-derived typed structs. Field order is struct definition order, guaranteed by serde derive. No `HashMap`, no `serde_json::Value` inside the hash boundary. This is deterministic by construction — it achieves the same stability guarantee as RFC 8785 JCS for fully-typed structures, but does not claim RFC 8785 compliance (which is only needed when serializing dynamic key-value maps).  
+**Numeric representation:** Fixed-point integers only — no floats anywhere in the hash boundary  
 
 BLAKE3 is reserved for internal streaming/DAG computation and must not appear in `input_hash` or `output_hash`.
 

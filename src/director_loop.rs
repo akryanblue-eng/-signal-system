@@ -108,12 +108,18 @@ struct OutputHashPreimage<'a> {
 
 // ── Hash computation ────────────────────────────────────────────────────────
 
-/// Canonical bytes: compact (non-pretty) JSON via serde_json::to_vec.
-/// Field order follows struct definition order (guaranteed by serde derive).
+/// Canonical bytes: compact (non-pretty) JSON via serde_json::to_vec over a
+/// serde-derived typed struct. Field order is struct definition order, which
+/// serde derive guarantees — no HashMap, no serde_json::Value in the hash
+/// boundary. This achieves deterministic encoding without requiring RFC 8785
+/// JCS; the two are equivalent only because all hash-boundary types are fully
+/// typed structs with frozen field order.
 fn canonical_bytes<T: Serialize>(value: &T) -> Vec<u8> {
     serde_json::to_vec(value).expect("DirectorLoopRun types are always serializable")
 }
 
+/// SHA-256 over bytes, returned as 64-character lowercase hex, no prefix.
+/// Invariant: always lowercase [a-f0-9]{64}. hex::encode guarantees this.
 fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
 }
