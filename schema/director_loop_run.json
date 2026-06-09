@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quantum-star.io/schemas/director_loop_run.json",
+  "title": "DirectorLoopRun",
+  "description": "Director Loop run artifact. input_hash covers the input domain; output_hash covers the state-transition domain. Both are SHA-256 over compact canonical JSON (serde struct-definition field order, no pretty-printing). Coherence values are fixed-point millionths (0..=1_000_000); 950_000 represents 0.95. No floats anywhere in the hash boundary.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "director_loop_version",
+    "fixture",
+    "config",
+    "threshold",
+    "ruleset_version",
+    "status",
+    "initial_coherence",
+    "final_coherence",
+    "corrections",
+    "regen_events",
+    "audit_notes",
+    "input_hash",
+    "output_hash"
+  ],
+  "properties": {
+    "director_loop_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Director Loop orchestration protocol version. Tracked independently of VDCE kernel version."
+    },
+    "fixture": {
+      "$ref": "#/$defs/Fixture",
+      "description": "Full fixture object. Contains fixture_id; do not duplicate fixture_id at top level."
+    },
+    "config": {
+      "$ref": "#/$defs/Config",
+      "description": "Full config object. Fully serialized into input_hash preimage."
+    },
+    "threshold": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000,
+      "description": "Coherence pass threshold in fixed-point millionths."
+    },
+    "ruleset_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "status": {
+      "enum": ["PASSED", "REGENERATED", "FAILED"]
+    },
+    "initial_coherence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000,
+      "description": "Coherence at loop entry in fixed-point millionths."
+    },
+    "final_coherence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000,
+      "description": "Coherence at loop exit in fixed-point millionths."
+    },
+    "corrections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Correction" },
+      "description": "Fully serialized; no partial projection permitted in hash preimage."
+    },
+    "regen_events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/RegenEvent" },
+      "description": "Fully serialized; no partial projection permitted in hash preimage."
+    },
+    "audit_notes": {
+      "type": "string"
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hex of InputHashPreimage canonical JSON."
+    },
+    "output_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hex of OutputHashPreimage canonical JSON."
+    }
+  },
+  "$defs": {
+    "Fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixture_id"],
+      "properties": {
+        "fixture_id": { "type": "string" }
+      },
+      "description": "Extend with fixture-specific fields before freezing for a given fixture set. All fields here are included in input_hash."
+    },
+    "Config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_corrections", "regen_budget"],
+      "properties": {
+        "max_corrections": { "type": "integer", "minimum": 0 },
+        "regen_budget":    { "type": "integer", "minimum": 0 }
+      },
+      "description": "Extend with config-specific fields before freezing for a given run set. All fields here are included in input_hash."
+    },
+    "Correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "beat_id", "action"],
+      "properties": {
+        "rule":    { "enum": ["RHYTHM_DRIFT", "MOTION_STRENGTH", "AV_ALIGNMENT"] },
+        "beat_id": { "type": "string" },
+        "action":  { "enum": ["adjust_xfade", "regen_beat"] }
+      }
+    },
+    "RegenEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beat_id", "request_id"],
+      "properties": {
+        "beat_id":    { "type": "string" },
+        "request_id": { "type": "string" }
+      }
+    }
+  }
+}
