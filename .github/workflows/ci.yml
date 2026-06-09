@@ -35,14 +35,21 @@ jobs:
       - name: clippy
         run: cargo clippy -- -D warnings
 
-      - name: unit + drift tests
-        run: cargo test
+      - name: unit + drift tests (V1)
+        run: cargo test --test drift_suite_v0
+
+      - name: unit + drift tests (V2)
+        run: cargo test --test drift_suite_v2
 
       - name: verifier calibration v1 (golden fixture must PASS)
         run: |
           cargo build --bin verifier --quiet
           ./target/debug/verifier fixtures/temporal_collapse_001/director_loop_run.json
 
+      # V2 drift suite (above) must green before this step runs.
+      # The binary recomputes input_hash and output_hash from the artifact's
+      # own fields and fails (exit 1) on any mismatch — hash drift in the
+      # committed fixture is a hard CI break, not a warning.
       - name: verifier calibration v2 (golden fixture must PASS)
         run: |
           cargo build --bin verifier_v2 --quiet
