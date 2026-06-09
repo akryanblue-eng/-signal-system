@@ -1,0 +1,373 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "signal-system/schema/audio_events.json",
+  "title": "Signal System — Audio Event Schema",
+
+  "metadata": {
+    "schema_version": "0.1.0",
+    "audit_date": "2026-06-09",
+    "branches_audited": [
+      "claude/latent-manifold-coordinate-mapping-Ewzi2",
+      "claude/deterministic-event-sourced-machine-b75go",
+      "claude/vdce-contract-ci-freeze-fd54xr"
+    ],
+    "timing_epoch": "performance.now() — floating-point ms since page load (TS layer only)",
+    "timing_units_policy": "PROPOSED: all timing fields in ms; dt parameters in seconds (physics convention)",
+    "event_layers": ["input", "field", "kernel", "snapshot", "rust_event_algebra"]
+  },
+
+  "sample_events": [
+    {
+      "_type": "AudioFeatures",
+      "_layer": "input",
+      "_source": "src/engine/AudioInputEngine.ts",
+      "_timing_fields": [],
+      "_known_defects": ["centroid is computed identically to energy — not a true spectral centroid"],
+      "energy":   0.62,
+      "bass":     0.45,
+      "treble":   0.31,
+      "centroid": 0.62
+    },
+    {
+      "_type": "MIDIEvent/note_on",
+      "_layer": "input",
+      "_source": "src/engine/MIDIInputEngine.ts",
+      "_timing_fields": [],
+      "_known_defects": ["no timestamp — MIDIMessageEvent.timeStamp is available but not captured"],
+      "type":     "note_on",
+      "note":     60,
+      "velocity": 0.787,
+      "channel":  1
+    },
+    {
+      "_type": "ChaosEvent",
+      "_layer": "field",
+      "_source": "src/engine/ChaosEngine.ts",
+      "_timing_fields": ["durationMs"],
+      "_known_defects": ["no wall-clock timestamp; timing is relative to fire() call only"],
+      "id":            "shockwave-001",
+      "type":          "shockwave",
+      "intensity":     0.85,
+      "durationMs":    800,
+      "radius":        0.35,
+      "center":        [0.1, 0.6],
+      "recoveryCurve": 0.94
+    },
+    {
+      "_type": "RuntimeSnapshot",
+      "_layer": "snapshot",
+      "_source": "src/core/manifold/RuntimeSnapshot.ts",
+      "_timing_fields": ["timestamp", "timingOffset"],
+      "_known_defects": [
+        "timingOffset formula (energy*12 - drift*20) is ad hoc — range [-20, 12] ms, unclamped",
+        "no frame duration — cannot detect dropped frames from snapshot alone"
+      ],
+      "frame":         142,
+      "timestamp":     4823.17,
+      "drift":         0.23,
+      "energy":        0.71,
+      "stability":     0.77,
+      "chaos":         0.14,
+      "attractorPull": 0.9,
+      "driftPressure": 0.23,
+      "timingOffset":  3.96
+    },
+    {
+      "_type": "FieldFeedbackSignal",
+      "_layer": "field",
+      "_source": "src/engine/FieldFeedback.ts",
+      "_timing_fields": ["timingOffset"],
+      "_known_defects": [
+        "timingOffset in ms here vs timingBias in seconds in PerformerFeedback — unit inconsistency for same concept"
+      ],
+      "driftPressure":    0.23,
+      "attractorPull":    0.9,
+      "timingOffset":     3.96,
+      "energyGradient":   0.02,
+      "correctionVector": [-0.184, 0.174]
+    }
+  ],
+
+  "timing_fields_inventory": {
+    "summary": "All timing-bearing fields across both layers",
+    "fields": [
+      {
+        "field":      "RuntimeSnapshot.timestamp",
+        "type":       "number",
+        "unit":       "ms",
+        "source":     "performance.now()",
+        "range":      "[0, ∞)",
+        "status":     "ok"
+      },
+      {
+        "field":      "RuntimeSnapshot.timingOffset",
+        "type":       "number",
+        "unit":       "ms",
+        "source":     "derived: energy*12 − drift*20",
+        "range":      "~[-20, 12] unclamped",
+        "status":     "defect — ad hoc formula, no clamping, not groove-quantized"
+      },
+      {
+        "field":      "ChaosEvent.durationMs",
+        "type":       "number",
+        "unit":       "ms",
+        "source":     "set at fire()",
+        "range":      "[0, ∞)",
+        "status":     "ok"
+      },
+      {
+        "field":      "ActiveChaosEvent.elapsedMs",
+        "type":       "number",
+        "unit":       "ms",
+        "source":     "accumulated in ChaosEngine.tick(dtMs)",
+        "range":      "[0, durationMs]",
+        "status":     "ok"
+      },
+      {
+        "field":      "FieldFeedbackSignal.timingOffset",
+        "type":       "number",
+        "unit":       "ms",
+        "source":     "derived: energy*12 − drift*20",
+        "range":      "~[-20, 12] unclamped",
+        "status":     "defect — same formula as RuntimeSnapshot.timingOffset; should share derivation"
+      },
+      {
+        "field":      "PerformerFeedback.timingBias",
+        "type":       "number",
+        "unit":       "seconds",
+        "source":     "derived: field.stability > 0.7 ? -0.02 : 0.03",
+        "range":      "{-0.02, 0.03}",
+        "status":     "defect — unit is seconds while all other timing is ms; binary output (no gradient)"
+      },
+      {
+        "field":      "ManifoldRuntime dt (parameter)",
+        "type":       "number",
+        "unit":       "seconds",
+        "source":     "(performance.now() − lastTime) / 1000, capped at 0.05",
+        "range":      "(0, 0.05]",
+        "status":     "ok — physics convention, but never stored in any event struct"
+      },
+      {
+        "field":      "Rust Event (all variants)",
+        "type":       "n/a",
+        "unit":       "n/a",
+        "source":     "n/a",
+        "range":      "n/a",
+        "status":     "defect — zero timing fields; no sequence number, no wall clock, no monotonic counter"
+      }
+    ]
+  },
+
+  "definitions": {
+    "AudioFeatures": {
+      "type": "object",
+      "description": "Real-time spectral features from Web Audio API AnalyserNode. Emitted every animation frame.",
+      "properties": {
+        "energy":   { "type": "number", "minimum": 0, "maximum": 1 },
+        "bass":     { "type": "number", "minimum": 0, "maximum": 1,
+                      "description": "Mean amplitude of FFT bins 0–9 (sub-bass / bass)" },
+        "treble":   { "type": "number", "minimum": 0, "maximum": 1,
+                      "description": "Mean amplitude of FFT bins 61–511" },
+        "centroid": { "type": "number", "minimum": 0, "maximum": 1,
+                      "description": "BUG: currently equals energy. Should be weighted mean bin index / (fftSize/2)." }
+      },
+      "required": ["energy", "bass", "treble", "centroid"]
+    },
+
+    "MIDIEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type":     { "const": "note_on" },
+            "note":     { "type": "integer", "minimum": 0, "maximum": 127 },
+            "velocity": { "type": "number", "minimum": 0, "maximum": 1,
+                          "description": "param2 / 127" },
+            "channel":  { "type": "integer", "minimum": 1, "maximum": 16 }
+          },
+          "required": ["type", "note", "velocity", "channel"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type":    { "const": "note_off" },
+            "note":    { "type": "integer", "minimum": 0, "maximum": 127 },
+            "channel": { "type": "integer", "minimum": 1, "maximum": 16 }
+          },
+          "required": ["type", "note", "channel"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type":    { "const": "cc" },
+            "cc":      { "type": "integer", "minimum": 0, "maximum": 127 },
+            "value":   { "type": "number", "minimum": 0, "maximum": 1,
+                         "description": "param2 / 127" },
+            "channel": { "type": "integer", "minimum": 1, "maximum": 16 }
+          },
+          "required": ["type", "cc", "value", "channel"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type":    { "const": "pitch_bend" },
+            "value":   { "type": "number", "minimum": -1, "maximum": 1,
+                         "description": "((param2 << 7 | param1) − 8192) / 8192" },
+            "channel": { "type": "integer", "minimum": 1, "maximum": 16 }
+          },
+          "required": ["type", "value", "channel"]
+        }
+      ]
+    },
+
+    "ChaosEvent": {
+      "type": "object",
+      "properties": {
+        "id":            { "type": "string" },
+        "type":          { "enum": ["tension", "release", "fracture", "spiral", "shockwave"] },
+        "intensity":     { "type": "number", "minimum": 0, "maximum": 1 },
+        "durationMs":    { "type": "number", "exclusiveMinimum": 0 },
+        "radius":        { "type": "number", "exclusiveMinimum": 0,
+                           "description": "Influence radius in canvas units (canvas is normalized [-1,1]×[-1,1])" },
+        "center":        { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+        "recoveryCurve": { "type": "number", "minimum": 0.88, "maximum": 1.0,
+                           "description": "Per-frame intensity multiplier. 0.94 ≈ 95% decay in ~50 frames at 60fps." }
+      },
+      "required": ["id", "type", "intensity", "durationMs", "radius", "center", "recoveryCurve"]
+    },
+
+    "ManifoldState": {
+      "type": "object",
+      "description": "Core dynamical state. coherence is derived and redundant.",
+      "properties": {
+        "drift":     { "type": "number", "minimum": -1, "maximum": 1,
+                       "description": "Phase variable. Negative = receding, positive = advancing." },
+        "energy":    { "type": "number", "minimum": 0, "maximum": 1 },
+        "coherence": { "type": "number", "minimum": 0, "maximum": 1,
+                       "description": "Always equals 1 − |drift|. Stored redundantly — see audit finding #5." }
+      },
+      "required": ["drift", "energy", "coherence"]
+    },
+
+    "RuntimeSnapshot": {
+      "type": "object",
+      "description": "Per-frame traceable snapshot. Only struct in the TS layer with a wall-clock timestamp.",
+      "properties": {
+        "frame":         { "type": "integer", "minimum": 0 },
+        "timestamp":     { "type": "number", "description": "performance.now() in ms" },
+        "drift":         { "type": "number", "minimum": -1, "maximum": 1 },
+        "energy":        { "type": "number", "minimum": 0, "maximum": 1 },
+        "stability":     { "type": "number", "minimum": 0, "maximum": 1,
+                           "description": "= ManifoldState.coherence = 1 − |drift|" },
+        "chaos":         { "type": "number", "minimum": 0, "maximum": 1 },
+        "attractorPull": { "type": "number", "minimum": 0, "maximum": 1 },
+        "driftPressure": { "type": "number", "minimum": 0, "maximum": 1 },
+        "timingOffset":  { "type": "number",
+                           "description": "ms ahead/behind groove center. Formula: energy*12 − drift*20. Range ~[-20, 12], unclamped." }
+      },
+      "required": ["frame", "timestamp", "drift", "energy", "stability", "chaos", "attractorPull", "driftPressure", "timingOffset"]
+    },
+
+    "FieldFeedbackSignal": {
+      "type": "object",
+      "properties": {
+        "driftPressure":    { "type": "number", "minimum": 0, "maximum": 1 },
+        "attractorPull":    { "type": "number", "minimum": 0, "maximum": 1 },
+        "timingOffset":     { "type": "number",
+                              "description": "ms. Same formula as RuntimeSnapshot.timingOffset. Unit inconsistency with PerformerFeedback.timingBias (seconds)." },
+        "energyGradient":   { "type": "number",
+                              "description": "Rate of energy change per frame (positive = rising). No explicit unit." },
+        "correctionVector": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2,
+                              "description": "2D nudge in manifold space: [−drift*0.8, (1−coherence)*0.6]" }
+      },
+      "required": ["driftPressure", "attractorPull", "timingOffset", "energyGradient", "correctionVector"]
+    },
+
+    "KernelOutput": {
+      "type": "object",
+      "properties": {
+        "mode": { "enum": ["PERFORMING", "RECOVERING", "TRANSITIONING", "IDLE"] },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+            "stability":  { "type": "number", "minimum": 0, "maximum": 1 },
+            "energy":     { "type": "number", "minimum": 0, "maximum": 1 },
+            "pressure":   { "type": "number", "minimum": 0, "maximum": 1,
+                            "description": "min(cumulative_drift, 1)" }
+          },
+          "required": ["confidence", "stability", "energy", "pressure"]
+        },
+        "steeringIntensity": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["mode", "metrics", "steeringIntensity"]
+    },
+
+    "RustEvent": {
+      "description": "Closed signal event algebra from src/event.rs (deterministic-event-sourced-machine branch). Fixed discriminants; no timing fields.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "discriminant": { "const": "0x01" },
+            "type":         { "const": "Create" },
+            "entity_id":    { "type": "integer", "minimum": 0 },
+            "kind":         { "type": "integer", "minimum": 0, "maximum": 65535 }
+          },
+          "required": ["type", "entity_id", "kind"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "discriminant": { "const": "0x02" },
+            "type":         { "const": "Update" },
+            "entity_id":    { "type": "integer", "minimum": 0 },
+            "field":        { "type": "integer", "minimum": 0, "maximum": 255 },
+            "value":        { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "entity_id", "field", "value"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "discriminant": { "const": "0x03" },
+            "type":         { "const": "Merge" },
+            "target_id":    { "type": "integer", "minimum": 0 },
+            "source_id":    { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "target_id", "source_id"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "discriminant":   { "const": "0x04" },
+            "type":           { "const": "Partition" },
+            "entity_id":      { "type": "integer", "minimum": 0 },
+            "new_entity_id":  { "type": "integer", "minimum": 0 },
+            "partition_key":  { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "entity_id", "new_entity_id", "partition_key"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "discriminant": { "const": "0x05" },
+            "type":         { "const": "Commit" },
+            "entity_id":    { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "entity_id"]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "discriminant": { "const": "0x06" },
+            "type":         { "const": "Reject" },
+            "entity_id":    { "type": "integer", "minimum": 0 },
+            "reason_code":  { "type": "integer", "minimum": 0, "maximum": 65535 }
+          },
+          "required": ["type", "entity_id", "reason_code"]
+        }
+      ]
+    }
+  }
+}
