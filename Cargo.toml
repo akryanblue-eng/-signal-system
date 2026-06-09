@@ -12,3 +12,7 @@ hex        = "0.4"
 [[bin]]
 name = "verifier"
 path = "src/bin/verifier.rs"
+
+[[bin]]
+name = "verifier_v2"
+path = "src/bin/verifier_v2.rs"

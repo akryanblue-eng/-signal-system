@@ -38,7 +38,12 @@ jobs:
       - name: unit + drift tests
         run: cargo test
 
-      - name: verifier calibration (golden fixture must PASS)
+      - name: verifier calibration v1 (golden fixture must PASS)
         run: |
           cargo build --bin verifier --quiet
           ./target/debug/verifier fixtures/temporal_collapse_001/director_loop_run.json
+
+      - name: verifier calibration v2 (golden fixture must PASS)
+        run: |
+          cargo build --bin verifier_v2 --quiet
+          ./target/debug/verifier_v2 fixtures/v2/temporal_collapse_001/director_loop_run_v2.json
