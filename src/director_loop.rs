@@ -5,9 +5,10 @@ use sha2::{Digest, Sha256};
 /// Avoids float serialization variance per VDCE v1.1 canonicalization rules.
 pub type CoherenceValue = u32;
 
-// ── Domain structs (field order is part of the frozen canonical contract) ───
+// ── Domain structs ───────────────────────────────────────────────────────────
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DirectorLoopRun {
     // input domain
     pub director_loop_version: String,
@@ -21,28 +22,26 @@ pub struct DirectorLoopRun {
     pub final_coherence: CoherenceValue,
     pub corrections: Vec<Correction>,
     pub regen_events: Vec<RegenEvent>,
-    pub audit_notes: String,
+    pub audit_notes: Vec<String>,
     // integrity boundary
     pub input_hash: String,
     pub output_hash: String,
 }
 
-/// Extend with fixture-specific fields before freezing for a given fixture set.
-/// All fields are included verbatim in the input_hash preimage.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Fixture {
     pub fixture_id: String,
 }
 
-/// Extend with config-specific fields before freezing for a given run set.
-/// All fields are included verbatim in the input_hash preimage.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     pub max_corrections: u32,
     pub regen_budget: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Status {
     #[serde(rename = "PASSED")]
     Passed,
@@ -52,14 +51,15 @@ pub enum Status {
     Failed,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Correction {
     pub rule: CorrectionRule,
     pub beat_id: String,
     pub action: CorrectionAction,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CorrectionRule {
     #[serde(rename = "RHYTHM_DRIFT")]
     RhythmDrift,
@@ -69,7 +69,7 @@ pub enum CorrectionRule {
     AvAlignment,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CorrectionAction {
     #[serde(rename = "adjust_xfade")]
     AdjustXfade,
@@ -77,15 +77,16 @@ pub enum CorrectionAction {
     RegenBeat,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RegenEvent {
     pub beat_id: String,
     pub request_id: String,
 }
 
-// ── Preimage structs ────────────────────────────────────────────────────────
-// Field order here is frozen. Never reorder — serde serializes in definition
-// order, and any reorder silently changes every hash in the corpus.
+// ── Preimage structs ─────────────────────────────────────────────────────────
+// Field order is frozen. Never reorder — serde serializes in definition order,
+// and any reorder silently changes every hash in the corpus.
 
 #[derive(Serialize)]
 struct InputHashPreimage<'a> {
@@ -103,23 +104,20 @@ struct OutputHashPreimage<'a> {
     final_coherence: CoherenceValue,
     corrections: &'a [Correction],
     regen_events: &'a [RegenEvent],
-    audit_notes: &'a str,
+    audit_notes: &'a [String],
 }
 
-// ── Hash computation ────────────────────────────────────────────────────────
+// ── Hash computation ─────────────────────────────────────────────────────────
 
-/// Canonical bytes: compact (non-pretty) JSON via serde_json::to_vec over a
-/// serde-derived typed struct. Field order is struct definition order, which
-/// serde derive guarantees — no HashMap, no serde_json::Value in the hash
-/// boundary. This achieves deterministic encoding without requiring RFC 8785
-/// JCS; the two are equivalent only because all hash-boundary types are fully
-/// typed structs with frozen field order.
+/// Compact (non-pretty) JSON over a serde-derived typed struct.
+/// Field order is struct definition order (guaranteed by serde derive).
+/// No HashMap, no serde_json::Value in the hash boundary.
 fn canonical_bytes<T: Serialize>(value: &T) -> Vec<u8> {
     serde_json::to_vec(value).expect("DirectorLoopRun types are always serializable")
 }
 
-/// SHA-256 over bytes, returned as 64-character lowercase hex, no prefix.
-/// Invariant: always lowercase [a-f0-9]{64}. hex::encode guarantees this.
+/// SHA-256 over bytes. Output: 64-character lowercase hex, no prefix.
+/// Invariant: always `^[a-f0-9]{64}$`. `hex::encode` guarantees this.
 fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(Sha256::digest(bytes))
 }
@@ -145,31 +143,4 @@ pub fn compute_output_hash(run: &DirectorLoopRun) -> String {
         audit_notes: &run.audit_notes,
     };
     sha256_hex(&canonical_bytes(&preimage))
-}
-
-/// Verify both hashes in a run artifact. Returns Ok(()) or a list of failures.
-pub fn verify(run: &DirectorLoopRun) -> Result<(), Vec<String>> {
-    let mut failures = Vec::new();
-
-    let expected_input = compute_input_hash(run);
-    if run.input_hash != expected_input {
-        failures.push(format!(
-            "input_hash mismatch: artifact={} computed={}",
-            run.input_hash, expected_input
-        ));
-    }
-
-    let expected_output = compute_output_hash(run);
-    if run.output_hash != expected_output {
-        failures.push(format!(
-            "output_hash mismatch: artifact={} computed={}",
-            run.output_hash, expected_output
-        ));
-    }
-
-    if failures.is_empty() {
-        Ok(())
-    } else {
-        Err(failures)
-    }
 }

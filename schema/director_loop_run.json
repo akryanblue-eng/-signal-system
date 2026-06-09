@@ -70,7 +70,9 @@
       "description": "Fully serialized; no partial projection permitted in hash preimage."
     },
     "audit_notes": {
-      "type": "string"
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Phase-ordered log entries. Must be in non-decreasing lexicographic order; verifier enforces this as a structural invariant."
     },
     "input_hash": {
       "type": "string",

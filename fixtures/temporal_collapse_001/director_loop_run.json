@@ -12,9 +12,15 @@
   "status": "PASSED",
   "initial_coherence": 920000,
   "final_coherence": 960000,
-  "corrections": [],
+  "corrections": [
+    {"rule": "RHYTHM_DRIFT", "beat_id": "beat_001", "action": "adjust_xfade"},
+    {"rule": "AV_ALIGNMENT",  "beat_id": "beat_003", "action": "adjust_xfade"}
+  ],
   "regen_events": [],
-  "audit_notes": "",
-  "input_hash": "6eff7e1b378bcd1da093465a1d292788e0a31a4e80f8a6be96dc26c2cc7ecc5b",
-  "output_hash": "664c59481d2d60d2fdc3f56474dc5612820da8f722a67284cfb9cf54457451c6"
+  "audit_notes": [
+    "PHASE_1: Input validation complete",
+    "PHASE_2: Threshold check passed"
+  ],
+  "input_hash":  "6eff7e1b378bcd1da093465a1d292788e0a31a4e80f8a6be96dc26c2cc7ecc5b",
+  "output_hash": "d2ec0049ebaf5fd9b435c4e3ee7db18dbe3b90f20198953385f4be5d8d99e9e9"
 }
