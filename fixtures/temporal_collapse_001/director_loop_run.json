@@ -1,0 +1,20 @@
+{
+  "director_loop_version": "1.0.0",
+  "fixture": {
+    "fixture_id": "temporal_collapse_001"
+  },
+  "config": {
+    "max_corrections": 10,
+    "regen_budget": 3
+  },
+  "threshold": 850000,
+  "ruleset_version": "1.0.0",
+  "status": "PASSED",
+  "initial_coherence": 920000,
+  "final_coherence": 960000,
+  "corrections": [],
+  "regen_events": [],
+  "audit_notes": "",
+  "input_hash": "6eff7e1b378bcd1da093465a1d292788e0a31a4e80f8a6be96dc26c2cc7ecc5b",
+  "output_hash": "664c59481d2d60d2fdc3f56474dc5612820da8f722a67284cfb9cf54457451c6"
+}
