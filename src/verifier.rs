@@ -11,6 +11,10 @@ pub struct GateOutcome {
     pub result: GateResult,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failure_code: Option<FailureCode>,
+    /// JSON path to the first offending field, e.g. "corrections[1].beat_id".
+    /// Present only on Fail; omitted on Pass and NotEvaluated.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
@@ -41,13 +45,16 @@ pub enum FailureCode {
 
 impl GateOutcome {
     fn pass() -> Self {
-        GateOutcome { result: GateResult::Pass, failure_code: None }
+        GateOutcome { result: GateResult::Pass, failure_code: None, path: None }
     }
-    fn fail(code: FailureCode) -> Self {
-        GateOutcome { result: GateResult::Fail, failure_code: Some(code) }
+    fn fail(code: FailureCode, path: impl Into<String>) -> Self {
+        GateOutcome { result: GateResult::Fail, failure_code: Some(code), path: Some(path.into()) }
+    }
+    fn fail_no_path(code: FailureCode) -> Self {
+        GateOutcome { result: GateResult::Fail, failure_code: Some(code), path: None }
     }
     fn not_evaluated() -> Self {
-        GateOutcome { result: GateResult::NotEvaluated, failure_code: None }
+        GateOutcome { result: GateResult::NotEvaluated, failure_code: None, path: None }
     }
 }
 
@@ -122,7 +129,7 @@ pub fn verify(run: &DirectorLoopRun) -> VerifierReport {
             gates: GateResults {
                 schema:      GateOutcome::pass(),
                 invariants:  inv,
-                input_hash:  GateOutcome::fail(FailureCode::InputHashDrift),
+                input_hash:  GateOutcome::fail(FailureCode::InputHashDrift, "input_hash"),
                 output_hash: GateOutcome::not_evaluated(),
             },
             failure_detail: Some(format!(
@@ -141,7 +148,7 @@ pub fn verify(run: &DirectorLoopRun) -> VerifierReport {
                 schema:      GateOutcome::pass(),
                 invariants:  inv,
                 input_hash:  GateOutcome::pass(),
-                output_hash: GateOutcome::fail(FailureCode::OutputHashDrift),
+                output_hash: GateOutcome::fail(FailureCode::OutputHashDrift, "output_hash"),
             },
             failure_detail: Some(format!(
                 "output_hash: artifact={} computed={}",
@@ -168,7 +175,7 @@ fn fail_at_schema(detail: String) -> VerifierReport {
     VerifierReport {
         audit_status: AuditStatus::Fail,
         gates: GateResults {
-            schema:      GateOutcome::fail(FailureCode::SchemaViolation),
+            schema:      GateOutcome::fail_no_path(FailureCode::SchemaViolation),
             invariants:  GateOutcome::not_evaluated(),
             input_hash:  GateOutcome::not_evaluated(),
             output_hash: GateOutcome::not_evaluated(),
@@ -182,23 +189,29 @@ fn fail_at_schema(detail: String) -> VerifierReport {
 fn check_invariants(run: &DirectorLoopRun) -> GateOutcome {
     // Corrections must be in non-decreasing beat_id order (emission order preserved).
     let beats: Vec<&str> = run.corrections.iter().map(|c| c.beat_id.as_str()).collect();
-    if beats.windows(2).any(|w| w[0] > w[1]) {
-        return GateOutcome::fail(FailureCode::CorrectionsOutOfOrder);
+    if let Some(i) = beats.windows(2).position(|w| w[0] > w[1]) {
+        return GateOutcome::fail(
+            FailureCode::CorrectionsOutOfOrder,
+            format!("corrections[{}].beat_id", i + 1),
+        );
     }
 
     // audit_notes must be in non-decreasing phase order.
-    if run.audit_notes.windows(2).any(|w| w[0] > w[1]) {
-        return GateOutcome::fail(FailureCode::AuditNotesOutOfOrder);
+    if let Some(i) = run.audit_notes.windows(2).position(|w| w[0] > w[1]) {
+        return GateOutcome::fail(
+            FailureCode::AuditNotesOutOfOrder,
+            format!("audit_notes[{}]", i + 1),
+        );
     }
 
     // PASSED requires final_coherence >= threshold.
     if run.status == Status::Passed && run.final_coherence < run.threshold {
-        return GateOutcome::fail(FailureCode::PassedBelowThreshold);
+        return GateOutcome::fail(FailureCode::PassedBelowThreshold, "final_coherence");
     }
 
     // REGENERATED requires at least one regen_event.
     if run.status == Status::Regenerated && run.regen_events.is_empty() {
-        return GateOutcome::fail(FailureCode::RegenWithoutEvents);
+        return GateOutcome::fail(FailureCode::RegenWithoutEvents, "regen_events");
     }
 
     GateOutcome::pass()
