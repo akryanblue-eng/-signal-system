@@ -1,0 +1,31 @@
+{
+  "v2_version":    "2.0.0",
+  "run_id":        "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "parent_run_id": null,
+  "protocol_sha":  "v2.0.0",
+  "inputs": {
+    "fixture":         { "fixture_id": "temporal_collapse_001" },
+    "config":          { "max_corrections": 10, "regen_budget": 3 },
+    "threshold":       850000,
+    "ruleset_version": "2.0.0"
+  },
+  "execution": {
+    "status":            "PASSED",
+    "initial_coherence": 920000,
+    "final_coherence":   960000,
+    "timeline": [
+      { "step": 0, "event": "Start",    "state": "PASSED", "beat_id": null },
+      { "step": 1, "event": "Evaluate", "state": "PASSED", "beat_id": null },
+      { "step": 2, "event": "Finalize", "state": "PASSED", "beat_id": null }
+    ],
+    "transitions":  [],
+    "corrections":  [],
+    "regen_events": []
+  },
+  "audit": {
+    "notes":    ["PHASE_1: Input validation complete", "PHASE_2: Threshold check passed"],
+    "warnings": []
+  },
+  "input_hash":  "0f182749e591646913a6f87c851bb9d63d32a2fded7f50b2163046c4363a3256",
+  "output_hash": "e9695aa823852954b8737637731a47446de60113378b640b07938a7b7617704c"
+}
