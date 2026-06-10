@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "session.schema.json",
+  "title": "CalibrationSession",
+  "description": "A single playtest session. Canonical record for the Go/No-Go decision. Drives SHIP/TUNE/KILL verdict.",
+  "type": "object",
+  "required": [
+    "id", "timestamp", "tester_id", "duration_minutes",
+    "q_one_breath", "q_regain_control", "q_clearest_place",
+    "classifier_checks", "story_refs", "verdict"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^session_\\d{4}_\\d{2}_\\d{2}_\\d{3}$",
+      "description": "session_YYYY_MM_DD_NNN"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tester_id": {
+      "type": "string",
+      "description": "Anonymous handle. No prior framework exposure required."
+    },
+    "duration_minutes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "q_one_breath": {
+      "type": "string",
+      "description": "Verbatim: 'Tell me what happened in one breath.'"
+    },
+    "q_regain_control": {
+      "type": "string",
+      "description": "Verbatim: 'Where did you feel like you regained control after things went wrong?'"
+    },
+    "q_clearest_place": {
+      "type": "string",
+      "description": "Verbatim: 'What place do you remember most clearly?'"
+    },
+    "classifier_checks": {
+      "type": "object",
+      "required": [
+        "describes_route_not_mission",
+        "failure_produced_story_not_reset",
+        "escape_has_location_mistake_recovery",
+        "run_classified_without_rereading",
+        "breakpoint_class_under_30s"
+      ],
+      "additionalProperties": false,
+      "description": "Interviewer marks each after hearing the three answers. No framework lookup allowed.",
+      "properties": {
+        "describes_route_not_mission": { "type": "boolean" },
+        "failure_produced_story_not_reset": { "type": "boolean" },
+        "escape_has_location_mistake_recovery": { "type": "boolean" },
+        "run_classified_without_rereading": { "type": "boolean" },
+        "breakpoint_class_under_30s": { "type": "boolean" }
+      }
+    },
+    "story_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Story events logged from this session"
+    },
+    "perturbation_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Perturbations observed during this session"
+    },
+    "fragility_notes": {
+      "type": ["string", "null"],
+      "description": "Patterns that were edge or outside-envelope"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["ship", "tune", "kill"],
+      "description": "Derived from classifier_checks + perturbation envelope. See calibrate.py."
+    },
+    "verdict_notes": {
+      "type": ["string", "null"],
+      "description": "One sentence: why this verdict"
+    }
+  }
+}

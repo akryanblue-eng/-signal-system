@@ -19,6 +19,13 @@ SCHEMA_KEYS = {
     "failure_mode", "fragility_notes", "envelope_classification",
     "trigger_recipe", "systems_intersection", "recurrence_count",
     "variation_survival", "collision_coherence", "last_tested",
+    # session / calibration keys
+    "tester_id", "duration_minutes",
+    "q_one_breath", "q_regain_control", "q_clearest_place",
+    "classifier_checks", "verdict", "verdict_notes",
+    "describes_route_not_mission", "failure_produced_story_not_reset",
+    "escape_has_location_mistake_recovery",
+    "run_classified_without_rereading", "breakpoint_class_under_30s",
     "$schema", "$id",
 }
 
@@ -88,7 +95,8 @@ def main() -> int:
     perturbations = load_dir("perturbations")
     constraints = load_dir("constraints")
     attractors = load_dir("attractors")
-    all_objects = stories + perturbations + constraints + attractors
+    sessions = load_dir("sessions")
+    all_objects = stories + perturbations + constraints + attractors + sessions
 
     orphans = check_orphan_attractors(attractors)
     missing_chains = check_missing_deformation_chains(stories, perturbations)
