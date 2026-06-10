@@ -224,4 +224,10 @@ A change requires V3 if and only if it causes `Fix(E_V2) ≠ Fix(E_V3)` — that
 
 ---
 
+## 12. Machine-Readable Provenance Capsule
+
+`docs/v2_closure_certificate.json` contains the machine-verifiable closure record: CI run IDs, `Cargo.lock` SHA-256, toolchain pin, witness set counts, and the release tag. It is a provenance artifact only — it introduces no invariants beyond those enforced by `src/verifier_v2.rs`.
+
+---
+
 *V2 is sealed.*

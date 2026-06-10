@@ -1,0 +1,70 @@
+{
+  "certificate_version": "1",
+  "protocol_version": "V2",
+  "release_tag": "v2.0.0",
+
+  "closure_commit": "da7f9c30",
+  "closure_timestamp_utc": "2026-06-10T03:13:31Z",
+
+  "ci_attestation": {
+    "provider": "github_actions",
+    "workflow": "CI",
+    "status": "PASS",
+    "runs": [
+      {
+        "run_id": "27244742664",
+        "conclusion": "success",
+        "commit": "da7f9c30"
+      },
+      {
+        "run_id": "27244674449",
+        "conclusion": "success",
+        "commit": "5f6e307a"
+      },
+      {
+        "run_id": "27244552104",
+        "conclusion": "success",
+        "commit": "2e30b42a"
+      }
+    ]
+  },
+
+  "environment_lock": {
+    "rust_toolchain": "1.94.1",
+    "cargo_lock_sha256": "ba75072b169def1ee462bcf95d631df9899c756e8051554e199335d6b99f64d0",
+    "runner": "ubuntu-latest"
+  },
+
+  "evaluator_identity": {
+    "gate_order": ["schema", "structural", "state", "input_hash", "output_hash"],
+    "observable_tuple_fields": [
+      "audit_status",
+      "first_gate",
+      "code",
+      "path",
+      "expected_hash",
+      "observed_hash"
+    ],
+    "admissibility_rule": "Semantics-preserving iff observable tuple is unchanged for all witnesses in S under the pinned environment; otherwise V3 or reject."
+  },
+
+  "witness_set": {
+    "description": "Golden fixtures + drift-suite cases run in CI at closure time.",
+    "drift_suite": {
+      "status": "PASS",
+      "test_count": 28,
+      "suites": [
+        { "name": "drift_suite_v0", "count": 11 },
+        { "name": "drift_suite_v2", "count": 17 }
+      ],
+      "failure_codes_observed": []
+    }
+  },
+
+  "notes": [
+    "Closure commit da7f9c30 is the first commit where all CI runs pass after the rustfmt fix.",
+    "Three consecutive passing runs span the final three semantic commits (§11.6 tighten, §11 add, rustfmt).",
+    "Certificate is a provenance record only. It introduces no new invariants.",
+    "Normative authority remains exclusively with src/verifier_v2.rs under the pinned environment."
+  ]
+}
