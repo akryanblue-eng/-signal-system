@@ -1,0 +1,105 @@
+{
+  "_version": "0.1",
+  "_invariant": "triage + overlay + stress_test all read ONLY from this registry. No hidden tuning. No content changes — only parameter edits.",
+  "knobs": {
+    "heat_gain_rate": {
+      "type": "float",
+      "range": [0.5, 3.0],
+      "default": 1.0,
+      "affects": ["E_spike_rate", "R_stability"],
+      "layer": "E",
+      "safe_edit": "+/- 10-20% per iteration",
+      "risk": "High values collapse A window — do not exceed 2.0 without buffer_phase enabled"
+    },
+    "police_response_delay": {
+      "type": "float",
+      "range": [0.2, 5.0],
+      "default": 1.2,
+      "affects": ["A_window", "instant_collapse_risk"],
+      "layer": "E→A",
+      "safe_edit": "+/- 0.5s per iteration",
+      "risk": "Values below 0.5s cause instant collapse — enforces no A window"
+    },
+    "spawn_delay_variance": {
+      "type": "float",
+      "range": [0.0, 0.5],
+      "default": 0.1,
+      "affects": ["vpr_collapse", "E_predictability"],
+      "layer": "E",
+      "safe_edit": "+/- 0.05 per iteration",
+      "risk": "Over-randomizing above 0.35 destroys setup legibility"
+    },
+    "encounter_start_angle_variance": {
+      "type": "float",
+      "range": [0.0, 45.0],
+      "default": 10.0,
+      "affects": ["vpr_collapse", "first_move_diversity"],
+      "layer": "E",
+      "safe_edit": "+/- 5 degrees per iteration",
+      "risk": "Values above 35 make encounter entry unpredictable — can break spatial memory"
+    },
+    "rival_aggression": {
+      "type": "float",
+      "range": [0.0, 2.0],
+      "default": 1.0,
+      "affects": ["decorative_adaptation", "free_escape"],
+      "layer": "A",
+      "safe_edit": "+/- 0.2 per iteration",
+      "risk": "Values above 1.8 can cause E saturation — rival + police simultaneously = no A window"
+    },
+    "escape_route_density": {
+      "type": "float",
+      "range": [0.5, 3.0],
+      "default": 1.0,
+      "affects": ["free_escape", "memoryless_city", "single_path_adaptation"],
+      "layer": "A",
+      "safe_edit": "+/- 0.25 per iteration (integer route count equivalent)",
+      "risk": "Adding routes without AI response creates empty options — each grammar needs distinct pursuit behavior"
+    },
+    "vehicle_handling_variance": {
+      "type": "float",
+      "range": [0.0, 0.15],
+      "default": 0.05,
+      "affects": ["single_path_adaptation", "A_grammar_diversity"],
+      "layer": "A",
+      "safe_edit": "+/- 0.02 per iteration",
+      "risk": "High variance can destroy spatial memory — vehicles behave inconsistently per-encounter"
+    },
+    "heat_decay_threshold": {
+      "type": "float",
+      "range": [0.1, 0.9],
+      "default": 0.5,
+      "affects": ["rcp_smear", "R_stability"],
+      "layer": "R",
+      "safe_edit": "+/- 0.05 per iteration",
+      "risk": "Low threshold collapses R variety — keep at least 2 viable exit conditions per E-class"
+    },
+    "pursuit_break_strength": {
+      "type": "float",
+      "range": [0.5, 2.0],
+      "default": 1.0,
+      "affects": ["rcp_smear", "infinite_chase"],
+      "layer": "R",
+      "safe_edit": "+/- 0.1 per iteration",
+      "risk": "Values above 1.8 create arbitrary exits that ignore player state — legibility drops"
+    },
+    "loose_coupling_noise": {
+      "type": "float",
+      "range": [0.0, 0.4],
+      "default": 0.15,
+      "affects": ["rcp_smear", "unstable_r"],
+      "layer": "R",
+      "safe_edit": "+/- 0.03 per iteration",
+      "risk": "Values above 0.35 produce R smear — state clustering breaks down"
+    },
+    "landmark_salience_weight": {
+      "type": "float",
+      "range": [0.5, 3.0],
+      "default": 1.0,
+      "affects": ["memoryless_city", "spatial_story_formation"],
+      "layer": "spatial",
+      "safe_edit": "+/- 0.2 per iteration",
+      "risk": "Over-salient landmarks create tourist behavior — players navigate to them instead of through them"
+    }
+  }
+}

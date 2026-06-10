@@ -26,6 +26,9 @@ SCHEMA_KEYS = {
     "describes_route_not_mission", "failure_produced_story_not_reset",
     "escape_has_location_mistake_recovery",
     "run_classified_without_rereading", "breakpoint_class_under_30s",
+    # event stream keys
+    "E", "loc", "entities", "state_delta", "heat", "visibility",
+    "session_ref", "perturbation_ref",
     "$schema", "$id",
 }
 

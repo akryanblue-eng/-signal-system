@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event_stream.schema.json",
+  "title": "EventStream",
+  "description": "Shared primitive event record. Every tool — overlay, triage, stress test — reads from this format. No artifact defines its own truth system.",
+  "type": "object",
+  "required": ["t", "E", "loc", "entities", "heat", "visibility"],
+  "additionalProperties": false,
+  "properties": {
+    "t": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp (ISO 8601)"
+    },
+    "E": {
+      "type": "string",
+      "enum": [
+        "sightline_established",
+        "chase_initiated",
+        "collision",
+        "heat_increase",
+        "patrol_detection",
+        "rival_contact",
+        "spawn_heat_event",
+        "force_sightline",
+        "vehicle_interaction",
+        "territory_crossing",
+        "route_block",
+        "rival_intercept",
+        "police_desync",
+        "misleading_topology",
+        "escape_density_reduction",
+        "commitment_cost_increase",
+        "delayed_exit_validation",
+        "route_change",
+        "vehicle_swap",
+        "visibility_state_change",
+        "risk_posture_shift",
+        "recovery_action",
+        "landmark_entry",
+        "resolution_stable",
+        "resolution_broken"
+      ],
+      "description": "Event type. Shared enum across all tools."
+    },
+    "loc": {
+      "type": "string",
+      "description": "Spatial node identifier where event occurred"
+    },
+    "entities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Active entities at event time (player, police, rival, environment)"
+    },
+    "state_delta": {
+      "type": "object",
+      "description": "Key-value pairs describing state changes this event produced",
+      "additionalProperties": true
+    },
+    "heat": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "visibility": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "1.0 = fully visible to threat; 0.0 = fully concealed"
+    },
+    "session_ref": {
+      "type": ["string", "null"],
+      "description": "Session ID this event belongs to"
+    },
+    "perturbation_ref": {
+      "type": ["string", "null"],
+      "description": "Perturbation ID if this event was stress-injected"
+    }
+  }
+}
