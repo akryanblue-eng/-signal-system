@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-triage.py v2.1 — arc-first kernel + A3 fix + ASI
+triage.py v2.2 — arc-first kernel + A3 fix + ASI + APC + AEI + CCF
 
 Changes from v2.0:
   - A3 fix: R is now a proposed state, not an executed state.
@@ -11,7 +11,18 @@ Changes from v2.0:
   - compute_rcp() gains p_r_without_a and mean_e_to_r_time.
   - compute_asi() collapses RCP into a single Arc Stability Index scalar
     with regime classification: healthy / tuning / imbalanced / non_system.
-  - ASI is diagnostic only — not an optimization target.
+  - compute_apc() measures A participation inside arcs that reach R.
+  - compute_aei() measures whether A deforms R-space (requires paired runs).
+  - compute_ccf() measures causal explanatory coverage (E_explained single-run;
+    IC + ghost-effect stubs require --perturbed-events).
+  - ASI/APC/AEI/CCF are diagnostic only — not optimization targets.
+
+Full observability stack:
+  APC  — is A present inside arcs?
+  AEI  — does A deform arc outcomes?
+  RCP  — are R-basins stable and legible?
+  VPR  — is A-space multi-attractor?
+  CCF  — is causality earned under intervention?
 
 Three hard invariants (unchanged):
   1. event_type is phase authority — phase_hint is advisory.
@@ -168,6 +179,8 @@ class TriageReport:
     rcp: Dict[str, Any]
     asi: Dict[str, Any]
     apc: Dict[str, Any]
+    aei: Dict[str, Any]
+    ccf: Dict[str, Any]
     knob_deltas: List[KnobDelta]
     notes: Dict[str, Any]
 
@@ -666,6 +679,195 @@ def compute_apc(arcs: List[Arc], low_tau: float = 0.3) -> Dict[str, Any]:
     }
 
 
+# ── AEI (A-Elasticity Index) ──────────────────────────────────────────────────
+
+def _r_dist(arcs: List[Arc]) -> Dict[str, int]:
+    dist: Dict[str, int] = {}
+    for arc in arcs:
+        if arc.has_r:
+            r_type = arc.R_events[0].get("event_type", "unknown")
+            dist[r_type] = dist.get(r_type, 0) + 1
+    return dist
+
+
+def _js_divergence(p: Dict[str, int], q: Dict[str, int]) -> float:
+    """Jensen-Shannon divergence between two count distributions."""
+    def norm(d: Dict[str, int]) -> Dict[str, float]:
+        total = sum(d.values()) or 1
+        return {k: v / total for k, v in d.items()}
+
+    pn, qn = norm(p), norm(q)
+    keys = set(pn) | set(qn)
+    m = {k: (pn.get(k, 0) + qn.get(k, 0)) / 2 for k in keys}
+
+    def kl(a: Dict[str, float], b: Dict[str, float]) -> float:
+        return sum(
+            a.get(k, 0) * math.log((a.get(k, 0) + 1e-9) / (b.get(k, 0) + 1e-9))
+            for k in keys if a.get(k, 0) > 0
+        )
+
+    return 0.5 * kl(pn, m) + 0.5 * kl(qn, m)
+
+
+def compute_aei(
+    base_arcs: List[Arc],
+    perturbed_arcs: Optional[List[Arc]],
+    a_pressure_delta: float = 1.0,
+) -> Dict[str, Any]:
+    """
+    A-Elasticity Index v0.1 — does A still deform R-space under pressure?
+
+    Requires paired runs. Returns insufficient_data if perturbed_arcs is None.
+
+    AEI = JS_divergence(R_base, R_perturbed) / a_pressure_delta
+
+    Regimes:
+      >= 0.25  elastic    — A meaningfully reshapes R-space
+      >= 0.10  damped     — system alive but stiffening
+       > 0.0   near_rigid — A present but ineffective (pre-APC collapse)
+      <= 0.0   KILL       — more A reduces or distorts R-space negatively
+    """
+    if perturbed_arcs is None:
+        return {
+            "AEI_score": None, "JS_divergence": None,
+            "aei_verdict": "insufficient_data",
+            "R_base": None, "R_perturbed": None,
+        }
+
+    r_base = _r_dist(base_arcs)
+    r_pert = _r_dist(perturbed_arcs)
+
+    if not r_base and not r_pert:
+        return {
+            "AEI_score": 0.0, "JS_divergence": 0.0,
+            "aei_verdict": "KILL",
+            "R_base": {}, "R_perturbed": {},
+            "note": "no R events in either batch",
+        }
+
+    d_r = _js_divergence(r_base, r_pert)
+    aei = d_r / (abs(a_pressure_delta) + 1e-9)
+
+    if aei >= 0.25:
+        verdict = "elastic"
+    elif aei >= 0.10:
+        verdict = "damped"
+    elif aei > 0.0:
+        verdict = "near_rigid"
+    else:
+        verdict = "KILL"
+
+    return {
+        "AEI_score": round(aei, 4),
+        "JS_divergence": round(d_r, 4),
+        "a_pressure_delta": a_pressure_delta,
+        "aei_verdict": verdict,
+        "R_base": r_base,
+        "R_perturbed": r_pert,
+    }
+
+
+# ── CCF (Causal Closure Fidelity) ─────────────────────────────────────────────
+
+def compute_ccf(
+    arcs: List[Arc],
+    perturbed_arcs: Optional[List[Arc]] = None,
+) -> Dict[str, Any]:
+    """
+    Causal Closure Fidelity v0.1.
+
+    Single-run component (always computed):
+      E_explained: fraction of E/A/R events in arc that have at least one
+      triggered_by reference pointing to another event in the same arc.
+      First E events cannot be self-explaining — excluded from denominator.
+
+    Paired-run components (require --perturbed-events):
+      IC (Intervention Consistency): do downstream events shift only along
+         reachable causal paths when a knob is perturbed?
+      G (Ghost Effect): events shifting without upstream cause change.
+
+    Full CCF_arc = E_explained * IC - G (clamped to [0, 1]).
+    Single-run CCF_arc = E_explained only.
+
+    Regimes:
+      >= 0.75  closed      — causal links explain arc structure
+      >= 0.50  semi_closed — mostly causal, some leakage
+      >= 0.25  weak        — links exist but weakly predictive
+       < 0.25  non_causal  — edges do not constrain outcomes
+    """
+    if not arcs:
+        return {
+            "CCF_mean": None, "E_explained_mean": None,
+            "IC": None, "G": None,
+            "ccf_verdict": "insufficient_data",
+            "per_arc": [],
+        }
+
+    # Build a set of all event_ids across the run for predecessor lookup
+    all_run_eids: Set[str] = set()
+    for arc in arcs:
+        for ev in arc.E_events + arc.A_events + arc.R_events:
+            all_run_eids.add(ev["event_id"])
+
+    per_arc = []
+    for arc in arcs:
+        # Explainable events: A + R events (not the first E — no upstream by definition)
+        explainable = arc.A_events + arc.R_events
+        if not explainable:
+            per_arc.append({"arc_id": arc.arc_id, "E_explained": 0.0, "event_count": 0})
+            continue
+
+        explained = sum(
+            1 for ev in explainable
+            if any(
+                pred in all_run_eids
+                for pred in (ev.get("causal_links") or {}).get("triggered_by", [])
+            )
+        )
+        e_explained = explained / len(explainable)
+        per_arc.append({
+            "arc_id": arc.arc_id,
+            "E_explained": round(e_explained, 3),
+            "event_count": len(explainable),
+        })
+
+    e_explained_mean = (
+        sum(p["E_explained"] for p in per_arc if p["event_count"] > 0)
+        / sum(1 for p in per_arc if p["event_count"] > 0)
+        if any(p["event_count"] > 0 for p in per_arc) else 0.0
+    )
+
+    ic: Any = None
+    g: Any = None
+    ccf_mean = e_explained_mean
+    note = "IC and G require --perturbed-events; CCF_mean = E_explained only"
+
+    if perturbed_arcs is not None:
+        # Placeholder: paired-run IC / G computation
+        ic = "paired_run_stub"
+        g = "paired_run_stub"
+        note = "IC and G stubs: full paired-run computation not yet implemented"
+
+    if ccf_mean >= 0.75:
+        verdict = "closed"
+    elif ccf_mean >= 0.50:
+        verdict = "semi_closed"
+    elif ccf_mean >= 0.25:
+        verdict = "weak"
+    else:
+        verdict = "non_causal"
+
+    return {
+        "CCF_mean": round(ccf_mean, 3),
+        "E_explained_mean": round(e_explained_mean, 3),
+        "IC": ic,
+        "G": g,
+        "ccf_verdict": verdict,
+        "note": note,
+        "per_arc": per_arc,
+    }
+
+
 # ── Violations ─────────────────────────────────────────────────────────────────
 
 def eval_violations(
@@ -797,6 +999,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--min-e-to-r", type=float, default=MIN_E_TO_R_SECONDS,
         help=f"Minimum E→R window in seconds for R admissibility (default: {MIN_E_TO_R_SECONDS})"
     )
+    ap.add_argument(
+        "--perturbed-events", default=None,
+        help="Perturbed events file for AEI and CCF paired-run computation"
+    )
+    ap.add_argument(
+        "--a-pressure-delta", type=float, default=1.0,
+        help="Magnitude of A-pressure change between base and perturbed runs (for AEI normalization)"
+    )
     args = ap.parse_args(argv)
 
     registry = load_registry(Path(args.registry))
@@ -804,11 +1014,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     current_knobs = load_current_knobs(Path(args.current_knobs) if args.current_knobs else None)
 
     arcs = build_arcs(events, min_e_to_r=args.min_e_to_r)
+    perturbed_arcs: Optional[List[Arc]] = None
+    if args.perturbed_events:
+        perturbed_events = iter_events_from_path(Path(args.perturbed_events))
+        perturbed_arcs = build_arcs(perturbed_events, min_e_to_r=args.min_e_to_r)
+
     breakpoint_ = classify_breakpoint(arcs)
     vpr = compute_vpr(arcs)
     rcp = compute_rcp(arcs)
     asi = compute_asi(arcs, rcp, min_e_to_r=args.min_e_to_r)
     apc = compute_apc(arcs)
+    aei = compute_aei(arcs, perturbed_arcs, a_pressure_delta=args.a_pressure_delta)
+    ccf = compute_ccf(arcs, perturbed_arcs)
     violations = eval_violations(arcs, vpr, rcp)
     knob_deltas = propose_knob_diffs(
         registry, current_knobs, breakpoint_, violations, arcs, vpr, rcp
@@ -830,12 +1047,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         rcp=rcp,
         asi=asi,
         apc=apc,
+        aei=aei,
+        ccf=ccf,
         knob_deltas=knob_deltas,
         notes={
             "registry_path": args.registry,
             "events_path": args.events,
             "current_knobs_path": args.current_knobs,
-            "version": "triage.py v2.1",
+            "version": "triage.py v2.2",
             "arc_count": len(arcs),
             "phase_overrides": sum(len(arc.phase_overrides) for arc in arcs),
             "min_e_to_r": args.min_e_to_r,
