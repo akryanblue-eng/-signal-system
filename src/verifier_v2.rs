@@ -1,6 +1,8 @@
 use serde::Serialize;
 
-use crate::director_loop_v2::{DirectorLoopRunV2, RunStatus, compute_input_hash, compute_output_hash};
+use crate::director_loop_v2::{
+    compute_input_hash, compute_output_hash, DirectorLoopRunV2, RunStatus,
+};
 
 // ── Gate outcome types (V2 namespace — no shared types with V1) ──────────────
 
@@ -50,17 +52,19 @@ pub enum FailureCodeV2 {
 /// the serialization order.
 #[derive(Debug, Serialize)]
 pub struct GateResultsV2 {
-    pub schema:      GateOutcomeV2,
-    pub structural:  GateOutcomeV2,
-    pub state:       GateOutcomeV2,
-    pub input_hash:  GateOutcomeV2,
+    pub schema: GateOutcomeV2,
+    pub structural: GateOutcomeV2,
+    pub state: GateOutcomeV2,
+    pub input_hash: GateOutcomeV2,
     pub output_hash: GateOutcomeV2,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
 pub enum AuditStatusV2 {
-    #[serde(rename = "PASS")] Pass,
-    #[serde(rename = "FAIL")] Fail,
+    #[serde(rename = "PASS")]
+    Pass,
+    #[serde(rename = "FAIL")]
+    Fail,
 }
 
 #[derive(Debug, Serialize)]
@@ -74,25 +78,41 @@ pub struct VerifierReportV2 {
 // ── Outcome constructors ─────────────────────────────────────────────────────
 
 fn pass_v2() -> GateOutcomeV2 {
-    GateOutcomeV2 { result: GateResultV2::Pass, failure_code: None, path: None }
+    GateOutcomeV2 {
+        result: GateResultV2::Pass,
+        failure_code: None,
+        path: None,
+    }
 }
 
 fn fail_v2(code: FailureCodeV2, path: impl Into<String>) -> GateOutcomeV2 {
-    GateOutcomeV2 { result: GateResultV2::Fail, failure_code: Some(code), path: Some(path.into()) }
+    GateOutcomeV2 {
+        result: GateResultV2::Fail,
+        failure_code: Some(code),
+        path: Some(path.into()),
+    }
 }
 
 fn not_evaluated_v2() -> GateOutcomeV2 {
-    GateOutcomeV2 { result: GateResultV2::NotEvaluated, failure_code: None, path: None }
+    GateOutcomeV2 {
+        result: GateResultV2::NotEvaluated,
+        failure_code: None,
+        path: None,
+    }
 }
 
 fn fail_at_schema_v2(detail: String) -> VerifierReportV2 {
     VerifierReportV2 {
         audit_status: AuditStatusV2::Fail,
         gates: GateResultsV2 {
-            schema:      GateOutcomeV2 { result: GateResultV2::Fail, failure_code: Some(FailureCodeV2::SchemaViolation), path: None },
-            structural:  not_evaluated_v2(),
-            state:       not_evaluated_v2(),
-            input_hash:  not_evaluated_v2(),
+            schema: GateOutcomeV2 {
+                result: GateResultV2::Fail,
+                failure_code: Some(FailureCodeV2::SchemaViolation),
+                path: None,
+            },
+            structural: not_evaluated_v2(),
+            state: not_evaluated_v2(),
+            input_hash: not_evaluated_v2(),
             output_hash: not_evaluated_v2(),
         },
         failure_detail: Some(detail),
@@ -118,7 +138,8 @@ pub fn verify_v2(run: &DirectorLoopRunV2) -> VerifierReportV2 {
         return VerifierReportV2 {
             audit_status: AuditStatusV2::Fail,
             gates: GateResultsV2 {
-                schema: pass_v2(), structural,
+                schema: pass_v2(),
+                structural,
                 state: not_evaluated_v2(),
                 input_hash: not_evaluated_v2(),
                 output_hash: not_evaluated_v2(),
@@ -133,7 +154,9 @@ pub fn verify_v2(run: &DirectorLoopRunV2) -> VerifierReportV2 {
         return VerifierReportV2 {
             audit_status: AuditStatusV2::Fail,
             gates: GateResultsV2 {
-                schema: pass_v2(), structural, state,
+                schema: pass_v2(),
+                structural,
+                state,
                 input_hash: not_evaluated_v2(),
                 output_hash: not_evaluated_v2(),
             },
@@ -147,12 +170,15 @@ pub fn verify_v2(run: &DirectorLoopRunV2) -> VerifierReportV2 {
         return VerifierReportV2 {
             audit_status: AuditStatusV2::Fail,
             gates: GateResultsV2 {
-                schema: pass_v2(), structural, state,
+                schema: pass_v2(),
+                structural,
+                state,
                 input_hash: fail_v2(FailureCodeV2::InputHashDrift, "input_hash"),
                 output_hash: not_evaluated_v2(),
             },
             failure_detail: Some(format!(
-                "input_hash: artifact={} computed={}", run.input_hash, expected_input
+                "input_hash: artifact={} computed={}",
+                run.input_hash, expected_input
             )),
         };
     }
@@ -163,12 +189,15 @@ pub fn verify_v2(run: &DirectorLoopRunV2) -> VerifierReportV2 {
         return VerifierReportV2 {
             audit_status: AuditStatusV2::Fail,
             gates: GateResultsV2 {
-                schema: pass_v2(), structural, state,
+                schema: pass_v2(),
+                structural,
+                state,
                 input_hash: pass_v2(),
                 output_hash: fail_v2(FailureCodeV2::OutputHashDrift, "output_hash"),
             },
             failure_detail: Some(format!(
-                "output_hash: artifact={} computed={}", run.output_hash, expected_output
+                "output_hash: artifact={} computed={}",
+                run.output_hash, expected_output
             )),
         };
     }
@@ -176,8 +205,11 @@ pub fn verify_v2(run: &DirectorLoopRunV2) -> VerifierReportV2 {
     VerifierReportV2 {
         audit_status: AuditStatusV2::Pass,
         gates: GateResultsV2 {
-            schema: pass_v2(), structural, state,
-            input_hash: pass_v2(), output_hash: pass_v2(),
+            schema: pass_v2(),
+            structural,
+            state,
+            input_hash: pass_v2(),
+            output_hash: pass_v2(),
         },
         failure_detail: None,
     }
@@ -209,14 +241,25 @@ fn gate_structural(run: &DirectorLoopRunV2) -> GateOutcomeV2 {
 
     // Every correction.beat_id must appear in transitions or regen_events.
     // Uses a sorted Vec instead of HashSet to avoid unordered iteration.
-    let mut anchored: Vec<&str> = run.execution.transitions.iter()
+    let mut anchored: Vec<&str> = run
+        .execution
+        .transitions
+        .iter()
         .map(|t| t.beat_id.as_str())
-        .chain(run.execution.regen_events.iter().map(|r| r.beat_id.as_str()))
+        .chain(
+            run.execution
+                .regen_events
+                .iter()
+                .map(|r| r.beat_id.as_str()),
+        )
         .collect();
     anchored.sort_unstable();
 
     for (i, correction) in run.execution.corrections.iter().enumerate() {
-        if anchored.binary_search(&correction.beat_id.as_str()).is_err() {
+        if anchored
+            .binary_search(&correction.beat_id.as_str())
+            .is_err()
+        {
             return fail_v2(
                 FailureCodeV2::CorrectionsOrphanedBeatId,
                 format!("execution.corrections[{i}].beat_id"),
@@ -226,11 +269,17 @@ fn gate_structural(run: &DirectorLoopRunV2) -> GateOutcomeV2 {
 
     // audit.notes must be in non-decreasing order (append-only invariant)
     if let Some(i) = run.audit.notes.windows(2).position(|w| w[0] > w[1]) {
-        return fail_v2(FailureCodeV2::AuditNotesOutOfOrder, format!("audit.notes[{}]", i + 1));
+        return fail_v2(
+            FailureCodeV2::AuditNotesOutOfOrder,
+            format!("audit.notes[{}]", i + 1),
+        );
     }
 
     if let Some(i) = run.audit.warnings.windows(2).position(|w| w[0] > w[1]) {
-        return fail_v2(FailureCodeV2::AuditWarningsOutOfOrder, format!("audit.warnings[{}]", i + 1));
+        return fail_v2(
+            FailureCodeV2::AuditWarningsOutOfOrder,
+            format!("audit.warnings[{}]", i + 1),
+        );
     }
 
     pass_v2()
@@ -243,12 +292,18 @@ fn gate_state(run: &DirectorLoopRunV2) -> GateOutcomeV2 {
 
     // PASSED requires final_coherence >= threshold
     if ex.status == RunStatus::Passed && ex.final_coherence < run.inputs.threshold {
-        return fail_v2(FailureCodeV2::PassedBelowThreshold, "execution.final_coherence");
+        return fail_v2(
+            FailureCodeV2::PassedBelowThreshold,
+            "execution.final_coherence",
+        );
     }
 
     // PASSED requires final_coherence >= initial_coherence (monotonicity)
     if ex.status == RunStatus::Passed && ex.final_coherence < ex.initial_coherence {
-        return fail_v2(FailureCodeV2::PassedCoherenceRegressed, "execution.final_coherence");
+        return fail_v2(
+            FailureCodeV2::PassedCoherenceRegressed,
+            "execution.final_coherence",
+        );
     }
 
     // REGENERATED (terminal) requires at least one regen_event
@@ -258,7 +313,10 @@ fn gate_state(run: &DirectorLoopRunV2) -> GateOutcomeV2 {
 
     // regen_events present requires REGENERATED to appear somewhere in timeline
     if !ex.regen_events.is_empty() {
-        let has_regen = ex.timeline.iter().any(|s| s.state == RunStatus::Regenerated);
+        let has_regen = ex
+            .timeline
+            .iter()
+            .any(|s| s.state == RunStatus::Regenerated);
         if !has_regen {
             return fail_v2(FailureCodeV2::RegenWithoutEvents, "execution.timeline");
         }

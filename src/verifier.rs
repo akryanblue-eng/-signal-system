@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::director_loop::{DirectorLoopRun, Status, compute_input_hash, compute_output_hash};
+use crate::director_loop::{compute_input_hash, compute_output_hash, DirectorLoopRun, Status};
 
 // ── Gate outcome types ───────────────────────────────────────────────────────
 
@@ -45,16 +45,32 @@ pub enum FailureCode {
 
 impl GateOutcome {
     fn pass() -> Self {
-        GateOutcome { result: GateResult::Pass, failure_code: None, path: None }
+        GateOutcome {
+            result: GateResult::Pass,
+            failure_code: None,
+            path: None,
+        }
     }
     fn fail(code: FailureCode, path: impl Into<String>) -> Self {
-        GateOutcome { result: GateResult::Fail, failure_code: Some(code), path: Some(path.into()) }
+        GateOutcome {
+            result: GateResult::Fail,
+            failure_code: Some(code),
+            path: Some(path.into()),
+        }
     }
     fn fail_no_path(code: FailureCode) -> Self {
-        GateOutcome { result: GateResult::Fail, failure_code: Some(code), path: None }
+        GateOutcome {
+            result: GateResult::Fail,
+            failure_code: Some(code),
+            path: None,
+        }
     }
     fn not_evaluated() -> Self {
-        GateOutcome { result: GateResult::NotEvaluated, failure_code: None, path: None }
+        GateOutcome {
+            result: GateResult::NotEvaluated,
+            failure_code: None,
+            path: None,
+        }
     }
 }
 
@@ -64,9 +80,9 @@ impl GateOutcome {
 /// deterministically serialized in definition order by serde.
 #[derive(Debug, Serialize)]
 pub struct GateResults {
-    pub schema:      GateOutcome,
-    pub invariants:  GateOutcome,
-    pub input_hash:  GateOutcome,
+    pub schema: GateOutcome,
+    pub invariants: GateOutcome,
+    pub input_hash: GateOutcome,
     pub output_hash: GateOutcome,
 }
 
@@ -112,9 +128,9 @@ pub fn verify(run: &DirectorLoopRun) -> VerifierReport {
         return VerifierReport {
             audit_status: AuditStatus::Fail,
             gates: GateResults {
-                schema:      GateOutcome::pass(),
-                invariants:  inv,
-                input_hash:  GateOutcome::not_evaluated(),
+                schema: GateOutcome::pass(),
+                invariants: inv,
+                input_hash: GateOutcome::not_evaluated(),
                 output_hash: GateOutcome::not_evaluated(),
             },
             failure_detail: None,
@@ -127,9 +143,9 @@ pub fn verify(run: &DirectorLoopRun) -> VerifierReport {
         return VerifierReport {
             audit_status: AuditStatus::Fail,
             gates: GateResults {
-                schema:      GateOutcome::pass(),
-                invariants:  inv,
-                input_hash:  GateOutcome::fail(FailureCode::InputHashDrift, "input_hash"),
+                schema: GateOutcome::pass(),
+                invariants: inv,
+                input_hash: GateOutcome::fail(FailureCode::InputHashDrift, "input_hash"),
                 output_hash: GateOutcome::not_evaluated(),
             },
             failure_detail: Some(format!(
@@ -145,9 +161,9 @@ pub fn verify(run: &DirectorLoopRun) -> VerifierReport {
         return VerifierReport {
             audit_status: AuditStatus::Fail,
             gates: GateResults {
-                schema:      GateOutcome::pass(),
-                invariants:  inv,
-                input_hash:  GateOutcome::pass(),
+                schema: GateOutcome::pass(),
+                invariants: inv,
+                input_hash: GateOutcome::pass(),
                 output_hash: GateOutcome::fail(FailureCode::OutputHashDrift, "output_hash"),
             },
             failure_detail: Some(format!(
@@ -160,9 +176,9 @@ pub fn verify(run: &DirectorLoopRun) -> VerifierReport {
     VerifierReport {
         audit_status: AuditStatus::Pass,
         gates: GateResults {
-            schema:      GateOutcome::pass(),
-            invariants:  inv,
-            input_hash:  GateOutcome::pass(),
+            schema: GateOutcome::pass(),
+            invariants: inv,
+            input_hash: GateOutcome::pass(),
             output_hash: GateOutcome::pass(),
         },
         failure_detail: None,
@@ -175,9 +191,9 @@ fn fail_at_schema(detail: String) -> VerifierReport {
     VerifierReport {
         audit_status: AuditStatus::Fail,
         gates: GateResults {
-            schema:      GateOutcome::fail_no_path(FailureCode::SchemaViolation),
-            invariants:  GateOutcome::not_evaluated(),
-            input_hash:  GateOutcome::not_evaluated(),
+            schema: GateOutcome::fail_no_path(FailureCode::SchemaViolation),
+            invariants: GateOutcome::not_evaluated(),
+            input_hash: GateOutcome::not_evaluated(),
             output_hash: GateOutcome::not_evaluated(),
         },
         failure_detail: Some(detail),
