@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "cssr.schema.json",
+  "title": "CausalSystemStabilityReport",
+  "description": "Time-axis durability verdict aggregating CVCs across a window of operation. Verdict is lexicographic — hard-cap violations dominate aggregate metric stability.",
+  "type": "object",
+  "required": ["cssr_version", "window_id", "time_range", "volume", "stability", "ghost_profile", "fork_integrity", "mode_lint", "durability_verdict"],
+  "additionalProperties": false,
+  "properties": {
+    "cssr_version": { "type": "string" },
+    "window_id": {
+      "type": "string",
+      "description": "Human-readable identifier for this window, e.g. '2026-06-10_build_417'."
+    },
+    "time_range": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end":   { "type": "string", "format": "date-time" }
+      }
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "volume": {
+      "type": "object",
+      "description": "Counts of runs and certificates in this window.",
+      "required": ["total_runs", "cre_experiments", "modeA_certificates", "modeB_certificates"],
+      "properties": {
+        "total_runs":          { "type": "integer", "minimum": 0 },
+        "cre_experiments":     { "type": "integer", "minimum": 0 },
+        "modeA_certificates":  { "type": "integer", "minimum": 0 },
+        "modeB_certificates":  { "type": "integer", "minimum": 0 }
+      }
+    },
+    "certification_stability": {
+      "type": "object",
+      "description": "Certification flip rate and Mode A coverage.",
+      "properties": {
+        "modeA_cert_rate":          { "type": "number", "minimum": 0, "maximum": 1 },
+        "cert_flip_rate":           { "type": "number", "minimum": 0, "maximum": 1 },
+        "cert_flip_count":          { "type": "integer", "minimum": 0 },
+        "within_window_flip_count": { "type": "integer", "minimum": 0 },
+        "cross_window_flip_count":  { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stability": {
+      "type": "object",
+      "description": "Aggregate CCF/APC/AEI metrics across all certs in this window.",
+      "properties": {
+        "CCF_mean":          { "type": "number", "minimum": 0, "maximum": 1 },
+        "CCF_std":           { "type": "number", "minimum": 0 },
+        "CCF_drift":         {
+          "type": "number",
+          "minimum": 0,
+          "description": "|ΔCCF_mean| relative to prior window. 0.0 if no prior window."
+        },
+        "APC_mean":          { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "AEI_mean":          { "type": ["number", "null"] },
+        "R_island_count_mean": { "type": ["number", "null"] }
+      }
+    },
+    "ghost_profile": {
+      "type": "object",
+      "description": "Ghost mass distribution and trend across this window and prior windows.",
+      "required": ["ghost_mass_mean", "ghost_mass_p95", "ghost_mass_max", "ghost_mass_trend"],
+      "properties": {
+        "ghost_mass_mean":        { "type": "number", "minimum": 0, "maximum": 1 },
+        "ghost_mass_p95":         { "type": "number", "minimum": 0, "maximum": 1 },
+        "ghost_mass_max":         { "type": "number", "minimum": 0, "maximum": 1 },
+        "ghost_mass_trend":       { "type": "string", "enum": ["flat", "up", "down"] },
+        "ghost_mass_trend_slope": { "type": "number" }
+      }
+    },
+    "fork_integrity": {
+      "type": "object",
+      "description": "Fork violation counts and trend. A fork violation is a cert missing a fork anchor with non-zero ghost mass.",
+      "required": ["fork_violations", "fork_violation_rate", "fork_violation_trend"],
+      "properties": {
+        "fork_violations":           { "type": "integer", "minimum": 0 },
+        "fork_violation_rate":       { "type": "number", "minimum": 0, "maximum": 1 },
+        "fork_violation_trend":      { "type": "string", "enum": ["flat", "up", "down"] },
+        "fork_violation_trend_slope":{ "type": "number" },
+        "prefix_hash_mismatch_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "MODE_A only. 0.0 in v0.1 (not yet implemented)."
+        }
+      }
+    },
+    "mode_lint": {
+      "type": "object",
+      "description": "Mode discipline violations. SEVERE violations gate to CRITICAL regardless of aggregate metrics.",
+      "required": ["violations", "violation_types", "severity_max", "violation_rate"],
+      "properties": {
+        "violations": { "type": "integer", "minimum": 0 },
+        "violation_types": {
+          "type": "object",
+          "description": "Counts per violation type. Known types: B_claimed_causality (WARN), missing_mode (SEVERE).",
+          "additionalProperties": { "type": "integer" }
+        },
+        "severity_max": {
+          "type": "string",
+          "enum": ["none", "WARN", "SEVERE"],
+          "description": "Highest severity violation in this window. One SEVERE gates to CRITICAL."
+        },
+        "violation_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "durability_verdict": {
+      "type": "object",
+      "description": "Lexicographic verdict. CRITICAL dominates — no weighted average can override a hard-cap violation.",
+      "required": ["status", "reasons", "confidence"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["STABLE", "WATCH", "DEGRADED", "CRITICAL"],
+          "description": "STABLE: all caps clean, no drift. WATCH: detectable drift below caps. DEGRADED: approaching caps, mode-lint WARN. CRITICAL: hard cap violated or SEVERE mode-lint."
+        },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of reasons supporting the verdict (most severe first)."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence in the verdict (lower when multiple violations compound)."
+        }
+      }
+    },
+    "summary_text": {
+      "type": "string",
+      "description": "Human-readable one-block summary of this CSSR window."
+    },
+    "_cert_snapshot": {
+      "type": "array",
+      "description": "Internal: minimal cert records for cross-window flip detection in the next window. Not part of the public contract.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "exp_id":          { "type": "string" },
+          "test_variant_id": { "type": "string" },
+          "causal_verdict":  { "type": "string" },
+          "mode":            { "type": "string" }
+        }
+      }
+    }
+  }
+}

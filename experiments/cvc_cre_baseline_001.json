@@ -1,0 +1,101 @@
+{
+  "certificates": [
+    {
+      "cert_id": "cert_cre_baseline_001_v1_stealth_20260610T200556",
+      "exp_id": "cre_baseline_001",
+      "created_at": "2026-06-10T20:05:56.939004Z",
+      "mode": "MODE_B",
+      "prefix_end_ts": 0.0,
+      "fork_point_event_id": "cre_baseline_001:prefix:001",
+      "base_variant_id": "base_speed",
+      "test_variant_id": "v1_stealth",
+      "causal_verdict": "CLOSED",
+      "CCF_mean": 1.0,
+      "IC": 1.0,
+      "ghost_mass": 0.0,
+      "divergence": {
+        "r_changed": false,
+        "breakpoint_changed": false,
+        "event_seq_distance": 0.3333,
+        "a_grammar_delta": [
+          "stealth",
+          "speed"
+        ],
+        "causal_locality_ok": true
+      },
+      "base_metrics": {
+        "breakpoint": "full_arc",
+        "TopA_share": 1.0,
+        "ViableA_count": 1,
+        "smear_index": 0.0,
+        "APC_mean": 0.646,
+        "E_explained_mean": 1.0,
+        "asi": 0.65,
+        "asi_regime": "tuning"
+      },
+      "test_metrics": {
+        "breakpoint": "full_arc",
+        "TopA_share": 1.0,
+        "ViableA_count": 1,
+        "smear_index": 0.0,
+        "APC_mean": 0.646,
+        "E_explained_mean": 1.0,
+        "asi": 0.65,
+        "asi_regime": "tuning"
+      },
+      "notes": [
+        "Prefix determinism guaranteed by synthetic generator seed. Fork isolation guaranteed by blueprint parameter separation. Not true bitwise-identical state capture. IC/ghost_mass are structural (causal_links-based), not behavioral."
+      ]
+    },
+    {
+      "cert_id": "cert_cre_baseline_001_v2_high_pressure_20260610T200556",
+      "exp_id": "cre_baseline_001",
+      "created_at": "2026-06-10T20:05:56.939232Z",
+      "mode": "MODE_B",
+      "prefix_end_ts": 0.0,
+      "fork_point_event_id": "cre_baseline_001:prefix:001",
+      "base_variant_id": "base_speed",
+      "test_variant_id": "v2_high_pressure",
+      "causal_verdict": "CLOSED",
+      "CCF_mean": 1.0,
+      "IC": 1.0,
+      "ghost_mass": 0.0,
+      "divergence": {
+        "r_changed": true,
+        "breakpoint_changed": false,
+        "event_seq_distance": 0.8,
+        "a_grammar_delta": [
+          "speed",
+          "decoy"
+        ],
+        "causal_locality_ok": true
+      },
+      "base_metrics": {
+        "breakpoint": "full_arc",
+        "TopA_share": 1.0,
+        "ViableA_count": 1,
+        "smear_index": 0.0,
+        "APC_mean": 0.646,
+        "E_explained_mean": 1.0,
+        "asi": 0.65,
+        "asi_regime": "tuning"
+      },
+      "test_metrics": {
+        "breakpoint": "full_arc",
+        "TopA_share": 1.0,
+        "ViableA_count": 1,
+        "smear_index": 0.0,
+        "APC_mean": 0.652,
+        "E_explained_mean": 1.0,
+        "asi": 0.65,
+        "asi_regime": "tuning"
+      },
+      "notes": [
+        "Prefix determinism guaranteed by synthetic generator seed. Fork isolation guaranteed by blueprint parameter separation. Not true bitwise-identical state capture. IC/ghost_mass are structural (causal_links-based), not behavioral."
+      ]
+    }
+  ],
+  "exp_id": "cre_baseline_001",
+  "created_at": "2026-06-10T20:05:56.939265Z",
+  "mode": "MODE_B"
+}
