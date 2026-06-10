@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "perturbation.schema.json",
+  "title": "Perturbation",
+  "description": "A single-axis controlled stress event. Must trace back to at least one story. Only valid signal source for attractor promotion.",
+  "type": "object",
+  "required": [
+    "id", "timestamp", "story_refs", "constraint_ref",
+    "axis", "intensity_applied", "identity_retained",
+    "evidence", "envelope_classification"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^perturb_\\d{4}_\\d{2}_\\d{2}_\\d{3}$",
+      "description": "perturb_YYYY_MM_DD_NNN"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "story_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Stories this perturbation is grounded in. Cannot be empty."
+    },
+    "constraint_ref": {
+      "type": "string",
+      "description": "The constraint being tested"
+    },
+    "axis": {
+      "type": "string",
+      "enum": ["timing", "density", "geometry", "resource", "chaos"],
+      "description": "Single-axis test type. Must be exactly one."
+    },
+    "intensity_applied": {
+      "type": "integer",
+      "enum": [1, 2, 3]
+    },
+    "deformation_mode": {
+      "type": ["string", "null"],
+      "enum": ["shift", "relocate", "frequency", "wrapper", null],
+      "description": "Observable deformation outcome. Null if identity broke (outside envelope)."
+    },
+    "identity_retained": {
+      "type": "boolean",
+      "description": "True if Memory Driver + Intensity-3 signature persisted post-perturbation"
+    },
+    "failure_mode": {
+      "type": ["string", "null"],
+      "description": "Required when identity_retained is false. Describes the collapse."
+    },
+    "fragility_notes": {
+      "type": ["string", "null"],
+      "description": "Edge warnings: frequency instability, wrapper whiplash, accumulating fragility"
+    },
+    "evidence": {
+      "type": "string",
+      "description": "Post-perturbation story text or observation confirming deformation"
+    },
+    "envelope_classification": {
+      "type": "string",
+      "enum": ["inside", "edge", "outside"],
+      "description": "inside=retained+classifiable; edge=retained+fragile; outside=identity breaks"
+    }
+  },
+  "if": {
+    "properties": { "identity_retained": { "const": false } }
+  },
+  "then": {
+    "required": ["failure_mode"],
+    "properties": {
+      "failure_mode": { "type": "string", "minLength": 1 }
+    }
+  }
+}

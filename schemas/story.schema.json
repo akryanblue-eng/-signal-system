@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "story.schema.json",
+  "title": "Story",
+  "description": "A single-sentence literal observation. Atomic unit of the capture layer. No interpretation allowed.",
+  "type": "object",
+  "required": ["id", "timestamp", "text", "memory_driver", "intensity"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^story_\\d{4}_\\d{2}_\\d{2}_\\d{3}$",
+      "description": "story_YYYY_MM_DD_NNN"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 280,
+      "description": "One sentence. Literal. No interpretation, no inference."
+    },
+    "memory_driver": {
+      "type": "string",
+      "description": "The single behavioral driver this story expresses"
+    },
+    "intensity": {
+      "type": "integer",
+      "enum": [1, 2, 3],
+      "description": "1=low, 2=moderate, 3=high signal intensity"
+    },
+    "high_salience": {
+      "type": "boolean",
+      "default": false,
+      "description": "Candidate for attractor promotion"
+    },
+    "perturbation_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "IDs of perturbations that referenced this story"
+    },
+    "attractor_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "IDs of attractors this story contributed to"
+    }
+  }
+}

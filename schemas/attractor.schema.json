@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "attractor.schema.json",
+  "title": "Attractor",
+  "description": "A stabilized behavioral pattern. Only valid when it has survived perturbation. Cannot be promoted from stories alone.",
+  "type": "object",
+  "required": [
+    "id", "name", "type", "memory_driver",
+    "story_refs", "perturbation_refs", "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Slug identifier (e.g. attractor_pursuit_pressure)"
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["behavioral", "structural"]
+    },
+    "trigger_recipe": {
+      "type": ["string", "null"],
+      "description": "Conditions that activate this attractor"
+    },
+    "memory_driver": {
+      "type": "string"
+    },
+    "story_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "perturbation_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Perturbations that validated this attractor. Empty = compression hazard."
+    },
+    "systems_intersection": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "recurrence_count": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "variation_survival": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Number of variation tests this attractor survived"
+    },
+    "collision_coherence": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Number of collision tests where coherence held"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["dormant", "active", "stress_verified"]
+    }
+  }
+}

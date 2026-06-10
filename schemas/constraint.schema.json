@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "constraint.schema.json",
+  "title": "Constraint",
+  "description": "A causal hypothesis about identity behavior under stress. Dormant until perturbation-tested.",
+  "type": "object",
+  "required": ["id", "name", "description", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Slug identifier (e.g. constraint_police_heat)"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["dormant", "active", "stress_verified"],
+      "description": "dormant=no perturbation run; active=story-grounded only; stress_verified=deformation observed"
+    },
+    "story_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "perturbation_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "last_tested": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "fragility_notes": {
+      "type": ["string", "null"]
+    }
+  }
+}
