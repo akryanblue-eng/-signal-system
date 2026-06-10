@@ -11,6 +11,14 @@
 
 This certificate records the exact state of the V2 adjudication protocol at the point of closure. It is a faithful description of the code that was compiled, tested, and pushed — not a design aspiration. Any claim here that cannot be verified by reading `src/verifier_v2.rs` and `src/director_loop_v2.rs` is an error.
 
+**Closure is conditional.** V2 defines a deterministic evaluator over a fixed artifact space, conditional on a pinned toolchain and dependency graph, with no runtime-dependent semantic branching. The formal statement is:
+
+```
+E_V2(x; T, D) → PASS | FAIL(g_i, c_i, p_i)
+```
+
+Where `x` is the artifact, `T` is the pinned Rust toolchain (see Section 9), and `D` is the locked dependency graph (`Cargo.lock`). No semantic branching exists outside these parameters. The evaluation substrate is explicit and legible, not assumed.
+
 Future protocol evolution is treated as a V3 branch with an explicit struct-diff against this certificate.
 
 ---
@@ -134,7 +142,7 @@ These values are recomputed and verified on every CI run by the `verifier calibr
 
 ## 9. Toolchain Pin
 
-The determinism guarantee in Section 5 — "identical struct → identical bytes → identical hash" — is parameterized by the toolchain. It holds exactly under:
+The determinism guarantee in Section 5 — "identical struct → identical bytes → identical hash" — holds exactly under a pinned execution substrate, not unconditionally. The substrate is:
 
 | Component | Pinned version |
 |---|---|
