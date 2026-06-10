@@ -166,4 +166,56 @@ Any protocol evolution that changes gate logic, preimage field sets, or `Failure
 
 ---
 
+## 11. V2 → V3 Version Boundary (Normative)
+
+A change is a **V3 transition event** — not a V2 patch — if and only if it satisfies any of the following conditions.
+
+### 11.1 Preimage Structure Mutation
+
+Any modification to either preimage struct:
+
+- `InputHashPreimageV2` — fields: `v2_version`, `run_id`, `parent_run_id`, `protocol_sha`, `inputs`
+- `OutputHashPreimageV2` — fields: `v2_version`, `run_id`, `parent_run_id`, `execution`, `audit`, `input_hash`
+
+Covered mutations: adding a field, removing a field, renaming a field, reordering fields.
+
+**Effect:** invalidates all previously computed `input_hash` / `output_hash` values under V2 semantics.
+
+### 11.2 Failure Algebra Mutation
+
+Any change to `FailureCodeV2`: adding variants, removing variants, or reordering variants.
+
+**Effect:** breaks exhaustiveness assumptions at all `match` sites; invalidates all test oracle mappings that assert on specific variants.
+
+### 11.3 Gate Order Mutation
+
+Any modification to the evaluation sequence `schema → structural → state → input_hash → output_hash`, including reordering, insertion of intermediate gates, or removal of gates.
+
+**Effect:** changes first-failure resolution semantics; invalidates drift-suite ordering-proof tests.
+
+### 11.4 Wire Format Mutation
+
+Any change to serialized identity-critical enums — `RunStatus` or `TimelineEvent` — including renaming variants or changing their `#[serde(rename = "...")]` tags.
+
+**Effect:** breaks artifact replay compatibility; invalidates historical fixture decoding.
+
+### 11.5 Non-V3 Mutations (Explicit Exclusion Set)
+
+The following are V2-compatible extensions and do not require a version increment:
+
+- adding helper functions or internal modules
+- expanding audit logging (append-only)
+- adding new tests or fixtures
+- optimizing hash implementation without changing preimage content
+- CI changes that do not alter runtime semantics
+- documentation updates
+
+### 11.6 Version Boundary Invariant
+
+A V2 system is any system in which all valid artifacts remain mutually hash-compatible under the same `E_V2(x; T, D)` evaluator.
+
+A V3 system is any system where that property is no longer true.
+
+---
+
 *V2 is sealed.*
