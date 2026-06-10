@@ -212,9 +212,15 @@ The following are V2-compatible extensions and do not require a version incremen
 
 ### 11.6 Version Boundary Invariant
 
-A V2 system is any system in which all valid artifacts remain mutually hash-compatible under the same `E_V2(x; T, D)` evaluator.
+`E_V2` defines a fixed validity class:
 
-A V3 system is any system where that property is no longer true.
+```
+Fix(E_V2) = { x | E_V2(x; T, D) = PASS }
+```
+
+Membership in this class is decidable by the verifier. Version partitioning is **external**: V3 exists when a modified evaluator `E_V3` defines a different fixed-point class, not because `E_V2` detects or recognizes its successor. `E_V2` makes no claim about artifacts outside its domain and performs no comparison against other evaluator versions.
+
+A change requires V3 if and only if it causes `Fix(E_V2) ≠ Fix(E_V3)` — that is, if any artifact that was previously valid under V2 is no longer valid under the modified evaluator, or vice versa. That comparison is made externally by a developer or auditor, not by the evaluator itself.
 
 ---
 
