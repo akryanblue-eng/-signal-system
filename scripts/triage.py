@@ -172,24 +172,34 @@ def iter_events_from_path(path: Path) -> List[Dict[str, Any]]:
 
 def compute_ear(events: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Minimal, schema-light EAR summary. Replace stub phase tallies with real
-    TopA_share / ViableA_count / clustering metrics when those are available.
+    Phase-honest EAR summary.
 
-    Reads from events:
-      t              timestamp or frame
-      type           event type string (prefix-matched for E/A/R)
-      e_class        optional escalation class label
-      adaptation     boolean flag — marks a meaningful player adaptation
-      landmark       spatial node name (string)
-      resolution     resolution outcome string (e.g. "escape", "arrest")
+    E: new constraint appearances only — NOT movement, NOT noise, NOT retro.
+       Type prefixes: police_sightline, police_pursuit, pressure_*, heat_increase,
+       rival_appear, e_* (explicit). Generic player_move does NOT count.
+
+    A: control-logic deltas only — NOT movement, NOT activity, NOT noise.
+       Requires adaptation=true flag OR adapt_* type prefix.
+       player_move, player_*, move_* are logged for landmark tracking but
+       do NOT increment A. This is the phase honesty invariant.
+
+    R: locks when pressure measurably decays — NOT on timers, NOT proximity.
+       Type prefixes: resolve_*, escape_*, arrest_*, heat_decay_start, r_*.
+       Requires resolution field OR explicit decay-type prefix.
     """
     e_class: Optional[str] = None
     landmarks: List[str] = []
     adaptation_count = 0
     resolution_type: Optional[str] = None
     e_pressure = 0
-    a_action = 0
+    a_adapt = 0       # honest A: control-logic deltas only
     r_resolution = 0
+
+    # E: specific constraint-appearance prefixes only — not generic heat_ events
+    E_PREFIXES = ("police_sightline", "police_pursuit", "pressure_", "heat_increase",
+                  "rival_appear", "e_")
+    # R: pressure-decay and resolution events only — not end_ (ambiguous)
+    R_PREFIXES = ("resolve_", "escape_", "arrest_", "heat_decay_start", "r_")
 
     for ev in events:
         et = str(ev.get("type", "")).lower()
@@ -198,16 +208,20 @@ def compute_ear(events: List[Dict[str, Any]]) -> Dict[str, Any]:
             e_class = str(ev["e_class"])
         if ev.get("landmark"):
             landmarks.append(str(ev["landmark"]))
-        if ev.get("adaptation") is True or et.startswith("adapt_"):
-            adaptation_count += 1
         if ev.get("resolution"):
             resolution_type = str(ev["resolution"])
 
-        if et.startswith(("e_", "pressure_", "heat_", "rival_", "police_")):
+        # E: new constraint appearances
+        if any(et.startswith(p) for p in E_PREFIXES):
             e_pressure += 1
-        if et.startswith(("a_", "player_", "adapt_", "move_")):
-            a_action += 1
-        if et.startswith(("r_", "resolve_", "end_")) or ev.get("resolution"):
+
+        # A: control-logic deltas only — adaptation flag or adapt_ prefix required
+        if ev.get("adaptation") is True or et.startswith("adapt_"):
+            adaptation_count += 1
+            a_adapt += 1
+
+        # R: pressure-decay events only
+        if any(et.startswith(p) for p in R_PREFIXES) or ev.get("resolution"):
             r_resolution += 1
 
     E = "PRESENT" if e_pressure > 0 else "ABSENT"
@@ -226,7 +240,7 @@ def compute_ear(events: List[Dict[str, Any]]) -> Dict[str, Any]:
         "resolution_type": resolution_type,
         "event_counts": {
             "E_pressure_events": e_pressure,
-            "A_action_events": a_action,
+            "A_adaptation_events": a_adapt,   # renamed: honest count only
             "R_resolution_events": r_resolution,
             "total_events": len(events),
         },
@@ -263,15 +277,19 @@ def eval_violations(ear: Dict[str, Any], metrics: Dict[str, Any]) -> List[Violat
     """
     v: List[Violation] = []
 
-    # Coupling: pressure present but no actionable A events at all
-    if ear["E"] == "PRESENT" and ear["event_counts"]["A_action_events"] == 0:
+    # COUPLING: pressure present, but zero control-logic deltas recorded
+    # (E fired, A window never opened — structural pipeline failure)
+    if ear["E"] == "PRESENT" and ear["event_counts"]["A_adaptation_events"] == 0:
         v.append(Violation.COUPLING_FAILURE)
 
-    # RCP: pressure present, never resolves
+    # RCP: pressure present, arc never resolves
+    # (R island never forms — state-based exit conditions not met)
     if ear["E"] == "PRESENT" and ear["R"] == "UNRESOLVED":
         v.append(Violation.RCP_VIOLATION)
 
-    # VPR: pressure present, no meaningful adaptation observed
+    # VPR (single-run stub): pressure present, no meaningful adaptation at all
+    # NOTE: real VPR requires cross-run TopA_share — this is a placeholder
+    # that flags complete A absence. Replace with multi-run diversity metric.
     if ear["E"] == "PRESENT" and ear["A"] == 0:
         v.append(Violation.VPR_VIOLATION)
 
