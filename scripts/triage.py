@@ -1,26 +1,22 @@
 #!/usr/bin/env python3
 """
-triage.py v2.0 — arc-first kernel
+triage.py v2.1 — arc-first kernel + A3 fix + ASI
 
-Core shift from v0.2:
-  - Arcs define truth, not runs. E/A/R is derived from arcs, not projected.
-  - Arc formation via causal clustering (connected components of causal_links graph).
-  - phase_hint is advisory only. event_type is the phase authority.
-  - build_arcs() replaces reconstruct_arcs().
+Changes from v2.0:
+  - A3 fix: R is now a proposed state, not an executed state.
+    R events collect into arc.r_candidates; select_resolution() promotes
+    the best candidate only if arc.has_a AND dt >= MIN_E_TO_R_SECONDS.
+    Arcs that resolve before adaptation window opens stay open (no R).
+  - Arc.first_e_ts tracks E arrival time for window computation.
+  - compute_rcp() gains p_r_without_a and mean_e_to_r_time.
+  - compute_asi() collapses RCP into a single Arc Stability Index scalar
+    with regime classification: healthy / tuning / imbalanced / non_system.
+  - ASI is diagnostic only — not an optimization target.
 
-Three hard invariants:
-  1. event_type is phase authority — phase_hint is advisory, logged on mismatch.
-  2. A only counts when causally linked to a prior E in causal_links.triggered_by.
-     A events with no causal link to an E are demoted to A_decorative.
-  3. Arc = contiguous causal cluster. Multi-arc per run falls out naturally from
-     disconnected causal subgraphs.
-
-Outputs per run (4 objects):
-  arcs            — reconstructed arc list with derived E/A/R membership
-  breakpoint      — dominant classification across arcs
-  vpr             — A-space diversity report
-  rcp             — R-basin coherence report
-  knob_deltas     — registry-referenced parameter edits
+Three hard invariants (unchanged):
+  1. event_type is phase authority — phase_hint is advisory.
+  2. A only counts when causally linked to a prior E.
+  3. Arc = contiguous causal cluster (BFS on causal_links graph).
 """
 
 from __future__ import annotations
@@ -28,6 +24,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import math
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -56,7 +53,6 @@ R_TYPES: Set[str] = {
 
 NULL_TYPES: Set[str] = {"ai_idle", "ambient_simulation", "navigation_update"}
 
-# A-grammar classification for VPR
 A_GRAMMAR: Dict[str, str] = {
     "route_change": "speed",
     "vehicle_swap": "speed",
@@ -67,6 +63,10 @@ A_GRAMMAR: Dict[str, str] = {
     "speed_shift": "speed",
     "terrain_exploit": "stealth",
 }
+
+# Adaptation window floor. R candidates are rejected if E→R delta < this.
+# Medium vertical slice default. Register in KnobRegistry when pairing with live runs.
+MIN_E_TO_R_SECONDS: float = 8.0
 
 
 # ── Knob registry types ────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ class KnobDelta:
     evidence: Dict[str, Any]
 
 
-# ── Arc types ──────────────────────────────────────────────────────────────────
+# ── Arc ────────────────────────────────────────────────────────────────────────
 
 @dataclass
 class Arc:
@@ -128,9 +128,13 @@ class Arc:
     A_events: List[Dict[str, Any]] = field(default_factory=list)
     A_decorative: List[Dict[str, Any]] = field(default_factory=list)
     R_events: List[Dict[str, Any]] = field(default_factory=list)
+    # R candidates: all R-typed events in cluster. select_resolution() promotes at most one.
+    r_candidates: List[Dict[str, Any]] = field(default_factory=list)
     phase_overrides: List[str] = field(default_factory=list)
     breakpoint: str = ""
     trust_scores: Dict[str, float] = field(default_factory=dict)
+    # Timestamp of first E event; used for E→R window validation.
+    first_e_ts: Optional[float] = None
 
     def __post_init__(self) -> None:
         if not self.arc_id:
@@ -162,6 +166,8 @@ class TriageReport:
     violations: List[str]
     vpr: Dict[str, Any]
     rcp: Dict[str, Any]
+    asi: Dict[str, Any]
+    apc: Dict[str, Any]
     knob_deltas: List[KnobDelta]
     notes: Dict[str, Any]
 
@@ -225,7 +231,7 @@ def iter_events_from_path(path: Path) -> List[Dict[str, Any]]:
     return events
 
 
-# ── Event classification (event_type is authority) ─────────────────────────────
+# ── Event classification ───────────────────────────────────────────────────────
 
 def phase_from_type(ev: Dict[str, Any]) -> str:
     et = ev.get("event_type", "")
@@ -247,7 +253,6 @@ def validate_event(ev: Dict[str, Any]) -> bool:
     for f in ("event_id", "event_type", "run_id", "timestamp"):
         if f not in ev:
             return False
-    # Phase-critical events require causal_links
     true_phase = phase_from_type(ev)
     if true_phase in ("E", "A", "R") and not ev.get("causal_links"):
         return False
@@ -257,10 +262,7 @@ def validate_event(ev: Dict[str, Any]) -> bool:
 def score_event_trust(ev: Dict[str, Any]) -> float:
     """
     Trust score for phase assignment. Scale 0–3.0.
-    +1 base
-    +1 payload corroborates (heat_delta sign matches phase)
-    +1 causal evidence present (triggered_by non-empty)
-    -1 phase_hint disagrees with event_type
+    +1 base, +1 payload corroborates, +1 causal evidence, -1 phase_hint mismatch.
     """
     true_phase = phase_from_type(ev)
     declared_phase = get_phase_hint(ev)
@@ -268,7 +270,6 @@ def score_event_trust(ev: Dict[str, Any]) -> float:
     cl = ev.get("causal_links") or {}
 
     score = 1.0
-
     heat_delta = payload.get("heat_delta", 0)
     if true_phase == "E" and heat_delta > 0:
         score += 1.0
@@ -286,20 +287,46 @@ def score_event_trust(ev: Dict[str, Any]) -> float:
     return max(0.0, score)
 
 
+# ── R candidate selection (A3 fix) ────────────────────────────────────────────
+
+def select_resolution(arc: Arc, min_e_to_r: float = MIN_E_TO_R_SECONDS) -> None:
+    """
+    Promote the first admissible R candidate to arc.R_events.
+
+    R is a proposed state, not an executed state. Admissibility gate:
+      - arc.has_a must be True (adaptation window opened)
+      - dt = r.timestamp - arc.first_e_ts >= min_e_to_r (time sufficient)
+
+    If no candidate passes, R_events stays empty. The arc remains open
+    and classifies as infinite_chase or instant_collapse depending on A.
+
+    r_candidates is preserved for diagnostics regardless of outcome.
+    """
+    if not arc.r_candidates:
+        return
+    for r in arc.r_candidates:
+        r_ts = float(r.get("timestamp", 0))
+        dt = (r_ts - arc.first_e_ts) if arc.first_e_ts is not None else 0.0
+        if arc.has_a and dt >= min_e_to_r:
+            arc.R_events = [r]
+            return
+
+
 # ── Arc formation via causal clustering ────────────────────────────────────────
 
-def build_arcs(events: List[Dict[str, Any]]) -> List[Arc]:
+def build_arcs(events: List[Dict[str, Any]], min_e_to_r: float = MIN_E_TO_R_SECONDS) -> List[Arc]:
     """
-    Build arcs via causal graph clustering (v2.0).
+    Build arcs via causal graph clustering (v2.0 approach).
 
     Algorithm:
-    1. Index events by event_id. Filter invalid events.
-    2. Build undirected adjacency from causal_links (triggered_by + contributes_to).
-    3. Find connected components via BFS — each component is a causal cluster.
-    4. Discard clusters with no E events (pure-NULL islands don't form arcs).
-    5. Sort clusters by earliest event timestamp.
-    6. Within each cluster, assign events to E/A/R by event_type authority.
-       A events require causal link to a cluster-local E event (else → A_decorative).
+    1. Index and validate events.
+    2. Build undirected adjacency from triggered_by + contributes_to.
+    3. BFS to find connected components — each with an E event becomes a cluster.
+    4. Sort clusters by earliest timestamp.
+    5. Within each cluster, assign events by event_type authority.
+       A events require triggered_by to intersect cluster's E ids (else decorative).
+       R events go to r_candidates.
+    6. Call select_resolution() to gate R against A-window.
     7. Log phase_hint mismatches in arc.phase_overrides.
     """
     ev_index: Dict[str, Dict[str, Any]] = {}
@@ -339,7 +366,7 @@ def build_arcs(events: List[Dict[str, Any]]) -> List[Arc]:
                 queue.extend(adjacency[cur] - visited)
             clusters.append(component)
 
-    # Filter to clusters with at least one E event, sort by earliest timestamp
+    # Filter to E-bearing clusters, sort by earliest timestamp
     def cluster_min_ts(c: List[str]) -> float:
         return min(float(ev_index[eid].get("timestamp", 0)) for eid in c)
 
@@ -374,6 +401,8 @@ def build_arcs(events: List[Dict[str, Any]]) -> List[Arc]:
             if true_phase == "E":
                 arc.E_events.append(ev)
                 arc_e_ids.add(eid)
+                if arc.first_e_ts is None:
+                    arc.first_e_ts = float(ev.get("timestamp", 0))
             elif true_phase == "A":
                 triggered_by = set((ev.get("causal_links") or {}).get("triggered_by", []))
                 if triggered_by & arc_e_ids:
@@ -381,8 +410,9 @@ def build_arcs(events: List[Dict[str, Any]]) -> List[Arc]:
                 else:
                     arc.A_decorative.append(ev)
             elif true_phase == "R":
-                arc.R_events.append(ev)
+                arc.r_candidates.append(ev)
 
+        select_resolution(arc, min_e_to_r)
         arc.breakpoint = classify_arc(arc)
         arcs.append(arc)
 
@@ -460,7 +490,10 @@ def compute_rcp(arcs: List[Arc]) -> Dict[str, Any]:
             "compressibility_score": 0.0,
             "smear_index": 1.0,
             "R_type_counts": {},
+            "p_r_without_a": 1.0,
+            "mean_e_to_r_time": 0.0,
         }
+
     r_type_counts: Dict[str, int] = Counter(
         arc.R_events[0].get("event_type", "unknown")
         for arc in arcs if arc.has_r
@@ -469,6 +502,18 @@ def compute_rcp(arcs: List[Arc]) -> Dict[str, Any]:
     compressibility = landed / len(arcs)
     arc_clusters = len(set(arc.breakpoint for arc in arcs))
 
+    # P(R | A == 0): resolution without adaptation
+    r_without_a = sum(1 for arc in arcs if arc.has_r and not arc.has_a)
+    p_r_without_a = (r_without_a / landed) if landed > 0 else 0.0
+
+    # Mean E→R window time (arcs with both E and R)
+    e_to_r_times = []
+    for arc in arcs:
+        if arc.has_r and arc.first_e_ts is not None:
+            r_ts = float(arc.R_events[0].get("timestamp", 0))
+            e_to_r_times.append(r_ts - arc.first_e_ts)
+    mean_e_to_r = sum(e_to_r_times) / len(e_to_r_times) if e_to_r_times else 0.0
+
     return {
         "arc_count": len(arcs),
         "arc_clusters": arc_clusters,
@@ -476,6 +521,148 @@ def compute_rcp(arcs: List[Arc]) -> Dict[str, Any]:
         "compressibility_score": round(compressibility, 3),
         "smear_index": round(1.0 - compressibility, 3),
         "R_type_counts": dict(r_type_counts),
+        "p_r_without_a": round(p_r_without_a, 3),
+        "mean_e_to_r_time": round(mean_e_to_r, 3),
+    }
+
+
+# ── ASI (Arc Stability Index) ──────────────────────────────────────────────────
+
+def compute_asi(arcs: List[Arc], rcp: Dict[str, Any], min_e_to_r: float = MIN_E_TO_R_SECONDS) -> Dict[str, Any]:
+    """
+    Arc Stability Index v0.1 — single scalar for CI arc health gate.
+
+    Components:
+      r_diversity   (0.30): R island richness — attractor variety
+      r_legitimacy  (0.30): 1 - P(R|A==0) — closures must be earned
+      r_tempo       (0.25): mean E→R time / min_e_to_r — window sufficiency
+      r_entropy     (0.15): normalized R-type distribution entropy
+
+    ASI is a diagnostic scalar, NOT an optimization target.
+    Optimizing ASI directly will flatten diversity and destroy VPR.
+
+    Regimes:
+      >= 0.75  healthy    — stable arcs, multiple R basins, A window open
+      >= 0.55  tuning     — one axis weak, usually tempo or legitimacy
+      >= 0.35  imbalanced — premature R locking or single-basin collapse
+       < 0.35  non_system — arcs not forming
+    """
+    # R diversity: attractor variety (3 island types = full score)
+    r_island_count = len(rcp.get("R_type_counts", {}))
+    r_diversity = min(r_island_count / 3.0, 1.0)
+
+    # R legitimacy: penalize closures without adaptation
+    p_r_without_a = rcp.get("p_r_without_a", 1.0)
+    r_legitimacy = 1.0 - p_r_without_a
+
+    # R temporal sufficiency: E→R window vs floor
+    mean_e_to_r = rcp.get("mean_e_to_r_time", 0.0)
+    r_tempo = min(mean_e_to_r / min_e_to_r, 1.0) if min_e_to_r > 0 else 0.0
+
+    # R entropy: normalized distribution entropy across R types
+    r_counts = rcp.get("R_type_counts", {})
+    total_r = sum(r_counts.values())
+    r_entropy = 0.0
+    if total_r > 0 and len(r_counts) > 1:
+        raw = -sum((c / total_r) * math.log2(c / total_r) for c in r_counts.values() if c > 0)
+        r_entropy = raw / math.log2(len(r_counts))
+
+    asi = (
+        0.30 * r_diversity +
+        0.30 * r_legitimacy +
+        0.25 * r_tempo +
+        0.15 * r_entropy
+    )
+    asi = round(asi, 3)
+
+    if asi >= 0.75:
+        regime = "healthy"
+    elif asi >= 0.55:
+        regime = "tuning"
+    elif asi >= 0.35:
+        regime = "imbalanced"
+    else:
+        regime = "non_system"
+
+    return {
+        "asi": asi,
+        "regime": regime,
+        "components": {
+            "r_diversity": round(r_diversity, 3),
+            "r_legitimacy": round(r_legitimacy, 3),
+            "r_tempo": round(r_tempo, 3),
+            "r_entropy": round(r_entropy, 3),
+        },
+        "inputs": {
+            "r_island_count": r_island_count,
+            "p_r_without_a": round(p_r_without_a, 3),
+            "mean_e_to_r_time": round(mean_e_to_r, 3),
+            "min_e_to_r_floor": min_e_to_r,
+        },
+    }
+
+
+# ── APC (Arc Phase Coherence) ─────────────────────────────────────────────────
+
+def compute_apc(arcs: List[Arc], low_tau: float = 0.3) -> Dict[str, Any]:
+    """
+    Arc Phase Coherence v0.1 — detects A disappearing while R looks healthy.
+
+    Per-arc: participation_ratio = A_span_dt / E_to_R_dt
+      where A_span_dt = time from first A event to R (0 if no A).
+    APC_arc = has_A * participation_ratio
+
+    Guards the failure mode: R looks structurally fine but A is a late blip
+    or absent entirely. APC_zero_share rising while RCP is green = A3 signature.
+
+    CI guardrails:
+      KILL  if APC_zero_share > 0.30
+      TUNE  if APC_zero_share in (0.15, 0.30] OR APC_mean < 0.25
+      SHIP  only if APC_zero_share <= 0.15 AND APC_mean >= 0.30
+    """
+    r_arcs = [arc for arc in arcs if arc.has_r]
+    if not r_arcs:
+        return {
+            "APC_mean": None,
+            "APC_zero_share": None,
+            "APC_low_share": None,
+            "apc_verdict": "insufficient_data",
+            "per_arc": [],
+        }
+
+    per_arc = []
+    for arc in r_arcs:
+        r_ts = float(arc.R_events[0].get("timestamp", 0))
+        e_to_r_dt = (r_ts - arc.first_e_ts) if arc.first_e_ts is not None else 0.0
+
+        if arc.has_a and e_to_r_dt > 0:
+            first_a_ts = float(arc.A_events[0].get("timestamp", 0))
+            a_span_dt = r_ts - first_a_ts
+            participation = max(a_span_dt / e_to_r_dt, 0.0)
+        else:
+            participation = 0.0
+
+        apc_arc = participation if arc.has_a else 0.0
+        per_arc.append({"arc_id": arc.arc_id, "apc": round(apc_arc, 3), "e_to_r_dt": round(e_to_r_dt, 3)})
+
+    scores = [p["apc"] for p in per_arc]
+    apc_mean = sum(scores) / len(scores)
+    zero_share = sum(1 for s in scores if s == 0.0) / len(scores)
+    low_share = sum(1 for s in scores if s < low_tau) / len(scores)
+
+    if zero_share > 0.30:
+        verdict = "KILL"
+    elif zero_share > 0.15 or apc_mean < 0.25:
+        verdict = "TUNE"
+    else:
+        verdict = "SHIP"
+
+    return {
+        "APC_mean": round(apc_mean, 3),
+        "APC_zero_share": round(zero_share, 3),
+        "APC_low_share": round(low_share, 3),
+        "apc_verdict": verdict,
+        "per_arc": per_arc,
     }
 
 
@@ -600,22 +787,28 @@ def load_current_knobs(path: Optional[Path]) -> Dict[str, float]:
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(
-        description="triage.py v2.0 — arc-first kernel. EventStream → causal clusters → arcs → VPR/RCP → knob diffs"
+        description="triage.py v2.1 — arc-first + A3 fix + ASI. EventStream → arcs → VPR/RCP/ASI → knob diffs"
     )
     ap.add_argument("--events", required=True, help="Events file (.jsonl or .json array)")
     ap.add_argument("--registry", required=True, help="Knob registry JSON")
     ap.add_argument("--current-knobs", default=None, help="JSON object of current knob values")
     ap.add_argument("--run-id", default=None, help="Run id (derived from events if omitted)")
+    ap.add_argument(
+        "--min-e-to-r", type=float, default=MIN_E_TO_R_SECONDS,
+        help=f"Minimum E→R window in seconds for R admissibility (default: {MIN_E_TO_R_SECONDS})"
+    )
     args = ap.parse_args(argv)
 
     registry = load_registry(Path(args.registry))
     events = iter_events_from_path(Path(args.events))
     current_knobs = load_current_knobs(Path(args.current_knobs) if args.current_knobs else None)
 
-    arcs = build_arcs(events)
+    arcs = build_arcs(events, min_e_to_r=args.min_e_to_r)
     breakpoint_ = classify_breakpoint(arcs)
     vpr = compute_vpr(arcs)
     rcp = compute_rcp(arcs)
+    asi = compute_asi(arcs, rcp, min_e_to_r=args.min_e_to_r)
+    apc = compute_apc(arcs)
     violations = eval_violations(arcs, vpr, rcp)
     knob_deltas = propose_knob_diffs(
         registry, current_knobs, breakpoint_, violations, arcs, vpr, rcp
@@ -635,14 +828,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         violations=[v.value for v in violations],
         vpr=vpr,
         rcp=rcp,
+        asi=asi,
+        apc=apc,
         knob_deltas=knob_deltas,
         notes={
             "registry_path": args.registry,
             "events_path": args.events,
             "current_knobs_path": args.current_knobs,
-            "version": "triage.py v2.0",
+            "version": "triage.py v2.1",
             "arc_count": len(arcs),
             "phase_overrides": sum(len(arc.phase_overrides) for arc in arcs),
+            "min_e_to_r": args.min_e_to_r,
         },
     )
 
