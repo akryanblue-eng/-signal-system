@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sipmg.schema.json",
+  "title": "SystemIntegrityPhaseMap",
+  "description": "Phase map of causal instrument integrity across a knob-space sweep. Classifies each point as Phase A (stable world + stable instrument), B (stable world + dulling instrument), C (destabilizing world + stable instrument), or D (joint collapse).",
+  "type": "object",
+  "required": ["sipmg_version", "generated_at", "vcl_hash", "sweep_summary", "canary_result", "points"],
+  "additionalProperties": false,
+  "properties": {
+    "sipmg_version": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "config_path": { "type": "string" },
+    "vcl_hash": {
+      "type": "string",
+      "description": "sha256 prefix of all instrument scripts at sweep time. Enables reproducibility checks."
+    },
+    "sweep_summary": {
+      "type": "object",
+      "required": ["total_points", "soft_points", "hard_points", "phase_A", "phase_B", "phase_C", "phase_D"],
+      "properties": {
+        "total_points":    { "type": "integer" },
+        "soft_points":     { "type": "integer" },
+        "hard_points":     { "type": "integer" },
+        "phase_A":         { "type": "integer", "description": "Stable world, stable instrument (target)" },
+        "phase_B":         { "type": "integer", "description": "Stable world, dulling instrument (silent collapse risk)" },
+        "phase_C":         { "type": "integer", "description": "Destabilizing world, stable instrument (legitimate failure)" },
+        "phase_D":         { "type": "integer", "description": "Joint collapse" },
+        "boundary_points": { "type": "integer", "description": "Points adjacent to a phase transition" },
+        "world_break_coords": {
+          "type": "object",
+          "description": "Knob coordinates of first detected Phase C/D transition (world instability onset)."
+        },
+        "instrument_break_coords": {
+          "type": "object",
+          "description": "Knob coordinates of first detected Phase B/D transition (instrument dulling onset)."
+        }
+      }
+    },
+    "canary_result": {
+      "type": "object",
+      "description": "Standard canary self-test run once before the sweep. All points inherit this instrument baseline.",
+      "properties": {
+        "status": { "type": "string", "enum": ["ALIVE", "DULLING", "SILENT_COLLAPSE"] },
+        "detection_rate": { "type": "number" },
+        "breaks_detected": { "type": "integer" },
+        "breaks_run": { "type": "integer" }
+      }
+    },
+    "sweep_axes": {
+      "type": "array",
+      "description": "Axis definitions from the sweep config.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "knob_id":      { "type": "string" },
+          "baseline":     { "type": "number" },
+          "soft_range":   { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+          "soft_step":    { "type": "number" },
+          "hard_range":   { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+          "hard_samples": { "type": "integer" }
+        }
+      }
+    },
+    "ghost_inject_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Fraction of post-fork events with wiped causal_links (simulates real-world ghost mass). 0.0 in pure synthetic runs — Phase B/D require >0."
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["coords", "range_type", "phase", "world_stability", "instrument_stability", "world_metrics", "instrument_metrics"],
+        "properties": {
+          "coords": {
+            "type": "object",
+            "description": "Knob values at this sweep point.",
+            "additionalProperties": { "type": "number" }
+          },
+          "range_type": {
+            "type": "string",
+            "enum": ["soft", "hard"],
+            "description": "soft = exhaustive grid; hard = sparse sample beyond soft bounds."
+          },
+          "phase": {
+            "type": "string",
+            "enum": ["A", "B", "C", "D"]
+          },
+          "world_stability": { "type": "string", "enum": ["stable", "degraded"] },
+          "instrument_stability": { "type": "string", "enum": ["stable", "degraded"] },
+          "world_metrics": {
+            "type": "object",
+            "properties": {
+              "breakpoint":    { "type": "string" },
+              "CCF_mean":      { "type": ["number", "null"] },
+              "APC_mean":      { "type": ["number", "null"] },
+              "smear_index":   { "type": "number" },
+              "ViableA_count": { "type": "integer" },
+              "asi_regime":    { "type": "string" }
+            }
+          },
+          "instrument_metrics": {
+            "type": "object",
+            "properties": {
+              "IC":            { "type": "number" },
+              "ghost_mass":    { "type": "number" },
+              "canary_status": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "summary_text": { "type": "string" }
+  }
+}

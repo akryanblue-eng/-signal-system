@@ -1,0 +1,41 @@
+{
+  "sipmg_version": "0.1",
+  "description": "2D phase map: pressure_gradient (A-axis) × heat_decay_rate (R-axis). Soft range is the primary characterization region. Hard range probes extreme configurations. ghost_inject_rate=0.0 for clean synthetic baseline — set to 0.2–0.4 to expose Phase B boundary.",
+  "axes": [
+    {
+      "knob_id": "pressure_gradient",
+      "label": "A-pressure",
+      "baseline": 1.0,
+      "soft_range": [0.5, 4.0],
+      "soft_step": 0.5,
+      "hard_range": [0.0, 10.0],
+      "hard_samples": 4
+    },
+    {
+      "knob_id": "heat_decay_rate",
+      "label": "R-pressure",
+      "baseline": 1.0,
+      "soft_range": [0.5, 3.0],
+      "soft_step": 0.5,
+      "hard_range": [0.0, 6.0],
+      "hard_samples": 3
+    }
+  ],
+  "fixed_knobs": {
+    "visibility_window": 3.0,
+    "closure_threshold": 0.5
+  },
+  "arc_grammar": "speed",
+  "r_type": "pursuit_lost",
+  "seed": 42,
+  "ghost_inject_rate": 0.0,
+  "world_stability_thresholds": {
+    "CCF_min": 0.50,
+    "smear_index_max": 0.50,
+    "APC_mean_min": 0.15
+  },
+  "instrument_stability_thresholds": {
+    "ghost_mass_max": 0.20,
+    "IC_min": 0.70
+  }
+}
