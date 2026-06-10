@@ -55,12 +55,14 @@ jobs:
           cargo build --bin verifier_v2 --quiet
           ./target/debug/verifier_v2 fixtures/v2/temporal_collapse_001/director_loop_run_v2.json
 
-      - name: V2 hash integrity guarantee (calibration statement)
+      - name: V2 calibration statement
         run: |
-          echo "V2 HASH INVARIANTS (enforced inside verifier_v2, gates 4 and 5):"
-          echo "  input_hash  = SHA-256(serde_json::to_vec(InputHashPreimageV2))"
-          echo "                preimage fields: v2_version, run_id, parent_run_id, protocol_sha, inputs"
-          echo "  output_hash = SHA-256(serde_json::to_vec(OutputHashPreimageV2))"
-          echo "                preimage fields: v2_version, run_id, parent_run_id, execution, audit, input_hash"
-          echo "  Field order is frozen at struct definition. No JCS, no NFC, no runtime sorting."
-          echo "  Any hash drift in the committed fixture exits 1 and breaks CI."
+          echo "V2 VERIFIER CALIBRATION"
+          echo "------------------------------------"
+          echo "Input hash:  SHA-256 over serde_json::to_vec(InputHashPreimageV2)"
+          echo "             preimage fields: v2_version, run_id, parent_run_id, protocol_sha, inputs"
+          echo "Output hash: SHA-256 over serde_json::to_vec(OutputHashPreimageV2)"
+          echo "             preimage fields: v2_version, run_id, parent_run_id, execution, audit, input_hash"
+          echo "Canonicalization: Rust serde_json::to_vec() structural ordering (no JCS, no external normalization)"
+          echo "Determinism guarantee: identical struct -> identical byte serialization -> identical hash"
+          echo "Enforcement: inside verifier_v2 binary, gates 4 and 5 (fail-fast, exit 1 on drift)"
