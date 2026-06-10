@@ -1,0 +1,41 @@
+{
+  "exp_id": "cre_baseline_001",
+  "description": "CRE baseline experiment: three variants testing grammar divergence and knob perturbation. Base=speed/default, V1=stealth/default, V2=decoy/high-pressure. Expected: IC=1.0 ghost_mass=0.0 for all variants in MODE_B (correctly wired synthetic causal_links). Causal verdict: CLOSED across all pairs.",
+  "prefix": {
+    "e_type": "line_of_sight_spotted",
+    "zone_id": "test_zone",
+    "seed": 42,
+    "prefix_knobs": {
+      "heat_decay_rate": 1.0,
+      "visibility_window": 3.0,
+      "pressure_gradient": 1.0,
+      "closure_threshold": 0.5
+    }
+  },
+  "variants": [
+    {
+      "variant_id": "base_speed",
+      "description": "Base variant: speed grammar, default knobs",
+      "a_grammar": "speed",
+      "r_type": "pursuit_lost",
+      "knob_overrides": {}
+    },
+    {
+      "variant_id": "v1_stealth",
+      "description": "Fork variant 1: stealth grammar, default knobs. A-grammar change only — same causal structure, different behavioral path.",
+      "a_grammar": "stealth",
+      "r_type": "pursuit_lost",
+      "knob_overrides": {}
+    },
+    {
+      "variant_id": "v2_high_pressure",
+      "description": "Fork variant 2: decoy grammar, elevated pressure_gradient. Higher pressure → more A events, stronger E signal. Tests IC under structural arc expansion.",
+      "a_grammar": "decoy",
+      "r_type": "safehouse_reached",
+      "knob_overrides": {
+        "pressure_gradient": 3.5,
+        "heat_decay_rate": 2.0
+      }
+    }
+  ]
+}

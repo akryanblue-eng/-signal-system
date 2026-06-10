@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "causal_validity_certificate.schema.json",
+  "title": "CausalValidityCertificate",
+  "description": "Terminal verdict object for a CRE experiment. Certifies whether a run's observed dynamics are causally complete under controlled intervention. Machine-verifiable.",
+  "type": "object",
+  "required": ["cert_id", "exp_id", "created_at", "causal_verdict", "CCF_mean", "IC", "ghost_mass"],
+  "additionalProperties": false,
+  "properties": {
+    "cert_id": {
+      "type": "string",
+      "description": "Unique certificate identifier. Format: cert_{exp_id}_{variant_id}_{timestamp}"
+    },
+    "exp_id": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "prefix_end_ts": {
+      "type": ["number", "null"],
+      "description": "Timestamp of last shared event in prefix. All divergence occurs after this point."
+    },
+    "fork_point_event_id": {
+      "type": "string",
+      "description": "Event ID of the last shared prefix event (the fork anchor)."
+    },
+    "base_variant_id": { "type": "string" },
+    "test_variant_id": { "type": "string" },
+    "causal_verdict": {
+      "type": "string",
+      "enum": ["CLOSED", "OPEN", "CONTAMINATED"],
+      "description": "CLOSED: IC >= 0.70 and ghost_mass <= 0.20. OPEN: partial causal coverage. CONTAMINATED: IC < 0.40 or ghost_mass > 0.40."
+    },
+    "CCF_mean": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Causal Closure Fidelity: (E_explained * IC) - ghost_mass, clamped to [0,1]."
+    },
+    "IC": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Intervention Consistency: fraction of post-fork changes reachable via causal paths from the fork point."
+    },
+    "ghost_mass": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Fraction of post-fork changes outside the causal cone of the intervention. Should be ~0 for causally closed systems."
+    },
+    "divergence": {
+      "type": "object",
+      "description": "Structural comparison between base and test variant arcs.",
+      "properties": {
+        "r_changed": { "type": "boolean" },
+        "breakpoint_changed": { "type": "boolean" },
+        "event_seq_distance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized Levenshtein distance on event_type sequences."
+        },
+        "a_grammar_delta": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A-grammar types present in one variant but not the other."
+        },
+        "causal_locality_ok": {
+          "type": "boolean",
+          "description": "True if IC > 0.70 and ghost_mass < 0.20."
+        }
+      }
+    },
+    "base_metrics": {
+      "type": "object",
+      "description": "VPR/RCP/APC/ASI snapshot for base variant."
+    },
+    "test_metrics": {
+      "type": "object",
+      "description": "VPR/RCP/APC/ASI snapshot for test variant."
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
