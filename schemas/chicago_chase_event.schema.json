@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "chicago_chase_event.schema.json",
+  "title": "ChicagoChaseEvent",
+  "description": "Chicago Chase Runtime Event Schema v2.0. Arc-first architecture. Phase is a projection derived from event_type, not an authority label. phase_hint is advisory only — triage ignores it for classification and may override.",
+  "type": "object",
+  "required": ["event_id", "run_id", "timestamp", "event_type", "source_system", "location"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique immutable identifier. Format: runId:eventIndex or UUID. Must never be reused."
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Groups events into one 10-15 min session. Format: run_YYYY_MM_DD_NN"
+    },
+    "timestamp": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Monotonic time within run (ms or s). Must be strictly non-decreasing."
+    },
+    "phase_hint": {
+      "type": "string",
+      "enum": ["E", "A", "R", "NULL"],
+      "description": "Advisory projection of phase at emission time. E=Escalation, A=Adaptation, R=Resolution, NULL=non-phase noise. NOT authoritative — triage derives true phase from event_type. Causality overrides this field when they disagree."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "heat_increase",
+        "line_of_sight_spotted",
+        "vehicle_theft_detected",
+        "pursuit_started",
+        "rival_engaged",
+        "blockade_spawned",
+        "collision_detected",
+        "route_change",
+        "vehicle_swap",
+        "vehicle_abandon",
+        "stealth_break",
+        "hide_enter",
+        "decoy_used",
+        "speed_shift",
+        "terrain_exploit",
+        "heat_decay",
+        "pursuit_lost",
+        "safehouse_reached",
+        "arrest_confirmed",
+        "timeout_decay",
+        "player_exit",
+        "ai_idle",
+        "ambient_simulation",
+        "navigation_update"
+      ],
+      "description": "Canonical event taxonomy. Primary phase classifier — event_type determines true E/A/R membership, not phase_hint."
+    },
+    "source_system": {
+      "type": "string",
+      "enum": ["player", "ai", "world", "physics", "ai_police", "ai_rival", "system"],
+      "description": "Causal attribution anchor. Where the event originates."
+    },
+    "location": {
+      "type": "object",
+      "required": ["zone_id"],
+      "additionalProperties": false,
+      "properties": {
+        "zone_id": {
+          "type": "string",
+          "description": "Human-recognizable zone identifier. Supports landmark recall metric."
+        },
+        "subzone": {
+          "type": ["string", "null"],
+          "description": "Recommended for chase clarity."
+        },
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "All actors involved."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Analysis descriptors for breakpoint classification. NOT causal."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific structured data. heat_delta, speed, damage, etc.",
+      "additionalProperties": true
+    },
+    "causal_links": {
+      "type": "object",
+      "required": ["triggered_by", "contributes_to"],
+      "additionalProperties": false,
+      "description": "Enables arc formation via causal clustering. Arcs are contiguous causal clusters — this field is the connective tissue. A events without a causal link to a prior E are demoted to decorative. Causality overrides phase_hint when they disagree.",
+      "properties": {
+        "triggered_by": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "event_ids that caused this event. Primary arc membership signal."
+        },
+        "contributes_to": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "event_ids this event will influence. Used for forward arc clustering."
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": { "phase_hint": { "enum": ["E", "A", "R"] } },
+    "required": ["phase_hint"]
+  },
+  "then": {
+    "required": ["causal_links"],
+    "properties": {
+      "causal_links": { "type": "object" }
+    }
+  }
+}

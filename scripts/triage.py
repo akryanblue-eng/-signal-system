@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 """
-triage.py v0.1 — execution anchor
+triage.py v2.0 — arc-first kernel
 
-Binds:
-  EventStream -> metrics -> breakpoint -> {VPR/RCP/coupling} -> structured knob diffs
+Core shift from v0.2:
+  - Arcs define truth, not runs. E/A/R is derived from arcs, not projected.
+  - Arc formation via causal clustering (connected components of causal_links graph).
+  - phase_hint is advisory only. event_type is the phase authority.
+  - build_arcs() replaces reconstruct_arcs().
 
-Inputs:
-  - Event stream: JSONL (one JSON object per line) OR a JSON array of events
-  - Knob registry: JSON file (source-of-truth for knob metadata & constraints)
-  - Optional current-knobs: JSON object of {knob_id: current_float_value}
+Three hard invariants:
+  1. event_type is phase authority — phase_hint is advisory, logged on mismatch.
+  2. A only counts when causally linked to a prior E in causal_links.triggered_by.
+     A events with no causal link to an E are demoted to A_decorative.
+  3. Arc = contiguous causal cluster. Multi-arc per run falls out naturally from
+     disconnected causal subgraphs.
 
-Outputs:
-  - One JSON object report (stdout), suitable for piping to a file.
-
-Design constraints:
-  - No new systems
-  - No hidden dependencies
-  - Registry is source-of-truth for knob metadata & validity
+Outputs per run (4 objects):
+  arcs            — reconstructed arc list with derived E/A/R membership
+  breakpoint      — dominant classification across arcs
+  vpr             — A-space diversity report
+  rcp             — R-basin coherence report
+  knob_deltas     — registry-referenced parameter edits
 """
 
 from __future__ import annotations
@@ -25,19 +29,58 @@ import argparse
 import dataclasses
 import json
 import sys
-from dataclasses import dataclass
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
-# ── Types ──────────────────────────────────────────────────────────────────────
+# ── Phase taxonomy (event_type is authority) ───────────────────────────────────
+
+E_TYPES: Set[str] = {
+    "heat_increase", "line_of_sight_spotted", "vehicle_theft_detected",
+    "pursuit_started", "rival_engaged", "blockade_spawned", "collision_detected",
+}
+
+A_TYPES: Set[str] = {
+    "route_change", "vehicle_swap", "vehicle_abandon", "stealth_break",
+    "hide_enter", "decoy_used", "speed_shift", "terrain_exploit",
+}
+
+R_TYPES: Set[str] = {
+    "heat_decay", "pursuit_lost", "safehouse_reached", "arrest_confirmed",
+    "timeout_decay", "player_exit",
+}
+
+NULL_TYPES: Set[str] = {"ai_idle", "ambient_simulation", "navigation_update"}
+
+# A-grammar classification for VPR
+A_GRAMMAR: Dict[str, str] = {
+    "route_change": "speed",
+    "vehicle_swap": "speed",
+    "vehicle_abandon": "decoy",
+    "stealth_break": "stealth",
+    "hide_enter": "stealth",
+    "decoy_used": "decoy",
+    "speed_shift": "speed",
+    "terrain_exploit": "stealth",
+}
+
+
+# ── Knob registry types ────────────────────────────────────────────────────────
+
+_LAYER_TO_AXIS: Dict[str, Optional[str]] = {
+    "E": "COUPLING", "E→A": "COUPLING", "A": "VPR",
+    "A→R": "VPR", "R": "RCP", "spatial": "VPR",
+}
+
 
 class Axis(str, Enum):
-    VPR = "VPR"          # A-width / policy-space integrity
-    RCP = "RCP"          # R-depth / attractor formation integrity
-    COUPLING = "COUPLING"  # E/A/R transition physics integrity
+    VPR = "VPR"
+    RCP = "RCP"
+    COUPLING = "COUPLING"
 
 
 class Violation(str, Enum):
@@ -74,57 +117,73 @@ class KnobDelta:
     evidence: Dict[str, Any]
 
 
+# ── Arc types ──────────────────────────────────────────────────────────────────
+
+@dataclass
+class Arc:
+    run_id: str
+    arc_index: int
+    arc_id: str = ""
+    E_events: List[Dict[str, Any]] = field(default_factory=list)
+    A_events: List[Dict[str, Any]] = field(default_factory=list)
+    A_decorative: List[Dict[str, Any]] = field(default_factory=list)
+    R_events: List[Dict[str, Any]] = field(default_factory=list)
+    phase_overrides: List[str] = field(default_factory=list)
+    breakpoint: str = ""
+    trust_scores: Dict[str, float] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.arc_id:
+            self.arc_id = f"{self.run_id}:arc{self.arc_index}"
+
+    @property
+    def has_e(self) -> bool:
+        return bool(self.E_events)
+
+    @property
+    def has_a(self) -> bool:
+        return bool(self.A_events)
+
+    @property
+    def has_r(self) -> bool:
+        return bool(self.R_events)
+
+    @property
+    def is_full(self) -> bool:
+        return self.has_e and self.has_a and self.has_r
+
+
 @dataclass
 class TriageReport:
     run_id: str
     created_at: str
-    EAR: Dict[str, Any]
+    arcs: List[Arc]
     breakpoint: str
     violations: List[str]
-    metrics: Dict[str, Any]
+    vpr: Dict[str, Any]
+    rcp: Dict[str, Any]
     knob_deltas: List[KnobDelta]
     notes: Dict[str, Any]
 
 
 # ── Registry loading ────────────────────────────────────────────────────────────
 
-# Maps our internal layer names to Axis enum values for cross-format compatibility.
-_LAYER_TO_AXIS: Dict[str, Optional[str]] = {
-    "E": "COUPLING",
-    "E→A": "COUPLING",
-    "A": "VPR",
-    "A→R": "VPR",
-    "R": "RCP",
-    "spatial": "VPR",
-}
-
-
 def load_registry(path: Path) -> Dict[str, KnobSpec]:
     raw = json.loads(path.read_text(encoding="utf-8"))
-    knobs = raw.get("knobs", raw)  # allow {"knobs": [...]} or {"knobs": {...}} or bare
-
+    knobs = raw.get("knobs", raw)
     if isinstance(knobs, dict):
         items = []
         for knob_id, spec in knobs.items():
             if knob_id.startswith("_"):
-                continue  # skip metadata keys like _version, _invariant
+                continue
             s = dict(spec)
             s.setdefault("knob_id", knob_id)
             items.append(s)
         knobs = items
-
     out: Dict[str, KnobSpec] = {}
     for item in knobs:
-        # Resolve axis: prefer explicit "axis" field; fall back to "layer" mapping.
-        axis_raw = item.get("axis")
-        if not axis_raw:
-            axis_raw = _LAYER_TO_AXIS.get(item.get("layer", ""), None)
-
-        axis_enum: Optional[Axis] = None
-        if axis_raw and axis_raw in {a.value for a in Axis}:
-            axis_enum = Axis(axis_raw)
-
-        # Resolve min/max: prefer explicit fields; fall back to "range" array.
+        axis_raw = item.get("axis") or _LAYER_TO_AXIS.get(item.get("layer", ""), None)
+        axis_enum = Axis(axis_raw) if axis_raw and axis_raw in {a.value for a in Axis} else None
         rng = item.get("range")
         min_val = item.get("min")
         max_val = item.get("max")
@@ -133,7 +192,6 @@ def load_registry(path: Path) -> Dict[str, KnobSpec]:
                 min_val = float(rng[0])
             if max_val is None:
                 max_val = float(rng[1])
-
         spec = KnobSpec(
             knob_id=str(item["knob_id"]),
             name=str(item.get("name") or item["knob_id"]),
@@ -145,7 +203,6 @@ def load_registry(path: Path) -> Dict[str, KnobSpec]:
             description=item.get("description") or item.get("risk"),
         )
         out[spec.knob_id] = spec
-
     return out
 
 
@@ -168,135 +225,282 @@ def iter_events_from_path(path: Path) -> List[Dict[str, Any]]:
     return events
 
 
-# ── EAR extraction ──────────────────────────────────────────────────────────────
+# ── Event classification (event_type is authority) ─────────────────────────────
 
-def compute_ear(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def phase_from_type(ev: Dict[str, Any]) -> str:
+    et = ev.get("event_type", "")
+    if et in E_TYPES:
+        return "E"
+    if et in A_TYPES:
+        return "A"
+    if et in R_TYPES:
+        return "R"
+    return "NULL"
+
+
+def get_phase_hint(ev: Dict[str, Any]) -> str:
+    """Read phase_hint (v2.0) with fallback to phase (v1.0 compat)."""
+    return ev.get("phase_hint", ev.get("phase", "NULL"))
+
+
+def validate_event(ev: Dict[str, Any]) -> bool:
+    for f in ("event_id", "event_type", "run_id", "timestamp"):
+        if f not in ev:
+            return False
+    # Phase-critical events require causal_links
+    true_phase = phase_from_type(ev)
+    if true_phase in ("E", "A", "R") and not ev.get("causal_links"):
+        return False
+    return True
+
+
+def score_event_trust(ev: Dict[str, Any]) -> float:
     """
-    Phase-honest EAR summary.
-
-    E: new constraint appearances only — NOT movement, NOT noise, NOT retro.
-       Type prefixes: police_sightline, police_pursuit, pressure_*, heat_increase,
-       rival_appear, e_* (explicit). Generic player_move does NOT count.
-
-    A: control-logic deltas only — NOT movement, NOT activity, NOT noise.
-       Requires adaptation=true flag OR adapt_* type prefix.
-       player_move, player_*, move_* are logged for landmark tracking but
-       do NOT increment A. This is the phase honesty invariant.
-
-    R: locks when pressure measurably decays — NOT on timers, NOT proximity.
-       Type prefixes: resolve_*, escape_*, arrest_*, heat_decay_start, r_*.
-       Requires resolution field OR explicit decay-type prefix.
+    Trust score for phase assignment. Scale 0–3.0.
+    +1 base
+    +1 payload corroborates (heat_delta sign matches phase)
+    +1 causal evidence present (triggered_by non-empty)
+    -1 phase_hint disagrees with event_type
     """
-    e_class: Optional[str] = None
-    landmarks: List[str] = []
-    adaptation_count = 0
-    resolution_type: Optional[str] = None
-    e_pressure = 0
-    a_adapt = 0       # honest A: control-logic deltas only
-    r_resolution = 0
+    true_phase = phase_from_type(ev)
+    declared_phase = get_phase_hint(ev)
+    payload = ev.get("payload") or {}
+    cl = ev.get("causal_links") or {}
 
-    # E: specific constraint-appearance prefixes only — not generic heat_ events
-    E_PREFIXES = ("police_sightline", "police_pursuit", "pressure_", "heat_increase",
-                  "rival_appear", "e_")
-    # R: pressure-decay and resolution events only — not end_ (ambiguous)
-    R_PREFIXES = ("resolve_", "escape_", "arrest_", "heat_decay_start", "r_")
+    score = 1.0
 
+    heat_delta = payload.get("heat_delta", 0)
+    if true_phase == "E" and heat_delta > 0:
+        score += 1.0
+    elif true_phase == "R" and heat_delta < 0:
+        score += 1.0
+    elif true_phase == "A" and ev.get("event_type") in A_TYPES:
+        score += 1.0
+
+    if cl.get("triggered_by"):
+        score += 1.0
+
+    if declared_phase != true_phase and declared_phase != "NULL":
+        score -= 1.0
+
+    return max(0.0, score)
+
+
+# ── Arc formation via causal clustering ────────────────────────────────────────
+
+def build_arcs(events: List[Dict[str, Any]]) -> List[Arc]:
+    """
+    Build arcs via causal graph clustering (v2.0).
+
+    Algorithm:
+    1. Index events by event_id. Filter invalid events.
+    2. Build undirected adjacency from causal_links (triggered_by + contributes_to).
+    3. Find connected components via BFS — each component is a causal cluster.
+    4. Discard clusters with no E events (pure-NULL islands don't form arcs).
+    5. Sort clusters by earliest event timestamp.
+    6. Within each cluster, assign events to E/A/R by event_type authority.
+       A events require causal link to a cluster-local E event (else → A_decorative).
+    7. Log phase_hint mismatches in arc.phase_overrides.
+    """
+    ev_index: Dict[str, Dict[str, Any]] = {}
     for ev in events:
-        et = str(ev.get("type", "")).lower()
+        if validate_event(ev):
+            ev_index[ev["event_id"]] = ev
 
-        if e_class is None and ev.get("e_class"):
-            e_class = str(ev["e_class"])
-        if ev.get("landmark"):
-            landmarks.append(str(ev["landmark"]))
-        if ev.get("resolution"):
-            resolution_type = str(ev["resolution"])
+    if not ev_index:
+        return []
 
-        # E: new constraint appearances
-        if any(et.startswith(p) for p in E_PREFIXES):
-            e_pressure += 1
+    # Build undirected adjacency
+    adjacency: Dict[str, Set[str]] = defaultdict(set)
+    for eid, ev in ev_index.items():
+        cl = ev.get("causal_links") or {}
+        for parent_id in cl.get("triggered_by", []):
+            if parent_id in ev_index:
+                adjacency[eid].add(parent_id)
+                adjacency[parent_id].add(eid)
+        for child_id in cl.get("contributes_to", []):
+            if child_id in ev_index:
+                adjacency[eid].add(child_id)
+                adjacency[child_id].add(eid)
 
-        # A: control-logic deltas only — adaptation flag or adapt_ prefix required
-        if ev.get("adaptation") is True or et.startswith("adapt_"):
-            adaptation_count += 1
-            a_adapt += 1
+    # BFS: find connected components
+    visited: Set[str] = set()
+    clusters: List[List[str]] = []
+    for eid in ev_index:
+        if eid not in visited:
+            component: List[str] = []
+            queue = [eid]
+            while queue:
+                cur = queue.pop(0)
+                if cur in visited:
+                    continue
+                visited.add(cur)
+                component.append(cur)
+                queue.extend(adjacency[cur] - visited)
+            clusters.append(component)
 
-        # R: pressure-decay events only
-        if any(et.startswith(p) for p in R_PREFIXES) or ev.get("resolution"):
-            r_resolution += 1
+    # Filter to clusters with at least one E event, sort by earliest timestamp
+    def cluster_min_ts(c: List[str]) -> float:
+        return min(float(ev_index[eid].get("timestamp", 0)) for eid in c)
 
-    E = "PRESENT" if e_pressure > 0 else "ABSENT"
-    A = adaptation_count
-    R = (
-        "LANDED" if resolution_type
-        else ("FORMING" if r_resolution > 0 else "UNRESOLVED")
-    )
+    arc_clusters = [
+        c for c in clusters
+        if any(phase_from_type(ev_index[eid]) == "E" for eid in c)
+    ]
+    arc_clusters.sort(key=cluster_min_ts)
 
-    return {
-        "E": E,
-        "A": A,
-        "R": R,
-        "E_class": e_class,
-        "landmarks": sorted(set(landmarks)),
-        "resolution_type": resolution_type,
-        "event_counts": {
-            "E_pressure_events": e_pressure,
-            "A_adaptation_events": a_adapt,   # renamed: honest count only
-            "R_resolution_events": r_resolution,
-            "total_events": len(events),
-        },
-    }
+    run_id = next(iter(ev_index.values())).get("run_id", "unknown")
+    arcs: List[Arc] = []
+
+    for arc_idx, cluster in enumerate(arc_clusters, 1):
+        cluster_evs = sorted(
+            [ev_index[eid] for eid in cluster],
+            key=lambda ev: float(ev.get("timestamp", 0)),
+        )
+
+        arc = Arc(run_id=run_id, arc_index=arc_idx)
+        arc_e_ids: Set[str] = set()
+
+        for ev in cluster_evs:
+            eid = ev["event_id"]
+            true_phase = phase_from_type(ev)
+            declared = get_phase_hint(ev)
+
+            arc.trust_scores[eid] = score_event_trust(ev)
+
+            if declared != true_phase and declared != "NULL":
+                arc.phase_overrides.append(eid)
+
+            if true_phase == "E":
+                arc.E_events.append(ev)
+                arc_e_ids.add(eid)
+            elif true_phase == "A":
+                triggered_by = set((ev.get("causal_links") or {}).get("triggered_by", []))
+                if triggered_by & arc_e_ids:
+                    arc.A_events.append(ev)
+                else:
+                    arc.A_decorative.append(ev)
+            elif true_phase == "R":
+                arc.R_events.append(ev)
+
+        arc.breakpoint = classify_arc(arc)
+        arcs.append(arc)
+
+    return arcs
 
 
 # ── Breakpoint classifier ───────────────────────────────────────────────────────
 
-def classify_breakpoint(ear: Dict[str, Any]) -> str:
-    """
-    Single dominant breakpoint label. Keep the label set stable; add detail
-    in metrics/notes, not by multiplying labels.
-    Replace logic with your full breakpoint catalog as it solidifies.
-    """
-    if ear["E"] == "ABSENT":
-        return "NoPressure_E_Absent"
-    if ear["R"] == "UNRESOLVED":
-        if ear["A"] <= 0:
-            return "InstantCollapse"
-        return "InfiniteChase"
-    if ear["R"] == "LANDED" and ear["A"] <= 0:
-        return "FreeEscape"
-    return "FullArc"
+def classify_arc(arc: Arc) -> str:
+    if not arc.has_e:
+        return "collapsed_arc"
+    if not arc.has_r:
+        if arc.has_a:
+            return "infinite_chase"
+        return "instant_collapse"
+    r_type = arc.R_events[0].get("event_type", "")
+    if not arc.has_a:
+        return "free_escape" if r_type in ("pursuit_lost", "safehouse_reached") else "collapsed_arc"
+    if arc.is_full:
+        total_a = len(arc.A_events) + len(arc.A_decorative)
+        if total_a > 0 and len(arc.A_decorative) / total_a > 0.6:
+            return "decorative_adaptation"
+        return "full_arc"
+    return "partial_arc"
 
 
-# ── Violation checks ────────────────────────────────────────────────────────────
+def classify_breakpoint(arcs: List[Arc]) -> str:
+    if not arcs:
+        return "no_arcs"
+    counts = Counter(arc.breakpoint for arc in arcs)
+    return counts.most_common(1)[0][0]
 
-def eval_violations(ear: Dict[str, Any], metrics: Dict[str, Any]) -> List[Violation]:
-    """
-    Minimal placeholder gates. Replace with real measures:
-      VPR  → TopA_share, ViableA_count
-      RCP  → R clustering, return-stability index
-      COUPLING → E→A latency, consequence fidelity
-    """
+
+# ── VPR (A-space diversity) ────────────────────────────────────────────────────
+
+def compute_vpr(arcs: List[Arc]) -> Dict[str, Any]:
+    grammar_counts: Dict[str, int] = {"stealth": 0, "speed": 0, "decoy": 0, "unknown": 0}
+    e_to_grammars: Dict[str, Set[str]] = defaultdict(set)
+
+    for arc in arcs:
+        arc_grammars: Set[str] = set()
+        for ev in arc.A_events:
+            g = A_GRAMMAR.get(ev.get("event_type", ""), "unknown")
+            grammar_counts[g] += 1
+            arc_grammars.add(g)
+        for e_ev in arc.E_events:
+            e_type = e_ev.get("event_type", "unknown")
+            e_to_grammars[e_type].update(arc_grammars)
+
+    total_a = sum(grammar_counts.values())
+    top_share = (max(grammar_counts.values()) / total_a) if total_a > 0 else 0.0
+    viable = sum(1 for g, c in grammar_counts.items() if c > 0 and g != "unknown")
+
+    return {
+        "ViableA_count": viable,
+        "TopA_share": round(top_share, 3),
+        "A_grammars": {
+            g: round(grammar_counts[g] / total_a, 3) if total_a > 0 else 0.0
+            for g in ("stealth", "speed", "decoy")
+        },
+        "SameE_diversity": {
+            et: (len(gs) > 1) for et, gs in e_to_grammars.items()
+        },
+        "violation_flag": top_share > 0.7,
+    }
+
+
+# ── RCP (R-basin coherence) ────────────────────────────────────────────────────
+
+def compute_rcp(arcs: List[Arc]) -> Dict[str, Any]:
+    if not arcs:
+        return {
+            "arc_count": 0, "arc_clusters": 0,
+            "cluster_stability": 0.0,
+            "compressibility_score": 0.0,
+            "smear_index": 1.0,
+            "R_type_counts": {},
+        }
+    r_type_counts: Dict[str, int] = Counter(
+        arc.R_events[0].get("event_type", "unknown")
+        for arc in arcs if arc.has_r
+    )
+    landed = sum(1 for arc in arcs if arc.has_r)
+    compressibility = landed / len(arcs)
+    arc_clusters = len(set(arc.breakpoint for arc in arcs))
+
+    return {
+        "arc_count": len(arcs),
+        "arc_clusters": arc_clusters,
+        "cluster_stability": 0.0,  # needs cross-run data
+        "compressibility_score": round(compressibility, 3),
+        "smear_index": round(1.0 - compressibility, 3),
+        "R_type_counts": dict(r_type_counts),
+    }
+
+
+# ── Violations ─────────────────────────────────────────────────────────────────
+
+def eval_violations(
+    arcs: List[Arc],
+    vpr: Dict[str, Any],
+    rcp: Dict[str, Any],
+) -> List[Violation]:
     v: List[Violation] = []
 
-    # COUPLING: pressure present, but zero control-logic deltas recorded
-    # (E fired, A window never opened — structural pipeline failure)
-    if ear["E"] == "PRESENT" and ear["event_counts"]["A_adaptation_events"] == 0:
+    if any(arc.has_e and not arc.has_a for arc in arcs):
         v.append(Violation.COUPLING_FAILURE)
 
-    # RCP: pressure present, arc never resolves
-    # (R island never forms — state-based exit conditions not met)
-    if ear["E"] == "PRESENT" and ear["R"] == "UNRESOLVED":
+    if any(arc.has_e and not arc.has_r for arc in arcs):
         v.append(Violation.RCP_VIOLATION)
 
-    # VPR (single-run stub): pressure present, no meaningful adaptation at all
-    # NOTE: real VPR requires cross-run TopA_share — this is a placeholder
-    # that flags complete A absence. Replace with multi-run diversity metric.
-    if ear["E"] == "PRESENT" and ear["A"] == 0:
+    if vpr.get("violation_flag"):
         v.append(Violation.VPR_VIOLATION)
 
     return v
 
 
-# ── Knob diff engine ────────────────────────────────────────────────────────────
+# ── Knob diffs ─────────────────────────────────────────────────────────────────
 
 def clamp_to_bounds(value: float, spec: KnobSpec) -> Tuple[float, bool]:
     bounded = False
@@ -320,25 +524,15 @@ def propose_knob_diffs(
     current_knobs: Dict[str, float],
     breakpoint: str,
     violations: List[Violation],
-    ear: Dict[str, Any],
+    arcs: List[Arc],
+    vpr: Dict[str, Any],
+    rcp: Dict[str, Any],
 ) -> List[KnobDelta]:
-    """
-    Emits structured diffs. Every proposed change must reference a known
-    registry knob_id. Outputs small, single-axis deltas only.
-
-    Replace the mapping table below with your canonical wiring once the
-    full breakpoint catalog is hardened.
-    """
     deltas: List[KnobDelta] = []
 
-    def add_delta(
-        knob_id: str,
-        delta: float,
-        reason: str,
-        evidence: Dict[str, Any],
-    ) -> None:
+    def add_delta(knob_id: str, delta: float, reason: str, evidence: Dict[str, Any]) -> None:
         if knob_id not in registry:
-            return  # unknown knob — skip silently rather than crashing the run
+            return
         spec = registry[knob_id]
         old = current_knobs.get(knob_id)
         new = (old if old is not None else (spec.min or 0.0)) + float(delta)
@@ -362,50 +556,36 @@ def propose_knob_diffs(
             evidence=evidence,
         ))
 
-    # ── Mapping table ──────────────────────────────────────────────────────────
-    # Knob IDs must exist in registry. Replace with your full catalog mapping.
-
-    if breakpoint == "InfiniteChase" or Violation.RCP_VIOLATION in violations:
+    if breakpoint in ("infinite_chase",) or Violation.RCP_VIOLATION in violations:
         add_delta(
-            knob_id="closure_threshold",
-            delta=-0.05,
-            reason="RCP: unresolved arcs under pressure — strengthen basin landing",
-            evidence={
-                "breakpoint": breakpoint,
-                "resolution_type": ear.get("resolution_type"),
-                "EAR": {"E": ear["E"], "R": ear["R"]},
-            },
+            "closure_threshold", -0.05,
+            reason="RCP: arc(s) unresolved — strengthen basin landing",
+            evidence={"breakpoint": breakpoint, "smear_index": rcp.get("smear_index")},
         )
         add_delta(
-            knob_id="heat_decay_rate",
-            delta=+0.05,
-            reason="RCP: improve de-escalation path so resolution can land",
-            evidence={"E_class": ear.get("E_class")},
+            "heat_decay_rate", +0.05,
+            reason="RCP: improve de-escalation so R can land",
+            evidence={"arc_count": rcp.get("arc_count")},
         )
 
     if Violation.VPR_VIOLATION in violations:
         add_delta(
-            knob_id="pressure_gradient",
-            delta=+0.1,
-            reason="VPR: no adaptation observed — increase pressure variation to force multiple grammars",
-            evidence={
-                "adaptation_count": ear.get("A"),
-                "E_class": ear.get("E_class"),
-            },
+            "pressure_gradient", +0.1,
+            reason="VPR: A-grammar collapse — increase E variation to force diversity",
+            evidence={"TopA_share": vpr.get("TopA_share"), "ViableA_count": vpr.get("ViableA_count")},
         )
 
     if Violation.COUPLING_FAILURE in violations:
         add_delta(
-            knob_id="visibility_window",
-            delta=+0.5,
-            reason="Coupling: pressure present but no A events — widen perception/response window",
-            evidence={"event_counts": ear.get("event_counts")},
+            "visibility_window", +0.5,
+            reason="Coupling: E present but A window never opened — widen response window",
+            evidence={"coupling_fail_arcs": sum(1 for arc in arcs if arc.has_e and not arc.has_a)},
         )
 
-    return deltas[:6]  # hard cap: keep output short and reviewable
+    return deltas[:6]
 
 
-# ── Current knobs ───────────────────────────────────────────────────────────────
+# ── Misc ────────────────────────────────────────────────────────────────────────
 
 def load_current_knobs(path: Optional[Path]) -> Dict[str, float]:
     if path is None:
@@ -420,54 +600,49 @@ def load_current_knobs(path: Optional[Path]) -> Dict[str, float]:
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(
-        description="triage.py v0.1 — EventStream → knob diffs via KnobRegistry"
+        description="triage.py v2.0 — arc-first kernel. EventStream → causal clusters → arcs → VPR/RCP → knob diffs"
     )
     ap.add_argument("--events", required=True, help="Events file (.jsonl or .json array)")
     ap.add_argument("--registry", required=True, help="Knob registry JSON")
     ap.add_argument("--current-knobs", default=None, help="JSON object of current knob values")
-    ap.add_argument("--run-id", default=None, help="Run/session id (derived from events if omitted)")
+    ap.add_argument("--run-id", default=None, help="Run id (derived from events if omitted)")
     args = ap.parse_args(argv)
 
     registry = load_registry(Path(args.registry))
     events = iter_events_from_path(Path(args.events))
     current_knobs = load_current_knobs(Path(args.current_knobs) if args.current_knobs else None)
 
-    ear = compute_ear(events)
-    breakpoint_ = classify_breakpoint(ear)
-    metrics: Dict[str, Any] = {
-        "story": breakpoint_ == "FullArc",
-        "ear_event_counts": ear.get("event_counts", {}),
-        "landmark_count": len(ear.get("landmarks", [])),
-        "adaptation_count": ear.get("A"),
-    }
-    violations = eval_violations(ear, metrics)
+    arcs = build_arcs(events)
+    breakpoint_ = classify_breakpoint(arcs)
+    vpr = compute_vpr(arcs)
+    rcp = compute_rcp(arcs)
+    violations = eval_violations(arcs, vpr, rcp)
     knob_deltas = propose_knob_diffs(
-        registry=registry,
-        current_knobs=current_knobs,
-        breakpoint=breakpoint_,
-        violations=violations,
-        ear=ear,
+        registry, current_knobs, breakpoint_, violations, arcs, vpr, rcp
     )
 
     run_id = (
         args.run_id
-        or str(events[0].get("session_id")) if events else None
+        or (str(events[0].get("run_id")) if events else None)
         or Path(args.events).stem
     )
 
     report = TriageReport(
         run_id=run_id,
         created_at=datetime.utcnow().isoformat() + "Z",
-        EAR=ear,
+        arcs=arcs,
         breakpoint=breakpoint_,
         violations=[v.value for v in violations],
-        metrics=metrics,
+        vpr=vpr,
+        rcp=rcp,
         knob_deltas=knob_deltas,
         notes={
             "registry_path": args.registry,
             "events_path": args.events,
             "current_knobs_path": args.current_knobs,
-            "version": "triage.py v0.1",
+            "version": "triage.py v2.0",
+            "arc_count": len(arcs),
+            "phase_overrides": sum(len(arc.phase_overrides) for arc in arcs),
         },
     )
 

@@ -1,6 +1,5 @@
-{"session_id":"S-002","type":"police_sightline","e_class":"POLICE_HEAT","heat":30,"visibility":1.0,"loc":"spawn_point"}
-{"session_id":"S-002","type":"player_move","heat":35,"visibility":0.9,"loc":"main_road"}
-{"session_id":"S-002","type":"player_move","heat":40,"visibility":0.9,"loc":"main_road"}
-{"session_id":"S-002","type":"player_move","heat":50,"visibility":0.85,"loc":"main_road"}
-{"session_id":"S-002","type":"player_move","heat":60,"visibility":0.8,"loc":"highway_north"}
-{"session_id":"S-002","type":"player_move","heat":70,"visibility":0.75,"loc":"highway_north"}
+{"event_id":"run_02:001","run_id":"run_02","timestamp":0.0,"phase_hint":"E","event_type":"vehicle_theft_detected","source_system":"ai_police","location":{"zone_id":"spawn_point","subzone":null,"x":50.0,"y":50.0},"entities":["player_vehicle","npc_police_01"],"tags":["pursuit_initiated"],"payload":{"heat_delta":0.3},"causal_links":{"triggered_by":[],"contributes_to":[]}}
+{"event_id":"run_02:002","run_id":"run_02","timestamp":2.0,"phase_hint":"NULL","event_type":"navigation_update","source_system":"player","location":{"zone_id":"main_road","subzone":null,"x":60.0,"y":50.0},"entities":["player_vehicle"],"tags":[],"payload":{},"causal_links":{"triggered_by":[],"contributes_to":[]}}
+{"event_id":"run_02:003","run_id":"run_02","timestamp":4.0,"phase_hint":"NULL","event_type":"navigation_update","source_system":"player","location":{"zone_id":"main_road","subzone":null,"x":70.0,"y":50.0},"entities":["player_vehicle"],"tags":[],"payload":{},"causal_links":{"triggered_by":[],"contributes_to":[]}}
+{"event_id":"run_02:004","run_id":"run_02","timestamp":6.0,"phase_hint":"NULL","event_type":"navigation_update","source_system":"player","location":{"zone_id":"highway_north","subzone":null,"x":90.0,"y":50.0},"entities":["player_vehicle"],"tags":[],"payload":{},"causal_links":{"triggered_by":[],"contributes_to":[]}}
+{"event_id":"run_02:005","run_id":"run_02","timestamp":8.0,"phase_hint":"NULL","event_type":"navigation_update","source_system":"player","location":{"zone_id":"highway_north","subzone":null,"x":110.0,"y":50.0},"entities":["player_vehicle"],"tags":[],"payload":{},"causal_links":{"triggered_by":[],"contributes_to":[]}}
