@@ -132,7 +132,22 @@ These values are recomputed and verified on every CI run by the `verifier calibr
 
 ---
 
-## 9. What V3 Must Provide
+## 9. Toolchain Pin
+
+The determinism guarantee in Section 5 — "identical struct → identical bytes → identical hash" — is parameterized by the toolchain. It holds exactly under:
+
+| Component | Pinned version |
+|---|---|
+| Rust | `1.94.1` (see `rust-toolchain.toml`) |
+| serde | `1.0.228` (see `Cargo.lock`) |
+| serde_json | `1.0.150` (see `Cargo.lock`) |
+| sha2 | `0.10.9` (see `Cargo.lock`) |
+
+`Cargo.lock` is committed and `rust-toolchain.toml` pins the compiler. CI reads both. Upgrading any of these is a V3 event if it changes serialized output — in practice any serde_json minor version that alters `to_vec` output for a typed struct would be a hash-breaking change.
+
+---
+
+## 10. What V3 Must Provide
 
 Any protocol evolution that changes gate logic, preimage field sets, or `FailureCodeV2` variants is a V3 change. V3 must:
 
