@@ -1,0 +1,18 @@
+{
+  "_note": "Current live values for each knob. Update after each tuning iteration.",
+  "pressure_gradient": 1.0,
+  "closure_threshold": 0.5,
+  "heat_decay_rate": 1.0,
+  "visibility_window": 2.0,
+  "heat_gain_rate": 1.0,
+  "police_response_delay": 1.2,
+  "spawn_delay_variance": 0.1,
+  "encounter_start_angle_variance": 10.0,
+  "rival_aggression": 1.0,
+  "escape_route_density": 1.0,
+  "vehicle_handling_variance": 0.05,
+  "heat_decay_threshold": 0.5,
+  "pursuit_break_strength": 1.0,
+  "loose_coupling_noise": 0.15,
+  "landmark_salience_weight": 1.0
+}

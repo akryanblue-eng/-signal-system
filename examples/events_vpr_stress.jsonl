@@ -1,0 +1,6 @@
+{"session_id":"S-002","type":"police_sightline","e_class":"POLICE_HEAT","heat":30,"visibility":1.0,"loc":"spawn_point"}
+{"session_id":"S-002","type":"player_move","heat":35,"visibility":0.9,"loc":"main_road"}
+{"session_id":"S-002","type":"player_move","heat":40,"visibility":0.9,"loc":"main_road"}
+{"session_id":"S-002","type":"player_move","heat":50,"visibility":0.85,"loc":"main_road"}
+{"session_id":"S-002","type":"player_move","heat":60,"visibility":0.8,"loc":"highway_north"}
+{"session_id":"S-002","type":"player_move","heat":70,"visibility":0.75,"loc":"highway_north"}

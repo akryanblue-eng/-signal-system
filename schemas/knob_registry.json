@@ -1,8 +1,74 @@
 {
-  "_version": "0.1",
+  "_version": "0.2",
   "_invariant": "triage + overlay + stress_test all read ONLY from this registry. No hidden tuning. No content changes — only parameter edits.",
   "knobs": {
+    "pressure_gradient": {
+      "name": "Pressure gradient",
+      "unit": "x",
+      "min": 0.0,
+      "max": 3.0,
+      "step": 0.1,
+      "axis": "VPR",
+      "type": "float",
+      "range": [0.0, 3.0],
+      "default": 1.0,
+      "affects": ["E_spike_rate", "A_grammar_diversity"],
+      "layer": "E",
+      "safe_edit": "+/- 0.1 per iteration",
+      "risk": "High values can collapse A window — do not exceed 2.5 without buffer_phase enabled"
+    },
+    "closure_threshold": {
+      "name": "Closure threshold",
+      "unit": "x",
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.05,
+      "axis": "RCP",
+      "type": "float",
+      "range": [0.0, 1.0],
+      "default": 0.5,
+      "affects": ["rcp_smear", "R_stability"],
+      "layer": "R",
+      "safe_edit": "+/- 0.05 per iteration",
+      "risk": "Low threshold collapses R variety — keep ≥2 viable exit conditions per E-class"
+    },
+    "heat_decay_rate": {
+      "name": "Heat decay rate",
+      "unit": "x",
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.05,
+      "axis": "RCP",
+      "type": "float",
+      "range": [0.0, 2.0],
+      "default": 1.0,
+      "affects": ["rcp_smear", "R_stability", "escape_timing"],
+      "layer": "R",
+      "safe_edit": "+/- 0.05 per iteration",
+      "risk": "High values create easy outs — state-driven exits must remain primary"
+    },
+    "visibility_window": {
+      "name": "Visibility window",
+      "unit": "sec",
+      "min": 0.0,
+      "max": 10.0,
+      "step": 0.5,
+      "axis": "COUPLING",
+      "type": "float",
+      "range": [0.0, 10.0],
+      "default": 2.0,
+      "affects": ["A_window", "ear_breakdown", "instant_collapse_risk"],
+      "layer": "E→A",
+      "safe_edit": "+/- 0.5s per iteration",
+      "risk": "Values above 8s break tension — do not exceed without increasing counter-pressure"
+    },
     "heat_gain_rate": {
+      "name": "Heat gain rate",
+      "unit": "x",
+      "min": 0.5,
+      "max": 3.0,
+      "step": 0.1,
+      "axis": "COUPLING",
       "type": "float",
       "range": [0.5, 3.0],
       "default": 1.0,
@@ -12,6 +78,12 @@
       "risk": "High values collapse A window — do not exceed 2.0 without buffer_phase enabled"
     },
     "police_response_delay": {
+      "name": "Police response delay",
+      "unit": "sec",
+      "min": 0.2,
+      "max": 5.0,
+      "step": 0.5,
+      "axis": "COUPLING",
       "type": "float",
       "range": [0.2, 5.0],
       "default": 1.2,
@@ -21,6 +93,12 @@
       "risk": "Values below 0.5s cause instant collapse — enforces no A window"
     },
     "spawn_delay_variance": {
+      "name": "Spawn delay variance",
+      "unit": "ratio",
+      "min": 0.0,
+      "max": 0.5,
+      "step": 0.05,
+      "axis": "VPR",
       "type": "float",
       "range": [0.0, 0.5],
       "default": 0.1,
@@ -30,6 +108,12 @@
       "risk": "Over-randomizing above 0.35 destroys setup legibility"
     },
     "encounter_start_angle_variance": {
+      "name": "Encounter start angle variance",
+      "unit": "degrees",
+      "min": 0.0,
+      "max": 45.0,
+      "step": 5.0,
+      "axis": "VPR",
       "type": "float",
       "range": [0.0, 45.0],
       "default": 10.0,
@@ -39,6 +123,12 @@
       "risk": "Values above 35 make encounter entry unpredictable — can break spatial memory"
     },
     "rival_aggression": {
+      "name": "Rival aggression",
+      "unit": "x",
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.2,
+      "axis": "VPR",
       "type": "float",
       "range": [0.0, 2.0],
       "default": 1.0,
@@ -48,6 +138,12 @@
       "risk": "Values above 1.8 can cause E saturation — rival + police simultaneously = no A window"
     },
     "escape_route_density": {
+      "name": "Escape route density",
+      "unit": "x",
+      "min": 0.5,
+      "max": 3.0,
+      "step": 0.25,
+      "axis": "VPR",
       "type": "float",
       "range": [0.5, 3.0],
       "default": 1.0,
@@ -57,6 +153,12 @@
       "risk": "Adding routes without AI response creates empty options — each grammar needs distinct pursuit behavior"
     },
     "vehicle_handling_variance": {
+      "name": "Vehicle handling variance",
+      "unit": "ratio",
+      "min": 0.0,
+      "max": 0.15,
+      "step": 0.02,
+      "axis": "VPR",
       "type": "float",
       "range": [0.0, 0.15],
       "default": 0.05,
@@ -66,6 +168,12 @@
       "risk": "High variance can destroy spatial memory — vehicles behave inconsistently per-encounter"
     },
     "heat_decay_threshold": {
+      "name": "Heat decay threshold",
+      "unit": "ratio",
+      "min": 0.1,
+      "max": 0.9,
+      "step": 0.05,
+      "axis": "RCP",
       "type": "float",
       "range": [0.1, 0.9],
       "default": 0.5,
@@ -75,6 +183,12 @@
       "risk": "Low threshold collapses R variety — keep at least 2 viable exit conditions per E-class"
     },
     "pursuit_break_strength": {
+      "name": "Pursuit break strength",
+      "unit": "x",
+      "min": 0.5,
+      "max": 2.0,
+      "step": 0.1,
+      "axis": "RCP",
       "type": "float",
       "range": [0.5, 2.0],
       "default": 1.0,
@@ -84,6 +198,12 @@
       "risk": "Values above 1.8 create arbitrary exits that ignore player state — legibility drops"
     },
     "loose_coupling_noise": {
+      "name": "Loose coupling noise",
+      "unit": "ratio",
+      "min": 0.0,
+      "max": 0.4,
+      "step": 0.03,
+      "axis": "RCP",
       "type": "float",
       "range": [0.0, 0.4],
       "default": 0.15,
@@ -93,6 +213,12 @@
       "risk": "Values above 0.35 produce R smear — state clustering breaks down"
     },
     "landmark_salience_weight": {
+      "name": "Landmark salience weight",
+      "unit": "x",
+      "min": 0.5,
+      "max": 3.0,
+      "step": 0.2,
+      "axis": "VPR",
       "type": "float",
       "range": [0.5, 3.0],
       "default": 1.0,

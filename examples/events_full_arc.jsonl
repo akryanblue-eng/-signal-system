@@ -1,0 +1,7 @@
+{"session_id":"S-001","type":"police_sightline","e_class":"POLICE_HEAT","heat":20,"visibility":1.0,"loc":"market_district"}
+{"session_id":"S-001","type":"player_move","heat":25,"visibility":0.8,"loc":"market_district"}
+{"session_id":"S-001","type":"adapt_hide","adaptation":true,"landmark":"alley_behind_diner","heat":20,"visibility":0.3,"loc":"alley_diner"}
+{"session_id":"S-001","type":"police_sightline","e_class":"POLICE_PURSUIT","heat":60,"visibility":0.9,"loc":"north_plaza"}
+{"session_id":"S-001","type":"player_move","heat":65,"visibility":0.7,"loc":"north_plaza"}
+{"session_id":"S-001","type":"adapt_hide","adaptation":true,"landmark":"fountain_side_street","heat":45,"visibility":0.2,"loc":"side_street_fountain"}
+{"session_id":"S-001","type":"resolve_escape","resolution":"escape","heat":5,"visibility":0.1,"loc":"back_alley"}
