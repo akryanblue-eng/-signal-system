@@ -41,6 +41,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+sys.path.insert(0, str(Path(__file__).parent))
+
+from registry.gatekeeper import Gatekeeper, GatekeeperResult
+
 CSSR_VERSION = "0.1"
 
 # ── Threshold constants ────────────────────────────────────────────────────────
@@ -436,9 +440,15 @@ def format_summary(cssr: Dict[str, Any]) -> str:
     f  = cssr["fork_integrity"]
     ml = cssr["mode_lint"]
     st = cssr["stability"]
+    gk = cssr.get("gatekeeper", {})
+
     apc_str = f", APC={st['APC_mean']:.2f}" if st.get("APC_mean") is not None else ""
+    gk_str  = "PASS" if gk.get("passed", True) else "BLOCK"
+    gk_n    = len(gk.get("violations", []))
+
     lines = [
         f"CSSR — {cssr['window_id']}",
+        f"  Gatekeeper: {gk_str} ({gk_n} violation(s))",
         f"  CCF {st['CCF_mean']:.2f} ± {st['CCF_std']:.2f}, drift={st['CCF_drift']:.3f}{apc_str}",
         f"  Ghost mass: mean={g['ghost_mass_mean']:.3f}, p95={g['ghost_mass_p95']:.3f}, "
         f"max={g['ghost_mass_max']:.3f}, {g['ghost_mass_trend']} trend",
@@ -467,6 +477,11 @@ def generate_cssr(
     if not certs:
         raise ValueError("No valid CausalValidityCertificates loaded.")
 
+    # ── AEC enforcement (Rule 4) ───────────────────────────────────────────────
+    gk        = Gatekeeper()
+    gk_result = gk.enforce_cssr_input(certs)
+    gk_dict   = gk_result.as_dict()
+
     volume    = compute_volume(certs)
     stability = compute_stability_metrics(certs, prior_windows)
     ghost     = compute_ghost_profile(certs, prior_windows)
@@ -475,11 +490,21 @@ def generate_cssr(
     cert_stab = compute_cert_stability(certs, prior_windows)
     verdict   = compute_verdict(ghost, fork, mode_lint, cert_stab, stability, prior_windows)
 
+    # Gatekeeper BLOCK overrides all other verdicts.
+    if gk_result.blocked:
+        block_reasons = [v.message for v in gk_result.violations if v.severity == "BLOCK"]
+        verdict = {
+            "status": "CRITICAL",
+            "reasons": block_reasons,
+            "confidence": 0.0,
+        }
+
     cssr: Dict[str, Any] = {
         "cssr_version":            CSSR_VERSION,
         "window_id":               window_id,
         "time_range":              {"start": start, "end": end},
         "generated_at":            datetime.now(timezone.utc).isoformat(),
+        "gatekeeper":              gk_dict,
         "volume":                  volume,
         "certification_stability": cert_stab,
         "stability":               stability,
