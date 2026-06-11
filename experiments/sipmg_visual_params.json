@@ -1,0 +1,2270 @@
+{
+  "sipmg_version": "0.1",
+  "generated_at": "2026-06-11T19:58:55.312065+00:00",
+  "vcl_hash": "sha256:e3685bd8840a80b81720e54e",
+  "sweep_summary": {
+    "total_points": 136,
+    "soft_points": 130,
+    "hard_points": 6,
+    "phase_A": 116,
+    "phase_B": 0,
+    "phase_C": 20,
+    "phase_D": 0,
+    "boundary_points": 8,
+    "world_break_coords": {
+      "visibility_window": 11.0,
+      "heat_decay_rate": 3.0
+    },
+    "instrument_break_coords": null
+  },
+  "canary_status": "ALIVE",
+  "axes": [
+    {
+      "knob_id": "visibility_window",
+      "label": "vis-window",
+      "baseline": 5.0,
+      "soft_range": [
+        2.0,
+        14.0
+      ],
+      "soft_step": 1.0,
+      "hard_range": [
+        0.5,
+        18.0
+      ],
+      "hard_samples": 3
+    },
+    {
+      "knob_id": "heat_decay_rate",
+      "label": "heat-decay",
+      "baseline": 1.5,
+      "soft_range": [
+        0.5,
+        5.0
+      ],
+      "soft_step": 0.5,
+      "hard_range": [
+        0.0,
+        8.0
+      ],
+      "hard_samples": 3
+    }
+  ],
+  "axis_ids": [
+    "visibility_window",
+    "heat_decay_rate"
+  ],
+  "ghost_inject_rate": 0.0,
+  "visual_points": [
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.702,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.625,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.57,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.528,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.495,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.469,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.469,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.469,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.469,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 2.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.469,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.721,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.646,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.592,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.551,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.518,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.492,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.492,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.492,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.492,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 3.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.492,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.741,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.669,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.616,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.576,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.544,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.517,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.517,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.517,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.517,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 4.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.517,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.762,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.694,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.643,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.603,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.572,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.545,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.545,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.545,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.545,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 5.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.545,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.784,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.72,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.672,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.633,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.603,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.577,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.577,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.577,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.577,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 6.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.577,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.808,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.749,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.703,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.667,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.637,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.612,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.612,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.612,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.612,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 7.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.612,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.833,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.78,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.738,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.704,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.676,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.652,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.652,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.652,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.652,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 8.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.652,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.86,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.813,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.776,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.745,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.72,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.698,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.698,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.698,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.698,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 9.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.698,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.889,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.85,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.818,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.792,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.769,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.75,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.75,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.75,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.75,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 10.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.75,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.914,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.883,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.857,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.835,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.816,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 11.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.914,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.883,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.857,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.835,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.816,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 12.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.914,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.883,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.857,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.835,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.816,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 13.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 0.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.914,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 1.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.883,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 1.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.857,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 2.0
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.835,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": false
+    },
+    {
+      "phase": "A",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 2.5
+      },
+      "color_hex": "#00FF41",
+      "brightness": 1.0,
+      "glitch_freq": 0.0,
+      "pulse_rate": 0.816,
+      "noise_level": 0.0,
+      "signal_integrity": 1.0,
+      "world_stability": "stable",
+      "inst_stability": "stable",
+      "breakpoint": "full_arc",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 3.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": true
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 3.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 4.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 4.5
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    },
+    {
+      "phase": "C",
+      "coords": {
+        "visibility_window": 14.0,
+        "heat_decay_rate": 5.0
+      },
+      "color_hex": "#FF4444",
+      "brightness": 1.0,
+      "glitch_freq": 0.75,
+      "pulse_rate": 0.0,
+      "noise_level": 0.5,
+      "signal_integrity": 1.0,
+      "world_stability": "degraded",
+      "inst_stability": "stable",
+      "breakpoint": "infinite_chase",
+      "is_boundary": false
+    }
+  ]
+}

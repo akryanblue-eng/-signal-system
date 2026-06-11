@@ -1,0 +1,41 @@
+{
+  "sipmg_version": "0.1",
+  "description": "2D phase map: visibility_window x heat_decay_rate. closure_threshold=0.0 removes the a_to_r floor so Phase C is reachable at vis>=11, hdr>=3.0 (dt=7.5 < MIN_E_TO_R=8.0). ghost_inject_rate=0.0 for clean Phase A/C baseline; set >0 to expose B/D.",
+  "axes": [
+    {
+      "knob_id": "visibility_window",
+      "label": "vis-window",
+      "baseline": 5.0,
+      "soft_range": [2.0, 14.0],
+      "soft_step": 1.0,
+      "hard_range": [0.5, 18.0],
+      "hard_samples": 3
+    },
+    {
+      "knob_id": "heat_decay_rate",
+      "label": "heat-decay",
+      "baseline": 1.5,
+      "soft_range": [0.5, 5.0],
+      "soft_step": 0.5,
+      "hard_range": [0.0, 8.0],
+      "hard_samples": 3
+    }
+  ],
+  "fixed_knobs": {
+    "pressure_gradient": 1.0,
+    "closure_threshold": 0.0
+  },
+  "arc_grammar": "speed",
+  "r_type": "pursuit_lost",
+  "seed": 42,
+  "ghost_inject_rate": 0.0,
+  "world_stability_thresholds": {
+    "CCF_min": 0.50,
+    "smear_index_max": 0.50,
+    "APC_mean_min": 0.15
+  },
+  "instrument_stability_thresholds": {
+    "ghost_mass_max": 0.20,
+    "IC_min": 0.70
+  }
+}
