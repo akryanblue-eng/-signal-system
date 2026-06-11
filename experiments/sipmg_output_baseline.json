@@ -1,0 +1,1325 @@
+{
+  "sipmg_version": "0.1",
+  "generated_at": "2026-06-11T19:55:22.739738+00:00",
+  "config_path": "../experiments/sipmg_sweep.json",
+  "vcl_hash": "sha256:e3685bd8840a80b81720e54e",
+  "ghost_inject_rate": 0.0,
+  "sweep_axes": [
+    {
+      "knob_id": "pressure_gradient",
+      "label": "A-pressure",
+      "baseline": 1.0,
+      "soft_range": [
+        0.5,
+        4.0
+      ],
+      "soft_step": 0.5,
+      "hard_range": [
+        0.0,
+        10.0
+      ],
+      "hard_samples": 4
+    },
+    {
+      "knob_id": "heat_decay_rate",
+      "label": "R-pressure",
+      "baseline": 1.0,
+      "soft_range": [
+        0.5,
+        3.0
+      ],
+      "soft_step": 0.5,
+      "hard_range": [
+        0.0,
+        6.0
+      ],
+      "hard_samples": 3
+    }
+  ],
+  "sweep_summary": {
+    "total_points": 55,
+    "soft_points": 48,
+    "hard_points": 7,
+    "phase_A": 55,
+    "phase_B": 0,
+    "phase_C": 0,
+    "phase_D": 0,
+    "boundary_points": 0,
+    "world_break_coords": null,
+    "instrument_break_coords": null
+  },
+  "canary_result": {
+    "status": "ALIVE",
+    "detection_rate": 1.0,
+    "breaks_detected": 3,
+    "breaks_run": 3
+  },
+  "points": [
+    {
+      "coords": {
+        "pressure_gradient": 0.5,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.721,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 0.5,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.646,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 0.5,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 0.5,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.551,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 0.5,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 0.5,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.721,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.646,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.551,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.5,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.721,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.5,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.646,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.5,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.5,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.551,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.5,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.5,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.0,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.744,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.0,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.683,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.0,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.64,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.0,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.608,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.0,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.0,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.5,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.744,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.5,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.683,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.5,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.64,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.5,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.608,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.5,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 2.5,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.0,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.744,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.0,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.683,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.0,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.64,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.0,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.608,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.0,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.0,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.592,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.5,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.763,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.5,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.712,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.5,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.677,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.5,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.652,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.5,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.64,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 3.5,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.64,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 4.0,
+        "heat_decay_rate": 0.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.763,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 4.0,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.712,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 4.0,
+        "heat_decay_rate": 1.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.677,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 4.0,
+        "heat_decay_rate": 2.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.652,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 4.0,
+        "heat_decay_rate": 2.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.64,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 4.0,
+        "heat_decay_rate": 3.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.64,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "soft"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 0.0,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.646,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "hard"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 0.25,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.646,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "hard"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 7.0,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.757,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "hard"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 10.0,
+        "heat_decay_rate": 1.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.79,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "hard"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 0.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.829,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "hard"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 4.5
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "hard"
+    },
+    {
+      "coords": {
+        "pressure_gradient": 1.0,
+        "heat_decay_rate": 6.0
+      },
+      "world_stability": "stable",
+      "instrument_stability": "stable",
+      "phase": "A",
+      "world_metrics": {
+        "breakpoint": "full_arc",
+        "CCF_mean": 1.0,
+        "APC_mean": 0.53,
+        "smear_index": 0.0,
+        "ViableA_count": 1,
+        "asi_regime": "tuning"
+      },
+      "instrument_metrics": {
+        "IC": 1.0,
+        "ghost_mass": 0.0,
+        "canary_status": "ALIVE"
+      },
+      "range_type": "hard"
+    }
+  ],
+  "summary_text": "SIPMG \u2014 2026-06-11  VCL:e3685bd8840a\n  Canary: ALIVE (3/3)\n  Sweep: 55 points (soft=48, hard=7)\n  Phase A:  55 (100%)  target\n  Phase B:   0 ( 0%)  silent collapse risk\n  Phase C:   0 ( 0%)  world degraded (instrument honest)\n  Phase D:   0 ( 0%)  joint collapse\n  Note: ghost_inject_rate=0.0 \u2014 Phase B/D require >0 or real data."
+}
