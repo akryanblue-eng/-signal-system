@@ -1,0 +1,14 @@
+{
+  "canonical_fields": ["commit", "certificate"],
+  "commit_pattern": "^[0-9a-f]{64}$",
+  "certificate_pattern": "^[0-9a-f]{64}$",
+  "field_line_format": "^<name>:\\s+<value>",
+  "case_sensitive": true,
+  "first_occurrence_wins": true,
+  "crlf_tolerated": true,
+  "leading_whitespace_stripped": true,
+  "locked_baseline": {
+    "commit":      "edb1735ccfa34f0f89206649ce4d1451da280f9563fdc712247bfc7acb81d8a6",
+    "certificate": "f56a64c3d9b1b4d8383c7d74693cd55cff8eb4ff077c3646fd2bacb13fbab178"
+  }
+}
