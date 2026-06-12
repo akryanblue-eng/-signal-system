@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "witness_id": "<uuid-v4>",
   "timestamp_utc": "<YYYY-MM-DDTHH:MM:SSZ>",
-  "transition_manifest_sha256": "<sha256 of transition_morphism.json as submitted>",
+  "candidate_digest": "<sha256 of transition_morphism.json as submitted>",
   "validator_version": "<git commit hash or tag>",
   "environment": {
     "os": "<e.g. Linux 6.18.5 / Ubuntu 22.04>",

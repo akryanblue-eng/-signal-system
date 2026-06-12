@@ -98,7 +98,7 @@ def gate_witness(morphism: dict, morphism_path: Path) -> tuple[bool, str]:
     Validate witness records against the Gate 4 schema and admissibility rules.
     Witnesses must be pre-populated from real independent CI runs before submission.
     """
-    from .witness import evaluate_gate4, morphism_sha256 as compute_sha256
+    from .witness import evaluate_gate4, compute_candidate_digest
     witnesses = morphism.get("independent_execution", [])
-    m_sha256 = compute_sha256(morphism_path)
-    return evaluate_gate4(witnesses, m_sha256)
+    digest = compute_candidate_digest(morphism_path)
+    return evaluate_gate4(witnesses, digest)
