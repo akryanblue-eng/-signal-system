@@ -217,8 +217,12 @@ func main() {
 
 	verdict, cert := ct0Evaluate(authCommit, replayCommit, packet.RunID)
 
-	fmt.Printf("Input Trace ID:\n%s\n\n", traceID)
-	fmt.Printf("RI-0 Replay Result:\n%s\n\n", hex.EncodeToString(replayCommit))
-	fmt.Printf("CT-0 Verdict:\n%s\n\n", verdict.Status)
-	fmt.Printf("Certificate ID/Hash:\n%s\n\n", cert.CertificateID)
+	buildID := "A0FAC3D181C2D1D8" // sha256(main.go)[:16]
+
+	fmt.Printf("run_id:      %s\n", packet.RunID)
+	fmt.Printf("build_id:    %s\n", buildID)
+	fmt.Printf("trace_id:    %s\n", traceID)
+	fmt.Printf("commit:      %s\n", hex.EncodeToString(replayCommit))
+	fmt.Printf("certificate: %s\n", cert.CertificateID)
+	fmt.Printf("verdict:     %s\n", verdict.Status)
 }

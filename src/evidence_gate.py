@@ -3,7 +3,7 @@ Evidence Gate runner.
 Executes Input Trace → RI-0 Replay → CT-0 Verdict → Certificate chain.
 """
 import hashlib
-import json
+import pathlib
 import sys
 
 from .types import WitnessPacket304
@@ -28,8 +28,18 @@ def build_synthetic_trace() -> WitnessPacket304:
     )
 
 
+def _build_id() -> str:
+    src = pathlib.Path(__file__).parent
+    h = hashlib.sha256()
+    for f in sorted(src.glob("*.py")):
+        h.update(f.name.encode())
+        h.update(f.read_bytes())
+    return h.hexdigest()[:16].upper()
+
+
 def run_evidence_gate() -> dict:
     packet = build_synthetic_trace()
+    build_id = _build_id()
 
     trace_id = hashlib.sha256(
         packet.run_id.encode("utf-8") + packet.bundle_hash
@@ -51,16 +61,20 @@ def run_evidence_gate() -> dict:
     )
 
     result = {
+        "run_id": packet.run_id,
+        "build_id": build_id,
         "trace_id": trace_id,
         "ri0_replay_result": replay_commit.hex(),
         "ct0_verdict": verdict.status,
         "certificate_id": certificate.certificate_id,
     }
 
-    print(f"Input Trace ID:\n{result['trace_id']}\n")
-    print(f"RI-0 Replay Result:\n{result['ri0_replay_result']}\n")
-    print(f"CT-0 Verdict:\n{result['ct0_verdict']}\n")
-    print(f"Certificate ID/Hash:\n{result['certificate_id']}\n")
+    print(f"run_id:      {result['run_id']}")
+    print(f"build_id:    {result['build_id']}")
+    print(f"trace_id:    {result['trace_id']}")
+    print(f"commit:      {result['ri0_replay_result']}")
+    print(f"certificate: {result['certificate_id']}")
+    print(f"verdict:     {result['ct0_verdict']}")
 
     return result
 
