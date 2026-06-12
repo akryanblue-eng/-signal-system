@@ -105,23 +105,75 @@ def is_admissible(w: dict, morphism_sha256: str) -> tuple[bool, str]:
     return True, "admissible"
 
 
+def _env_fingerprint(w: dict) -> str:
+    """
+    Stable execution identity = os + architecture + python_version.
+    This is the minimum set that distinguishes machine classes.
+    Deliberately excludes runner_type so that two github_actions runners
+    with the same image but different VMs can still be independent.
+    """
+    env = w.get("environment", {})
+    parts = (
+        env.get("os", "").strip().lower(),
+        env.get("architecture", "").strip().lower(),
+        env.get("python_version", "").strip().lower(),
+    )
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
+
+
 def are_independent(w1: dict, w2: dict) -> tuple[bool, str]:
     """
-    Two witnesses are independent if they do not share execution origin.
-    Independence is established by differing on at least one of:
-      - witness_id
-      - environment.os + environment.architecture
-      - runner_type (if both are github_actions, runner IDs should differ —
-        but we can't verify that here, so we trust the witness_id)
-    Replay detection: same witness_id → not independent.
-    """
-    if w1.get("witness_id") == w2.get("witness_id"):
-        return False, f"duplicate witness_id: {w1.get('witness_id')!r}"
+    Independence rule set (minimum fields, in order):
 
-    # Same manifest hash is required (both validated same candidate), so skip that.
-    # Two witnesses from the same runner type + same environment are suspicious but
-    # not disqualified — that is the cross-machine portability case.
-    return True, "witnesses have distinct IDs (independence accepted)"
+    Rule 1 — Anti-replay: witness_id must differ.
+        Same witness_id = same record submitted twice. Always rejected.
+
+    Rule 2 — Environment fingerprint: if both witnesses have identical
+        os + architecture + python_version AND both runner_type=local,
+        they likely ran on the same physical machine. Rejected.
+        Rationale: two local runs on identical hardware are not independent
+        corroboration; they are the same environment run twice.
+
+    Rule 3 — github_actions exemption: two witnesses with the same
+        environment fingerprint are accepted if both runner_type=github_actions,
+        because GitHub guarantees separate VMs even with the same runner image.
+        This is the only case where fingerprint collision is trusted.
+
+    Rule 4 — Differing fingerprints: if os + arch + python_version differ,
+        the witnesses ran on distinguishable machine classes. Accepted.
+    """
+    # Rule 1: replay prevention
+    if w1.get("witness_id") == w2.get("witness_id"):
+        return False, f"replay: same witness_id {w1.get('witness_id', '?')!r}"
+
+    fp1 = _env_fingerprint(w1)
+    fp2 = _env_fingerprint(w2)
+    rt1 = w1.get("environment", {}).get("runner_type", "")
+    rt2 = w2.get("environment", {}).get("runner_type", "")
+
+    if fp1 == fp2:
+        # Rule 2: same fingerprint + both local → same machine
+        if rt1 == "local" and rt2 == "local":
+            env = w1.get("environment", {})
+            return False, (
+                f"same-machine execution: identical fingerprint "
+                f"({env.get('os','?')} / {env.get('architecture','?')} / "
+                f"{env.get('python_version','?')}) with runner_type=local on both witnesses"
+            )
+        # Rule 3: same fingerprint but github_actions → different VMs
+        if rt1 == "github_actions" and rt2 == "github_actions":
+            return True, (
+                f"independent (github_actions VMs, same image — "
+                f"fingerprint {fp1}… accepted per runner_type)"
+            )
+        # Mixed runner types with same fingerprint: accept with note
+        return True, (
+            f"independent (different runner_types: {rt1!r} vs {rt2!r}, "
+            f"same fingerprint {fp1}…)"
+        )
+
+    # Rule 4: different fingerprints → different machine classes
+    return True, f"independent (distinct fingerprints {fp1}… vs {fp2}…)"
 
 
 # ── Gate 4 evaluation ──────────────────────────────────────────────────────
