@@ -104,7 +104,8 @@ def run(morphism_path: Path, repo_root: Path) -> int:
         return 2
 
     # ── Gate 3b: Fixture pack (content-addressed E₁.₂ corpus) ────────────
-    ok, msg = verify_fixture_pack(repo_root)
+    schema_changed = morphism.get("artifact_mapping", {}).get("artifact_schema") != "unchanged"
+    ok, msg = verify_fixture_pack(repo_root, schema_changed=schema_changed)
     print(f"[{'PASS' if ok else 'FAIL'}] gate 3b — fixture pack: {msg}")
     if not ok:
         return 1

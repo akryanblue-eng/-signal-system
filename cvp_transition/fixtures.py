@@ -16,7 +16,7 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def verify_fixture_pack(repo_root: Path) -> tuple[bool, str]:
+def verify_fixture_pack(repo_root: Path, schema_changed: bool = False) -> tuple[bool, str]:
     """
     Regenerate live outputs, hash them, compare against e12_manifest.json.
     Returns (passed, message).
@@ -27,6 +27,41 @@ def verify_fixture_pack(repo_root: Path) -> tuple[bool, str]:
     manifest = json.loads(MANIFEST.read_text())
 
     errors: list[str] = []
+    baseline = manifest.get("_meta", {})
+    expected_commit = baseline.get("baseline_commit", "")
+    expected_cert   = baseline.get("baseline_certificate", "")
+
+    def _check_stdout(label: str, stdout: str) -> None:
+        if schema_changed:
+            # Semantic check: canonical fields must match baseline; extra fields allowed.
+            import re
+            def extract(text: str, field: str) -> str:
+                m = re.search(rf"^{field}:\s+(\S+)", text, re.MULTILINE)
+                return m.group(1) if m else ""
+            got_commit = extract(stdout, "commit")
+            got_cert   = extract(stdout, "certificate")
+            if got_commit != expected_commit:
+                errors.append(
+                    f"{label}: commit mismatch\n"
+                    f"  expected: {expected_commit}\n"
+                    f"  observed: {got_commit}"
+                )
+            if got_cert != expected_cert:
+                errors.append(
+                    f"{label}: certificate mismatch\n"
+                    f"  expected: {expected_cert}\n"
+                    f"  observed: {got_cert}"
+                )
+        else:
+            # Byte-exact check: full stdout hash must match manifest.
+            h = _sha256(stdout.encode())
+            expected = manifest.get(f"{label}.txt", {}).get("sha256", "")
+            if h != expected:
+                errors.append(
+                    f"{label} hash mismatch\n"
+                    f"  expected: {expected}\n"
+                    f"  observed: {h}"
+                )
 
     # Regenerate impl_a output
     r = subprocess.run(
@@ -35,14 +70,7 @@ def verify_fixture_pack(repo_root: Path) -> tuple[bool, str]:
     )
     if r.returncode != 0:
         return False, f"impl_a execution failed\n{r.stderr}"
-    impl_a_hash = _sha256(r.stdout.encode())
-    expected_a = manifest.get("impl_a_stdout.txt", {}).get("sha256", "")
-    if impl_a_hash != expected_a:
-        errors.append(
-            f"impl_a_stdout.txt hash mismatch\n"
-            f"  expected: {expected_a}\n"
-            f"  observed: {impl_a_hash}"
-        )
+    _check_stdout("impl_a_stdout", r.stdout)
 
     # Regenerate impl_b output
     r2 = subprocess.run(
@@ -51,16 +79,9 @@ def verify_fixture_pack(repo_root: Path) -> tuple[bool, str]:
     )
     if r2.returncode != 0:
         return False, f"impl_b execution failed\n{r2.stderr}"
-    impl_b_hash = _sha256(r2.stdout.encode())
-    expected_b = manifest.get("impl_b_stdout.txt", {}).get("sha256", "")
-    if impl_b_hash != expected_b:
-        errors.append(
-            f"impl_b_stdout.txt hash mismatch\n"
-            f"  expected: {expected_b}\n"
-            f"  observed: {impl_b_hash}"
-        )
+    _check_stdout("impl_b_stdout", r2.stdout)
 
-    # Verify invariants.json is unchanged
+    # invariants.json is always byte-exact (not a runtime output)
     invariants_path = repo_root / "cvp_drift_injector" / "fixtures" / "invariants.json"
     inv_hash = _sha256(invariants_path.read_bytes())
     expected_inv = manifest.get("invariants.json", {}).get("sha256", "")
@@ -73,4 +94,5 @@ def verify_fixture_pack(repo_root: Path) -> tuple[bool, str]:
 
     if errors:
         return False, "fixture pack FAIL:\n" + "\n".join(errors)
-    return True, "fixture pack PASS (all 3 fixtures match manifest)"
+    mode = "semantic" if schema_changed else "byte-exact"
+    return True, f"fixture pack PASS ({mode}, canonical fields match baseline)"
