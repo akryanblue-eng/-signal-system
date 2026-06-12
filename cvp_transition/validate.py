@@ -111,7 +111,7 @@ def run(morphism_path: Path, repo_root: Path) -> int:
         return 1
 
     # ── Gate 4: Witness obligation ─────────────────────────────────────────
-    ok, msg = gate_witness(morphism)
+    ok, msg = gate_witness(morphism, morphism_path)
     print(f"[{'PASS' if ok else 'FAIL'}] gate 4 — witness: {msg}")
     if not ok:
         return 3

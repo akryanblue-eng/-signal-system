@@ -17,18 +17,5 @@
   ],
   "invariants_added": [],
   "breaking_changes": [],
-  "independent_execution": [
-    {
-      "runner_id": "PLACEHOLDER-env-1",
-      "artifact_hash": "PLACEHOLDER",
-      "verifier_version": "v1.2",
-      "result": "PLACEHOLDER"
-    },
-    {
-      "runner_id": "PLACEHOLDER-env-2",
-      "artifact_hash": "PLACEHOLDER",
-      "verifier_version": "v1.2",
-      "result": "PLACEHOLDER"
-    }
-  ]
+  "independent_execution": []
 }

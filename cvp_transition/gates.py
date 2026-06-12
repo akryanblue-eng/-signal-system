@@ -5,6 +5,7 @@ Each returns (passed: bool, message: str).
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 # ── Gate 1: Frozen Oracle ──────────────────────────────────────────────────
@@ -92,20 +93,12 @@ def gate_determinism(repo_root: Path, runs: int = 3) -> tuple[bool, str]:
 
 # ── Gate 4: Witness Obligation ─────────────────────────────────────────────
 
-def gate_witness(morphism: dict) -> tuple[bool, str]:
+def gate_witness(morphism: dict, morphism_path: Path) -> tuple[bool, str]:
     """
-    At least 2 independent_execution entries must have result='OK'.
-    This gate checks the morphism JSON — witnesses must be pre-populated
-    from real CI runs before submission.
+    Validate witness records against the Gate 4 schema and admissibility rules.
+    Witnesses must be pre-populated from real independent CI runs before submission.
     """
+    from .witness import evaluate_gate4, morphism_sha256 as compute_sha256
     witnesses = morphism.get("independent_execution", [])
-    ok_witnesses = [w for w in witnesses if w.get("result") == "OK"]
-
-    if len(ok_witnesses) >= 2:
-        ids = [w.get("runner_id", "?") for w in ok_witnesses[:2]]
-        return True, f"witness PASS (2+ OK witnesses: {ids})"
-
-    return False, (
-        f"witness FAIL: need ≥2 independent OK witnesses, "
-        f"got {len(ok_witnesses)} of {len(witnesses)}"
-    )
+    m_sha256 = compute_sha256(morphism_path)
+    return evaluate_gate4(witnesses, m_sha256)

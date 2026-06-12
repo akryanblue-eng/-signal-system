@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "witness_id": "<uuid-v4>",
+  "timestamp_utc": "<YYYY-MM-DDTHH:MM:SSZ>",
+  "transition_manifest_sha256": "<sha256 of transition_morphism.json as submitted>",
+  "validator_version": "<git commit hash or tag>",
+  "environment": {
+    "os": "<e.g. Linux 6.18.5 / Ubuntu 22.04>",
+    "architecture": "<e.g. x86_64>",
+    "python_version": "<e.g. 3.11.15>",
+    "runner_type": "<github_actions | local | other>"
+  },
+  "execution": {
+    "command": "python -m cvp_transition transition_morphism.json",
+    "exit_code": 0
+  },
+  "results": {
+    "gate_1": "PASS",
+    "gate_2": "PASS",
+    "gate_3": "PASS",
+    "gate_3b_byte_exact": "PASS",
+    "gate_4": "PENDING"
+  },
+  "verdict": "OK",
+  "artifacts": {
+    "compat_json_sha256": "<sha256 of CVP_COMPAT.json produced by this run>",
+    "log_sha256": "<sha256 of raw stdout.log from this run>"
+  }
+}
