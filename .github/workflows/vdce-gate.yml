@@ -1,0 +1,98 @@
+name: VDCE Gate
+
+on:
+  push:
+    branches: ["claude/cli-golden-test-alignment-9xcwqc", "main"]
+    paths:
+      - "vdce/**"
+      - "scripts/**"
+      - "fixtures/**"
+      - "goldens/**"
+      - "docs/QUICKSTART.md"
+      - "package*.json"
+      - "tsconfig.json"
+  pull_request:
+    paths:
+      - "vdce/**"
+      - "scripts/**"
+      - "fixtures/**"
+      - "goldens/**"
+      - "docs/QUICKSTART.md"
+      - "package*.json"
+      - "tsconfig.json"
+  workflow_dispatch:
+
+jobs:
+  golden-test:
+    name: "Golden test — stdout ABI"
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify PASS golden
+        run: |
+          node vdce/cli.js verify fixtures/pass/candidate.json > /tmp/out.txt
+          diff goldens/verify_pass.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: PASS golden drift"; exit 1; }
+          echo "PASS: verify_pass golden OK"
+
+      - name: Verify DRIFT golden
+        run: |
+          node vdce/cli.js verify fixtures/drift/candidate.json > /tmp/out.txt || true
+          diff goldens/verify_drift.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: DRIFT golden drift"; exit 1; }
+          echo "PASS: verify_drift golden OK"
+
+      - name: Verify INTERNAL ERROR golden
+        run: |
+          node vdce/cli.js verify fixtures/internal_error/candidate.json > /tmp/out.txt || true
+          diff goldens/verify_internal_error.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: INTERNAL_ERROR golden drift"; exit 1; }
+          echo "PASS: verify_internal_error golden OK"
+
+  artifact-gate:
+    name: "Artifact gate — schema validation"
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run all fixtures
+        run: |
+          node vdce/cli.js verify fixtures/pass/candidate.json
+          node vdce/cli.js verify fixtures/drift/candidate.json || true
+          node vdce/cli.js verify fixtures/internal_error/candidate.json || true
+
+      - name: Validate artifacts
+        run: node scripts/validate-artifacts.js
+
+  quickstart-drift:
+    name: "Quickstart — no doc drift"
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+
+      - name: Generate Quickstart
+        run: npm run docs:quickstart
+
+      - name: Ensure no drift in docs
+        run: |
+          git diff --exit-code docs/QUICKSTART.md \
+            || { echo "FAIL: docs/QUICKSTART.md is out of sync with goldens — run 'npm run docs:quickstart' and commit"; exit 1; }
+        shell: bash

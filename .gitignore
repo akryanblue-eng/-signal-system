@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 *.pyo
 .vdce/
+node_modules/
+dist/
