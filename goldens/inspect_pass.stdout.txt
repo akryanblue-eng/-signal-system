@@ -1,0 +1,6 @@
+VDCE INSPECT: run-836fa1b9
+  Type:       certificate
+  Candidate:  fixtures/pass/candidate.json
+  Baseline:   baseline-001
+  Error:      none
+  Artifact:   ./.vdce/runs/run-836fa1b9/certificate.json

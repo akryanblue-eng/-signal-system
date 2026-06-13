@@ -55,6 +55,27 @@ jobs:
             || { echo "FAIL: INTERNAL_ERROR golden drift"; exit 1; }
           echo "PASS: verify_internal_error golden OK"
 
+      - name: Inspect PASS golden
+        run: |
+          node vdce/cli.js inspect .vdce/runs/run-836fa1b9 > /tmp/out.txt
+          diff goldens/inspect_pass.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: inspect_pass golden drift"; exit 1; }
+          echo "PASS: inspect_pass golden OK"
+
+      - name: Inspect DRIFT golden
+        run: |
+          node vdce/cli.js inspect .vdce/runs/run-07528fdc > /tmp/out.txt
+          diff goldens/inspect_drift.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: inspect_drift golden drift"; exit 1; }
+          echo "PASS: inspect_drift golden OK"
+
+      - name: Inspect INTERNAL ERROR golden
+        run: |
+          node vdce/cli.js inspect .vdce/runs/run-01b9d268 > /tmp/out.txt
+          diff goldens/inspect_internal_error.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: inspect_internal_error golden drift"; exit 1; }
+          echo "PASS: inspect_internal_error golden OK"
+
   artifact-gate:
     name: "Artifact gate — schema validation"
     runs-on: ubuntu-22.04

@@ -87,15 +87,64 @@ function mapExitCode(verdictType) {
   }
 }
 
-function main() {
-  const args = process.argv.slice(2);
+// ── inspect ──────────────────────────────────────────────────────────────────
 
-  if (args[0] !== "verify") {
-    console.error("Missing required command: verify");
+function loadArtifact(runDir) {
+  const certPath = path.join(runDir, "certificate.json");
+  const driftPath = path.join(runDir, "drift.json");
+
+  if (existsSync(certPath)) {
+    return { file: certPath, data: JSON.parse(readFileSync(certPath, "utf-8")) };
+  }
+  if (existsSync(driftPath)) {
+    return { file: driftPath, data: JSON.parse(readFileSync(driftPath, "utf-8")) };
+  }
+  return null;
+}
+
+function formatInspect(artifact) {
+  const { file, data } = artifact;
+  const runId = path.basename(path.dirname(file));
+  const errorVal = data.error ?? "none";
+
+  return [
+    `VDCE INSPECT: ${runId}`,
+    `  Type:       ${data.type}`,
+    `  Candidate:  ${data.candidatePath}`,
+    `  Baseline:   ${data.baselineId ?? "none"}`,
+    `  Error:      ${errorVal}`,
+    `  Artifact:   ./${file}`,
+  ].join("\n");
+}
+
+function cmdInspect(args) {
+  const runDir = args[0];
+
+  if (!runDir) {
+    console.error("Missing required argument: <run-dir>");
     process.exit(1);
   }
 
-  const candidatePath = args[1];
+  if (!existsSync(runDir)) {
+    console.error(`Run directory not found: ${runDir}`);
+    process.exit(1);
+  }
+
+  const artifact = loadArtifact(runDir);
+
+  if (!artifact) {
+    console.error(`No artifact found in: ${runDir}`);
+    process.exit(1);
+  }
+
+  process.stdout.write(formatInspect(artifact) + "\n");
+  process.exit(0);
+}
+
+// ── verify ───────────────────────────────────────────────────────────────────
+
+function cmdVerify(args) {
+  const candidatePath = args[0];
 
   if (!candidatePath) {
     console.error("Missing required argument: <candidate.json>");
@@ -125,6 +174,21 @@ function main() {
 
   process.stdout.write(stdout + "\n");
   process.exit(exitCode);
+}
+
+// ── dispatch ──────────────────────────────────────────────────────────────────
+
+function main() {
+  const [cmd, ...rest] = process.argv.slice(2);
+
+  switch (cmd) {
+    case "verify":  return cmdVerify(rest);
+    case "inspect": return cmdInspect(rest);
+    default:
+      console.error(`Unknown command: ${cmd ?? "(none)"}`);
+      console.error("Available commands: verify, inspect");
+      process.exit(1);
+  }
 }
 
 main();
