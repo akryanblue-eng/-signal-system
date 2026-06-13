@@ -5,6 +5,8 @@
 node vdce/cli.js verify fixtures/pass/candidate.json
 ```
 
+---
+
 ## 2. Expected output (PASS)
 ```
 VDCE RESULT: PASS
@@ -15,25 +17,35 @@ Next Step: vdce show ./.vdce/runs/run-836fa1b9
 Exit Code: 0
 ```
 
-## 3. Exit codes
-| Code | Meaning |
-|------|---------|
-| 0 | PASS — certificate issued |
-| 1 | USAGE ERROR — bad invocation |
-| 2 | DRIFT — deterministic mismatch |
-| 3 | INTERNAL ERROR — evaluation threw |
+---
 
-## 4. Artifact layout
-Every run writes to `.vdce/runs/<run-id>/`, which contains exactly one of:
+## 3. Exit code model
+Exit codes are a **projection of the verdict state machine**:
 
-| Verdict | File written |
-|---------|-------------|
-| PASS | `certificate.json` |
-| DRIFT / INTERNAL ERROR / USAGE ERROR | `drift.json` |
+| Code | Verdict Type |
+|------|-------------|
+| 0 | certificate |
+| 1 | usage_error |
+| 2 | drift |
+| 3 | internal_error |
 
-Run IDs are derived from `sha1(candidatePath)[0:8]`, making them deterministic per input and collision-free across parallel CI jobs.
+---
 
-## 5. Failure example — DRIFT
+## 4. Artifact model
+Each run produces exactly one artifact directory:
+- `.vdce/runs/run-<sha1[0:8]>/`
+
+Artifact filename is derived from verdict type:
+
+| Verdict Type | Artifact |
+|-------------|----------|
+| certificate | certificate.json |
+| drift | drift.json |
+| internal_error | internal_error.json |
+
+---
+
+## 5. Failure example (DRIFT)
 ```
 VDCE RESULT: FAIL
 Artifacts: ./.vdce/runs/run-07528fdc
@@ -43,7 +55,9 @@ Next Step: vdce inspect ./.vdce/runs/run-07528fdc
 Exit Code: 2
 ```
 
-## 6. Failure example — INTERNAL ERROR
+---
+
+## 6. Failure example (INTERNAL ERROR)
 ```
 VDCE RESULT: FAIL
 Artifacts: ./.vdce/runs/run-01b9d268
@@ -53,27 +67,11 @@ Next Step: vdce doctor
 Exit Code: 3
 ```
 
-## 7. Validate artifacts
-```bash
-node scripts/validate-artifacts.js
+---
+
+## 7. Mental model
+VDCE is a deterministic compiler:
 ```
-
-Checks every run directory for:
-- exactly one artifact file (certificate.json XOR drift.json)
-- all required schema fields with correct types
-- no unexpected keys
-- `runId` value matches directory name
-- drift artifacts carry a non-empty `error` string
-
-## 8. Mental model
-
+input → evaluate → verdict → projections (stdout + exit code + artifacts)
 ```
-candidate.json → evaluate() → verdict → ABI stdout + artifact
-                               │
-                  ┌────────────┼────────────┐
-                  │            │            │
-             certificate    drift.json   drift.json
-               .json       (type=drift) (type=internal_error)
-```
-
-VDCE is a deterministic pipeline: the same input always produces the same stdout, the same exit code, and the same artifact shape. The golden files in `goldens/` are the locked ABI contract.
+No step is allowed to mutate downstream meaning.
