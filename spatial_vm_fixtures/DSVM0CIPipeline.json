@@ -1,0 +1,93 @@
+{
+  "schema": "dsvm0-ci-pipeline-v1",
+  "oracle_seal_sha256": "9e3199367006fecceb52ed11df8e2666f15516917d49e19087e98b1a057478cc",
+  "failure_mode": "fail-closed",
+  "phases": [
+    {
+      "id": 1,
+      "name": "static-audit",
+      "description": "grep-level architectural invariant check (pre-compilation)",
+      "command": "bash spatial_vm_fixtures/audit_dsvm.sh $SWIFT_ROOT",
+      "on_fail": "halt \u2014 skip all subsequent phases",
+      "checks": [
+        "N1",
+        "N2",
+        "N3",
+        "N4"
+      ],
+      "invariant_violation_exits_with": 1
+    },
+    {
+      "id": 2,
+      "name": "swift-build",
+      "description": "normal Swift compilation",
+      "command": "xcodebuild build -scheme QuantumStarApp",
+      "on_fail": "halt",
+      "depends_on": [
+        1
+      ]
+    },
+    {
+      "id": 3,
+      "name": "dsvm0-ci-gate",
+      "description": "XCTest: ReplayHarnessTests.testDSVM0_CIGate()",
+      "command": "swift test --filter ReplayHarnessTests",
+      "on_fail": "emit ReplayHarnessDiff output; exit 1",
+      "oracle_runs": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "depends_on": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": 4,
+      "name": "python-oracle-verify",
+      "description": "verify Python oracle matches frozen fixtures (cross-language)",
+      "command": "python -m src.oracle_generator --verify",
+      "on_fail": "emit state diff per run; exit 1",
+      "depends_on": [
+        1
+      ]
+    },
+    {
+      "id": 5,
+      "name": "oracle-staleness-check",
+      "description": "detect if oracle fixtures need regeneration after code changes",
+      "command": "python -m src.oracle_generator && git diff --exit-code spatial_vm_fixtures/",
+      "on_fail": "exit 1 with diff output; fix: python -m src.oracle_generator && commit",
+      "depends_on": [
+        4
+      ]
+    }
+  ],
+  "failure_propagation": {
+    "phase_1_fail": "structural impossibility \u2014 fix before any execution",
+    "phase_2_fail": "compilation error \u2014 fix before behavioral testing",
+    "phase_3_fail": "behavioral divergence \u2014 ReplayHarnessDiff shows first-failing event",
+    "phase_4_fail": "cross-language divergence \u2014 Python oracle and Swift diverged",
+    "phase_5_fail": "fixture staleness \u2014 regenerate oracle and commit"
+  },
+  "deterministic_log_format": {
+    "phase_pass": "\u2705 [phase-name] PASS",
+    "phase_fail": "\u274c [phase-name] FAIL: [reason]",
+    "divergence": "\u274c DSVM-0 VIOLATION: TravelerState divergence detected",
+    "first_event": "\ud83c\udfaf First Divergence: step N \u2014 {event}",
+    "state_diff": "  [\u2705|\u274c] field: oracle=X, actual=Y",
+    "gate_pass": "\u2705 DSVM-0 CI gate passed: N runs, deterministic equality verified"
+  },
+  "xcode_build_phase_order": [
+    "1. Run Script: bash ${SRCROOT}/spatial_vm_fixtures/audit_dsvm.sh ${SRCROOT}",
+    "2. Compile Sources",
+    "3. Link Binary",
+    "4. Run Script: swift test --filter ReplayHarnessTests (optional post-build)"
+  ],
+  "github_actions_jobs": [
+    "dsvm0-gate (runs phases 1, 4, 5)",
+    "Phases 2-3 run inside Xcode build system"
+  ]
+}

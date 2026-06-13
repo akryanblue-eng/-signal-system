@@ -1,0 +1,46 @@
+{
+  "schema": "dsvm0-freeze-v1",
+  "version": "1.0",
+  "sealed": true,
+  "oracle_seal_sha256": "9e3199367006fecceb52ed11df8e2666f15516917d49e19087e98b1a057478cc",
+  "oracle_sentinel_run_id": "DSVM0-STATE-ORACLE",
+  "state_oracle_commits": {
+    "A": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82",
+    "B": "23cd067357d3f99eeae6f6b58a00db8a9464a9222aeb7cb035b3e492917758d3",
+    "C": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82",
+    "D": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+  },
+  "event_vocabulary": [
+    "enter_node",
+    "discover_artifact",
+    "reveal_lore",
+    "choose_ascension",
+    "choose_creation",
+    "node_completed",
+    "portal_unlocked"
+  ],
+  "committed_state_fields": [
+    "visited_nodes",
+    "discovered_artifacts",
+    "revealed_lore",
+    "ascension",
+    "gene_choice_locked"
+  ],
+  "negative_invariants": {
+    "N1": "TravelerState mutation must only appear inside applyReducer",
+    "N2": "Projection functions must not read Entity/scene state as input",
+    "N3": "Events must not carry implicit temporal context (Date, UUID at emission)",
+    "N4": "Reducer must not emit events, call send(), or trigger async work"
+  },
+  "conformance_axes": {
+    "A_vs_B": "bifurcation: commit_A \u2260 commit_B (ascension flip from TravelerState only)",
+    "C": "determinism: identical events \u2192 identical state commit",
+    "D": "idempotency: re-entry of visited nodes leaves state unchanged"
+  },
+  "run_proves": {
+    "A": "ascension branch: commit_A \u2260 commit_B (bifurcation from TravelerState.ascension only)",
+    "B": "creation branch: commit_B \u2260 commit_A; same journey, different choice",
+    "C": "determinism replay: identical events \u2192 commit_C == commit_A",
+    "D": "idempotency: re-entry of visited nodes \u2192 commit_D == commit_A (state unchanged)"
+  }
+}

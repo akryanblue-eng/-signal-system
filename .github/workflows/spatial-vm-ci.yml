@@ -39,6 +39,15 @@ jobs:
       - name: Install dependencies
         run: pip install pytest
 
+      # ── Phase 1: Static audit (pre-compilation causality gate) ───────────
+      # Runs before any test execution. If this fails, nothing else is permitted.
+      - name: DSVM-0 static audit (Phase 1)
+        run: |
+          chmod +x spatial_vm_fixtures/audit_dsvm.sh
+          bash spatial_vm_fixtures/audit_dsvm.sh .
+        shell: bash
+
+      # ── Phase 4: Python oracle verify ─────────────────────────────────────
       # ── Hard gate: conformance tests ──────────────────────────────────────
       - name: Run conformance tests (Runs A–D)
         run: |
