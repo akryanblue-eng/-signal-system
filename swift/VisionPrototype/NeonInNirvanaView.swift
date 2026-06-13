@@ -12,6 +12,7 @@ struct NeonInNirvanaView: View {
 	@State private var loreText: Entity?
 
 	@State private var pendingSceneEffects = PendingSceneEffects()
+	@State private var isProjecting = false
 
 	// MARK: - VM Types (Node-local)
 
@@ -165,6 +166,10 @@ struct NeonInNirvanaView: View {
 	// MARK: - Projection (pure Σ -> Scene)
 
 	private func projectWorld() {
+		guard !isProjecting else { return }
+		isProjecting = true
+		defer { isProjecting = false }
+
 		let portalUnlocked = travelerState.flags["nirvana:portalUnlocked"] == true
 
 		portal?.isEnabled = portalUnlocked

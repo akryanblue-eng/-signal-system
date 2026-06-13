@@ -19,6 +19,7 @@ struct GodlyDNAView: View {
 	@State private var blockerCreation: Entity?
 
 	@State private var pendingSceneEffects = PendingSceneEffects()
+	@State private var isProjecting = false
 
 	// MARK: - Node-local VM
 
@@ -177,6 +178,10 @@ struct GodlyDNAView: View {
 	// MARK: - Projection
 
 	private func projectWorld() {
+		guard !isProjecting else { return }
+		isProjecting = true
+		defer { isProjecting = false }
+
 		switch travelerState.geneChoice {
 		case nil:
 			setEnabled(choiceLockGlow, false)

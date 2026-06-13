@@ -11,6 +11,7 @@ struct SkyHighView: View {
 	@State private var inversionFlash: Entity?
 
 	@State private var pendingSceneEffects = PendingSceneEffects()
+	@State private var isProjecting = false
 
 	// MARK: - Node-local VM
 
@@ -97,6 +98,10 @@ struct SkyHighView: View {
 	// MARK: - Projection (dual-reality toggle)
 
 	private func projectWorld() {
+		guard !isProjecting else { return }
+		isProjecting = true
+		defer { isProjecting = false }
+
 		let ascended = travelerState.ascension >= 1
 		realityAscended?.isEnabled = ascended
 		realityBaseline?.isEnabled = !ascended
