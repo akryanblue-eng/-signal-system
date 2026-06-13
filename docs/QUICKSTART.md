@@ -10,10 +10,10 @@ node vdce/cli.js verify fixtures/pass/candidate.json
 ## 2. Expected output (PASS)
 ```
 VDCE RESULT: PASS
-Artifacts: ./.vdce/runs/run-836fa1b9
-Certificate: ./.vdce/runs/run-836fa1b9/certificate.json
+Artifacts: ./.vdce/runs/run-4846778e7a29
+Certificate: ./.vdce/runs/run-4846778e7a29/certificate.json
 Drift Report: none
-Next Step: vdce show ./.vdce/runs/run-836fa1b9
+Next Step: vdce show ./.vdce/runs/run-4846778e7a29
 Exit Code: 0
 ```
 
@@ -48,10 +48,10 @@ Artifact filename is derived from verdict type:
 ## 5. Failure example (DRIFT)
 ```
 VDCE RESULT: FAIL
-Artifacts: ./.vdce/runs/run-07528fdc
+Artifacts: ./.vdce/runs/run-3c98e772806d
 Certificate: none
-Drift Report: ./.vdce/runs/run-07528fdc/drift.json
-Next Step: vdce inspect ./.vdce/runs/run-07528fdc
+Drift Report: ./.vdce/runs/run-3c98e772806d/drift.json
+Next Step: vdce inspect ./.vdce/runs/run-3c98e772806d
 Exit Code: 2
 ```
 
@@ -60,9 +60,9 @@ Exit Code: 2
 ## 6. Failure example (INTERNAL ERROR)
 ```
 VDCE RESULT: FAIL
-Artifacts: ./.vdce/runs/run-01b9d268
+Artifacts: ./.vdce/runs/run-c14f534fc544
 Certificate: none
-Drift Report: ./.vdce/runs/run-01b9d268/drift.json
+Drift Report: ./.vdce/runs/run-c14f534fc544/drift.json
 Next Step: vdce doctor
 Exit Code: 3
 ```

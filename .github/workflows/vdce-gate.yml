@@ -5,6 +5,7 @@ on:
     branches: ["claude/cli-golden-test-alignment-9xcwqc", "main"]
     paths:
       - "vdce/**"
+      - "src/vdce/**"
       - "scripts/**"
       - "fixtures/**"
       - "goldens/**"
@@ -14,6 +15,7 @@ on:
   pull_request:
     paths:
       - "vdce/**"
+      - "src/vdce/**"
       - "scripts/**"
       - "fixtures/**"
       - "goldens/**"
@@ -34,44 +36,41 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Verify PASS golden
+      - name: Build TypeScript modules
+        run: npm ci && npm run build
+
+      - name: Verify + Inspect — PASS
         run: |
           node vdce/cli.js verify fixtures/pass/candidate.json > /tmp/out.txt
           diff goldens/verify_pass.stdout.txt /tmp/out.txt \
-            || { echo "FAIL: PASS golden drift"; exit 1; }
+            || { echo "FAIL: verify_pass golden drift"; exit 1; }
           echo "PASS: verify_pass golden OK"
-
-      - name: Verify DRIFT golden
-        run: |
-          node vdce/cli.js verify fixtures/drift/candidate.json > /tmp/out.txt || true
-          diff goldens/verify_drift.stdout.txt /tmp/out.txt \
-            || { echo "FAIL: DRIFT golden drift"; exit 1; }
-          echo "PASS: verify_drift golden OK"
-
-      - name: Verify INTERNAL ERROR golden
-        run: |
-          node vdce/cli.js verify fixtures/internal_error/candidate.json > /tmp/out.txt || true
-          diff goldens/verify_internal_error.stdout.txt /tmp/out.txt \
-            || { echo "FAIL: INTERNAL_ERROR golden drift"; exit 1; }
-          echo "PASS: verify_internal_error golden OK"
-
-      - name: Inspect PASS golden
-        run: |
-          node vdce/cli.js inspect .vdce/runs/run-836fa1b9 > /tmp/out.txt
+          PASS_DIR=$(grep '^Artifacts:' /tmp/out.txt | awk '{print $2}')
+          node vdce/cli.js inspect "$PASS_DIR" > /tmp/out.txt
           diff goldens/inspect_pass.stdout.txt /tmp/out.txt \
             || { echo "FAIL: inspect_pass golden drift"; exit 1; }
           echo "PASS: inspect_pass golden OK"
 
-      - name: Inspect DRIFT golden
+      - name: Verify + Inspect — DRIFT
         run: |
-          node vdce/cli.js inspect .vdce/runs/run-07528fdc > /tmp/out.txt
+          node vdce/cli.js verify fixtures/drift/candidate.json > /tmp/out.txt || true
+          diff goldens/verify_drift.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: verify_drift golden drift"; exit 1; }
+          echo "PASS: verify_drift golden OK"
+          DRIFT_DIR=$(grep '^Artifacts:' /tmp/out.txt | awk '{print $2}')
+          node vdce/cli.js inspect "$DRIFT_DIR" > /tmp/out.txt
           diff goldens/inspect_drift.stdout.txt /tmp/out.txt \
             || { echo "FAIL: inspect_drift golden drift"; exit 1; }
           echo "PASS: inspect_drift golden OK"
 
-      - name: Inspect INTERNAL ERROR golden
+      - name: Verify + Inspect — INTERNAL ERROR
         run: |
-          node vdce/cli.js inspect .vdce/runs/run-01b9d268 > /tmp/out.txt
+          node vdce/cli.js verify fixtures/internal_error/candidate.json > /tmp/out.txt || true
+          diff goldens/verify_internal_error.stdout.txt /tmp/out.txt \
+            || { echo "FAIL: verify_internal_error golden drift"; exit 1; }
+          echo "PASS: verify_internal_error golden OK"
+          IE_DIR=$(grep '^Artifacts:' /tmp/out.txt | awk '{print $2}')
+          node vdce/cli.js inspect "$IE_DIR" > /tmp/out.txt
           diff goldens/inspect_internal_error.stdout.txt /tmp/out.txt \
             || { echo "FAIL: inspect_internal_error golden drift"; exit 1; }
           echo "PASS: inspect_internal_error golden OK"
@@ -86,6 +85,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Build TypeScript modules
+        run: npm ci && npm run build
 
       - name: Run all fixtures
         run: |

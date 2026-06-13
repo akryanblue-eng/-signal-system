@@ -1,6 +1,6 @@
-VDCE INSPECT: run-07528fdc
+VDCE INSPECT: run-3c98e772806d
   Type:       drift
   Candidate:  fixtures/drift/candidate.json
   Baseline:   baseline-001
   Error:      Deterministic mismatch
-  Artifact:   ./.vdce/runs/run-07528fdc/drift.json
+  Artifact:   ./.vdce/runs/run-3c98e772806d/drift.json

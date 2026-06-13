@@ -1,6 +1,6 @@
-VDCE INSPECT: run-01b9d268
+VDCE INSPECT: run-c14f534fc544
   Type:       internal_error
   Candidate:  fixtures/internal_error/candidate.json
   Baseline:   baseline-001
   Error:      Error: Simulated internal failure
-  Artifact:   ./.vdce/runs/run-01b9d268/drift.json
+  Artifact:   ./.vdce/runs/run-c14f534fc544/drift.json

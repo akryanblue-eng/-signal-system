@@ -1,16 +1,14 @@
 #!/usr/bin/env node
-const { readFileSync, writeFileSync, existsSync, mkdirSync } = require("fs");
+const { readFileSync, existsSync, mkdirSync } = require("fs");
 const path = require("path");
-const crypto = require("crypto");
+const { computeRunId } = require("../dist/src/vdce/identity");
+const { createRunDir, writeArtifactAtomic, appendTrace } = require("../dist/src/vdce/storage");
 
-function createRunId(candidatePath) {
-  const hash = crypto.createHash("sha1").update(candidatePath).digest("hex").slice(0, 8);
-  return `run-${hash}`;
-}
+const SCHEMA_VERSION = "v1";
+const EXECUTION_VERSION = "v1";
 
 function loadCandidate(filePath) {
-  const raw = readFileSync(filePath, "utf-8");
-  return JSON.parse(raw);
+  return JSON.parse(readFileSync(filePath, "utf-8"));
 }
 
 function evaluate(candidate) {
@@ -30,31 +28,16 @@ function evaluate(candidate) {
   }
 }
 
-function ensureRunDir(runId) {
-  const dir = path.join(".vdce", "runs", runId);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  return "./" + dir;
+function mapExitCode(verdictType) {
+  switch (verdictType) {
+    case "certificate":   return 0;
+    case "usage_error":   return 1;
+    case "drift":         return 2;
+    case "internal_error": return 3;
+  }
 }
 
-function writeArtifact(verdict, dir, runId, candidatePath, baselineId) {
-  const fileName = verdict.type === "certificate" ? "certificate.json" : "drift.json";
-  const filePath = path.join(dir, fileName);
-
-  const artifactType = verdict.type === "usage_error" ? "invalid_input" : verdict.type;
-
-  const payload = {
-    runId,
-    type: artifactType,
-    candidatePath,
-    baselineId,
-    timestamp: Date.now(),
-    error: verdict.message ?? null,
-  };
-
-  writeFileSync(filePath, JSON.stringify(payload, null, 2), "utf-8");
-}
-
-function formatStdout(verdict, artifactDir, exitCode) {
+function formatVerifyStdout(verdict, artifactDir, exitCode) {
   const status = verdict.type === "certificate" ? "PASS" : "FAIL";
 
   const certificatePath =
@@ -64,7 +47,7 @@ function formatStdout(verdict, artifactDir, exitCode) {
     verdict.type === "certificate" ? "none" : `${artifactDir}/drift.json`;
 
   const nextStep =
-    verdict.type === "certificate" ? `vdce show ${artifactDir}` :
+    verdict.type === "certificate"   ? `vdce show ${artifactDir}` :
     verdict.type === "internal_error" ? "vdce doctor" :
     `vdce inspect ${artifactDir}`;
 
@@ -78,16 +61,7 @@ function formatStdout(verdict, artifactDir, exitCode) {
   ].join("\n");
 }
 
-function mapExitCode(verdictType) {
-  switch (verdictType) {
-    case "certificate": return 0;
-    case "usage_error": return 1;
-    case "drift": return 2;
-    case "internal_error": return 3;
-  }
-}
-
-// ── inspect ──────────────────────────────────────────────────────────────────
+// ── inspect ───────────────────────────────────────────────────────────────────
 
 function loadArtifact(runDir) {
   const certPath = path.join(runDir, "certificate.json");
@@ -105,14 +79,12 @@ function loadArtifact(runDir) {
 function formatInspect(artifact) {
   const { file, data } = artifact;
   const runId = path.basename(path.dirname(file));
-  const errorVal = data.error ?? "none";
-
   return [
     `VDCE INSPECT: ${runId}`,
     `  Type:       ${data.type}`,
     `  Candidate:  ${data.candidatePath}`,
     `  Baseline:   ${data.baselineId ?? "none"}`,
-    `  Error:      ${errorVal}`,
+    `  Error:      ${data.error ?? "none"}`,
     `  Artifact:   ./${file}`,
   ].join("\n");
 }
@@ -124,14 +96,12 @@ function cmdInspect(args) {
     console.error("Missing required argument: <run-dir>");
     process.exit(1);
   }
-
   if (!existsSync(runDir)) {
     console.error(`Run directory not found: ${runDir}`);
     process.exit(1);
   }
 
   const artifact = loadArtifact(runDir);
-
   if (!artifact) {
     console.error(`No artifact found in: ${runDir}`);
     process.exit(1);
@@ -141,7 +111,7 @@ function cmdInspect(args) {
   process.exit(0);
 }
 
-// ── verify ───────────────────────────────────────────────────────────────────
+// ── verify ────────────────────────────────────────────────────────────────────
 
 function cmdVerify(args) {
   const candidatePath = args[0];
@@ -150,28 +120,54 @@ function cmdVerify(args) {
     console.error("Missing required argument: <candidate.json>");
     process.exit(1);
   }
-
   if (!existsSync(candidatePath)) {
     console.error(`Candidate not found: ${candidatePath}`);
     process.exit(1);
   }
 
-  const runId = createRunId(candidatePath);
-  const artifactDir = ensureRunDir(runId);
   const candidate = loadCandidate(candidatePath);
 
-  let verdict;
+  const runId = computeRunId({
+    candidate,
+    baselineId: candidate.baselineId ?? null,
+    schemaVersion: SCHEMA_VERSION,
+    executionVersion: EXECUTION_VERSION,
+  });
 
+  const runDirRel = path.join(".vdce", "runs", runId);
+  mkdirSync(path.join(".vdce", "runs"), { recursive: true }); // parent only
+  createRunDir(runDirRel);          // throws RUN_COLLISION if already exists
+  const artifactDir = "./" + runDirRel;
+  const tracePath = path.join(runDirRel, "trace.jsonl");
+
+  appendTrace(tracePath, { step: 0, type: "verify_start", candidatePath, runId });
+
+  let verdict;
   try {
     verdict = evaluate(candidate);
   } catch (err) {
     verdict = { type: "internal_error", message: String(err) };
   }
 
-  const exitCode = mapExitCode(verdict.type);
-  writeArtifact(verdict, artifactDir, runId, candidatePath, candidate.baselineId ?? null);
-  const stdout = formatStdout(verdict, artifactDir, exitCode);
+  appendTrace(tracePath, { step: 1, type: "verdict", verdictType: verdict.type });
 
+  const artifactType = verdict.type === "usage_error" ? "invalid_input" : verdict.type;
+  const fileName = verdict.type === "certificate" ? "certificate.json" : "drift.json";
+  const artifactPath = path.join(runDirRel, fileName);
+
+  writeArtifactAtomic(artifactPath, {
+    runId,
+    type: artifactType,
+    candidatePath,
+    baselineId: candidate.baselineId ?? null,
+    timestamp: Date.now(),
+    error: verdict.message ?? null,
+  });
+
+  appendTrace(tracePath, { step: 2, type: "artifact_written", file: fileName });
+
+  const exitCode = mapExitCode(verdict.type);
+  const stdout = formatVerifyStdout(verdict, artifactDir, exitCode);
   process.stdout.write(stdout + "\n");
   process.exit(exitCode);
 }
