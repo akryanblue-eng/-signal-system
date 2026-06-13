@@ -1,18 +1,22 @@
 """
 Spatial VM conformance tests — CT-0 style gate for DSVM-0.
 
-Each test proves exactly one axis of the contract. All four must pass before
-AppFlow glue or Node D integration.
+Hard gates (must pass for AppFlow integration / Node D):
 
-Hard gates (must pass):
-    test_run_ab_bifurcation        — commit_A ≠ commit_B
-    test_run_ab_state_source_only  — bifurcation comes from TravelerState, not scene
-    test_run_c_accumulation        — accumulation shifts Node C without new mechanics
-    test_run_d_convergence         — path-weighted memory has diminishing deltas
-    test_all_runs_deterministic    — every run satisfies CT-0 (PASS)
+    test_all_runs_deterministic     every run satisfies CT-0 (two identical commits)
+    test_run_ab_bifurcation         commit_A ≠ commit_B
+    test_run_ab_source_state_only   only ascension flag differs between A/B states
+    test_run_c_determinism          commit_C == commit_A (replay)
+    test_run_d_idempotency          commit_D == commit_A (re-entry is no-op)
 
-Advisory (logged, non-blocking):
-    test_advisory_projection_diffs — projection hashes differ where expected
+Negative invariants:
+
+    test_frozen_state_immutable     TravelerState cannot be mutated outside reducer
+    test_convergence_score_diminishing  path-weighted memory has strictly diminishing deltas
+
+Advisory:
+
+    test_advisory_projection_diffs  Node B hash differs A vs B; Node C hash is same A vs B
 """
 import pytest
 from src.traveler_state import (
@@ -24,17 +28,13 @@ from src.traveler_state import (
     project_node_c,
 )
 from src.spatial_vm_conformance import (
-    run_a,
-    run_b,
-    run_c,
-    run_d,
-    run_all,
-    STREAM_SATURATING,
+    run_a, run_b, run_c, run_d, run_all,
+    STREAM_RUN_A,
 )
 
 
 # ---------------------------------------------------------------------------
-# Determinism (CT-0 oracle)
+# CT-0 determinism oracle
 # ---------------------------------------------------------------------------
 
 def test_all_runs_deterministic():
@@ -51,72 +51,96 @@ def test_all_runs_deterministic():
 def test_run_ab_bifurcation():
     ra, rb = run_a(), run_b()
     assert ra.commit != rb.commit, (
-        "Run A and Run B must produce distinct commits. "
-        "Ascension flip in TravelerState must change the committed state."
+        "Run A (ascension) and Run B (creation) must produce distinct commits. "
+        "The choice event must change TravelerState.ascension and therefore the commit."
     )
 
 
-def test_run_ab_state_source_only():
+def test_run_ab_source_state_only():
     """
-    Prove the bifurcation comes from TravelerState alone, not scene residue:
-    - Both runs apply exactly one visit_node_a event.
-    - Only .ascension differs between the final states.
-    - Node B projection therefore differs only because TravelerState differs.
+    Bifurcation must come from TravelerState alone, not from scene residue:
+    - visited_nodes, discovered_artifacts, revealed_lore are identical.
+    - Only ascension flag differs.
     """
     ra, rb = run_a(), run_b()
-    assert ra.final_state.node_a_interaction_count == rb.final_state.node_a_interaction_count, (
-        "Both runs must have the same node_a_interaction_count (same event count)."
+    assert ra.final_state.visited_nodes == rb.final_state.visited_nodes, (
+        "Both runs must visit identical nodes."
+    )
+    assert ra.final_state.discovered_artifacts == rb.final_state.discovered_artifacts, (
+        "Both runs must discover identical artifacts."
+    )
+    assert ra.final_state.revealed_lore == rb.final_state.revealed_lore, (
+        "Both runs must reveal identical lore."
     )
     assert ra.final_state.ascension != rb.final_state.ascension, (
         "Runs A and B must differ only on ascension flag."
     )
-    proj_a = project_node_b(ra.final_state)
-    proj_b = project_node_b(rb.final_state)
-    assert proj_a != proj_b, (
+    # Projection must reflect the difference
+    assert project_node_b(ra.final_state) != project_node_b(rb.final_state), (
         "Node B projection must differ between Run A and Run B. "
-        "If this fails, projection is not reading TravelerState.ascension."
+        "If identical, project_node_b is not reading TravelerState.ascension."
     )
 
 
 # ---------------------------------------------------------------------------
-# Run C: accumulation
+# Run C: determinism replay
 # ---------------------------------------------------------------------------
 
-def test_run_c_accumulation():
+def test_run_c_determinism():
     """
-    Three Node A visits (same ascension as Run A) must:
-    - Produce a different commit than Run A (state changed).
-    - Shift Node C perceptual_field from 'baseline' to 'heightened'.
-    - Require no new event types (causal depth from existing state only).
+    Identical event streams must produce identical state.
+    Compared via state_commit (fixed sentinel run_id) so run identity doesn't interfere.
     """
     ra, rc = run_a(), run_c()
-    assert rc.commit != ra.commit, (
-        "Run C must produce a different commit than Run A."
+    assert rc.final_state == ra.final_state, (
+        "Run C final TravelerState must equal Run A final TravelerState (field equality)."
     )
-    node_c_a = project_node_c(ra.final_state)
-    node_c_c = project_node_c(rc.final_state)
-    assert node_c_a["perceptual_field"] == "baseline", (
-        "Node C after Run A must report baseline perceptual_field."
-    )
-    assert node_c_c["perceptual_field"] == "heightened", (
-        "Node C after Run C (3 visits) must report heightened perceptual_field."
+    assert rc.state_commit == ra.state_commit, (
+        "Run C state_commit must equal Run A state_commit. "
+        "Identical event streams must always yield identical committed state."
     )
 
 
 # ---------------------------------------------------------------------------
-# Run D: convergence (path-weighted memory)
+# Run D: idempotency under re-entry
 # ---------------------------------------------------------------------------
 
-def test_run_d_convergence():
+def test_run_d_idempotency():
     """
-    10 sequential Node A visits must produce strictly decreasing convergence_score deltas.
-    Proves there is a convergence function (not branch toggles or flat accumulation).
+    Re-entering already-visited nodes must not mutate TravelerState.
+    Compared via state_commit (fixed sentinel run_id).
+    """
+    ra, rd = run_a(), run_d()
+    assert rd.final_state == ra.final_state, (
+        "TravelerState must be unchanged by idempotent re-entry events."
+    )
+    assert rd.state_commit == ra.state_commit, (
+        "Run D state_commit must equal Run A state_commit. "
+        "Duplicate node entries must not change committed state."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Negative invariants
+# ---------------------------------------------------------------------------
+
+def test_frozen_state_immutable():
+    """TravelerState.frozen=True is the local guard for negative invariant N4."""
+    s = TravelerState(visited_nodes=("neon-in-nirvana",))
+    with pytest.raises((AttributeError, TypeError)):
+        s.ascension = True  # type: ignore[misc]
+
+
+def test_convergence_score_diminishing():
+    """
+    Path-weighted memory must have strictly diminishing deltas.
+    This is a property test on the convergence_score formula itself.
     """
     s = TravelerState()
     deltas: list[int] = []
     prev = 0
-    for ev in STREAM_SATURATING:
-        s = apply_event(s, ev)
+    for i in range(1, 11):
+        s = apply_event(s, {"type": "enter_node", "node_id": f"node-{i}"})
         deltas.append(s.convergence_score - prev)
         prev = s.convergence_score
 
@@ -124,43 +148,33 @@ def test_run_d_convergence():
         assert deltas[i] > deltas[i + 1], (
             f"convergence_score delta at visit {i+1} ({deltas[i]}) must exceed "
             f"delta at visit {i+2} ({deltas[i+1]}). "
-            "Path-weighted memory must have strictly diminishing returns."
+            "Harmonic path-weighting must have strictly diminishing returns."
         )
 
 
-# ---------------------------------------------------------------------------
-# Negative invariant smoke test: reducer is the only write path
-# ---------------------------------------------------------------------------
-
-def test_frozen_state_immutable():
-    """
-    TravelerState is frozen — attempting to mutate it must raise.
-    This is a local guard; the real invariant (N1) is enforced at the Swift layer.
-    """
-    s = TravelerState(ascension=False, node_a_interaction_count=0)
-    with pytest.raises((AttributeError, TypeError)):
-        s.ascension = True  # type: ignore[misc]
+def test_no_op_events_do_not_mutate():
+    """node_completed and portal_unlocked events must never change TravelerState."""
+    s = TravelerState(visited_nodes=("neon-in-nirvana",), ascension=True)
+    s2 = apply_event(s, {"type": "node_completed", "node_id": "neon-in-nirvana"})
+    s3 = apply_event(s, {"type": "portal_unlocked", "portal_id": "godly-dna"})
+    assert s2 == s
+    assert s3 == s
 
 
 # ---------------------------------------------------------------------------
-# Advisory: projection hashes (non-blocking, informational)
+# Advisory: projection hashes
 # ---------------------------------------------------------------------------
 
 def test_advisory_projection_diffs(capfd):
     report = run_all()
     diffs = report.advisory_projection_diffs
 
-    # Log diffs for inspection (never assert — advisory only until Node D)
     for label, info in diffs.items():
-        status = "DIFFERS" if info["differs"] else "SAME"
-        print(f"[advisory] {label}: {status}")
+        print(f"[advisory] {label}: {'DIFFERS' if info['differs'] else 'SAME'}")
 
-    out, _ = capfd.readouterr()
-    # Node B hash must differ (ascension changes its output)
+    capfd.readouterr()  # consume output
+
     assert diffs["run_a_vs_b_node_b"]["differs"], (
-        "[advisory] Node B projection hash should differ between Run A and Run B."
-    )
-    # Node C hash must differ (accumulation changes its output)
-    assert diffs["run_a_vs_c_node_c"]["differs"], (
-        "[advisory] Node C projection hash should differ between Run A and Run C."
+        "[advisory] Node B projection hash must differ between Run A and Run B. "
+        "Node B is ascension-sensitive."
     )

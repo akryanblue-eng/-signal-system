@@ -1,0 +1,99 @@
+name: DSVM-0 Spatial VM Conformance Gate
+
+on:
+  push:
+    branches:
+      - "claude/spatial-vm-conformance-qu2n68"
+      - "main"
+    paths:
+      - "src/traveler_state.py"
+      - "src/spatial_vm_conformance.py"
+      - "src/oracle_generator.py"
+      - "src/test_spatial_vm_conformance.py"
+      - "src/test_conformance_ci.py"
+      - "spatial_vm_fixtures/**"
+  pull_request:
+    paths:
+      - "src/traveler_state.py"
+      - "src/spatial_vm_conformance.py"
+      - "src/oracle_generator.py"
+      - "src/test_spatial_vm_conformance.py"
+      - "src/test_conformance_ci.py"
+      - "spatial_vm_fixtures/**"
+  workflow_dispatch:
+
+jobs:
+  dsvm0-gate:
+    name: "DSVM-0 conformance gate"
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pytest
+
+      # ── Hard gate: conformance tests ──────────────────────────────────────
+      - name: Run conformance tests (Runs A–D)
+        run: |
+          python -m pytest src/test_spatial_vm_conformance.py -v \
+            --tb=short \
+            -q
+        shell: bash
+
+      # ── Hard gate: CI oracle verification ────────────────────────────────
+      - name: Run CI oracle gate tests
+        run: |
+          python -m pytest src/test_conformance_ci.py -v \
+            --tb=short \
+            -q
+        shell: bash
+
+      # ── Hard gate: verify frozen oracle matches implementation ────────────
+      - name: Verify oracle fixtures are current
+        # Fails with exit 1 if implementation diverged from frozen oracle.
+        # Fix: update fixture via `python -m src.oracle_generator`, commit.
+        run: python -m src.oracle_generator --verify
+        shell: bash
+
+      # ── Drift check: detect if oracle needs regeneration ─────────────────
+      - name: Check oracle fixtures are up to date
+        run: |
+          python -m src.oracle_generator
+          if git diff --quiet spatial_vm_fixtures/; then
+            echo "✅ Oracle fixtures are current"
+          else
+            echo "❌ Oracle fixtures are stale — run 'python -m src.oracle_generator' and commit"
+            git diff spatial_vm_fixtures/
+            exit 1
+          fi
+        shell: bash
+
+      # ── Summary ──────────────────────────────────────────────────────────
+      - name: Emit DSVM-0 gate summary
+        if: always()
+        run: |
+          python -m src.oracle_generator --verify > gate_output.txt 2>&1 || true
+          echo "### DSVM-0 Spatial VM Conformance Gate" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat gate_output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Run | Proves | State Oracle Commit |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|--------|---------------------|" >> "$GITHUB_STEP_SUMMARY"
+          python -c "
+          import json, pathlib
+          oracle = json.loads(pathlib.Path('spatial_vm_fixtures/oracle_runs.json').read_text())
+          for label, run in oracle['runs'].items():
+              commit = run['state_commit_hex'][:24] + '...'
+              proves = run['proves'][:60]
+              print(f'| Run {label} | {proves} | \`{commit}\` |')
+          " >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
