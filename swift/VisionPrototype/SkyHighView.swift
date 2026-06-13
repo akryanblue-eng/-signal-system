@@ -79,9 +79,9 @@ struct SkyHighView: View {
 		case 0.0..<0.33:
 			return Self.vinedStoneMaterial
 		case 0.33..<0.66:
-			return Self.midAwakenedMaterial
+			return Self.midMaterial
 		default:
-			return Self.polishedGoldMaterial
+			return Self.goldMaterial
 		}
 	}
 
@@ -90,10 +90,10 @@ struct SkyHighView: View {
 	private static let vinedStoneMaterial =
 		SimpleMaterial(color: .gray, roughness: 0.95, isMetallic: false)
 
-	private static let midAwakenedMaterial =
+	private static let midMaterial =
 		SimpleMaterial(color: .green, roughness: 0.45, isMetallic: true)
 
-	private static let polishedGoldMaterial =
+	private static let goldMaterial =
 		SimpleMaterial(color: .yellow, roughness: 0.15, isMetallic: true)
 
 	// MARK: - Evaluation
