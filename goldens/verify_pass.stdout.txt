@@ -1,6 +1,6 @@
 VDCE RESULT: PASS
-Artifacts: ./.vdce/runs/run-001
-Certificate: ./.vdce/runs/run-001/certificate.json
+Artifacts: ./.vdce/runs/run-836fa1b9
+Certificate: ./.vdce/runs/run-836fa1b9/certificate.json
 Drift Report: none
-Next Step: vdce show ./.vdce/runs/run-001
+Next Step: vdce show ./.vdce/runs/run-836fa1b9
 Exit Code: 0

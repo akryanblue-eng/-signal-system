@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 const { readFileSync, writeFileSync, existsSync, mkdirSync } = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
-let counter = 0;
-function createRunId() {
-  return `run-${String(++counter).padStart(3, "0")}`;
+function createRunId(candidatePath) {
+  const hash = crypto.createHash("sha1").update(candidatePath).digest("hex").slice(0, 8);
+  return `run-${hash}`;
 }
 
 function loadCandidate(filePath) {
@@ -106,7 +107,7 @@ function main() {
     process.exit(1);
   }
 
-  const runId = createRunId();
+  const runId = createRunId(candidatePath);
   const artifactDir = ensureRunDir(runId);
   const candidate = loadCandidate(candidatePath);
 
