@@ -33,6 +33,9 @@ class TravelerState:
     discovered_artifacts: tuple[str, ...] = ()
     revealed_lore: tuple[str, ...] = ()
     ascension: bool = False
+    # Write-once guard: True after the first choose_ascension/choose_creation event.
+    # Subsequent choice events are no-ops (maps to Swift's geneChoiceLocked flag).
+    gene_choice_locked: bool = False
 
     @property
     def convergence_score(self) -> int:
@@ -46,6 +49,7 @@ class TravelerState:
 
         return [
             ("traveler.ascension",           1 if self.ascension else 0),
+            ("traveler.gene_choice_locked",  1 if self.gene_choice_locked else 0),
             ("traveler.visited_count",        len(self.visited_nodes)),
             ("traveler.visited_hash",         _seq_hash(self.visited_nodes)),
             ("traveler.artifacts_count",      len(self.discovered_artifacts)),
@@ -69,6 +73,7 @@ def apply_event(state: TravelerState, event: dict) -> TravelerState:
             discovered_artifacts=state.discovered_artifacts,
             revealed_lore=state.revealed_lore,
             ascension=state.ascension,
+            gene_choice_locked=state.gene_choice_locked,
         )
 
     if t == "discover_artifact":
@@ -80,6 +85,7 @@ def apply_event(state: TravelerState, event: dict) -> TravelerState:
             discovered_artifacts=state.discovered_artifacts + (aid,),
             revealed_lore=state.revealed_lore,
             ascension=state.ascension,
+            gene_choice_locked=state.gene_choice_locked,
         )
 
     if t == "reveal_lore":
@@ -91,22 +97,31 @@ def apply_event(state: TravelerState, event: dict) -> TravelerState:
             discovered_artifacts=state.discovered_artifacts,
             revealed_lore=state.revealed_lore + (lid,),
             ascension=state.ascension,
+            gene_choice_locked=state.gene_choice_locked,
         )
 
     if t == "choose_ascension":
+        # Write-once: if gene choice is already locked, this event is a no-op.
+        if state.gene_choice_locked:
+            return state
         return TravelerState(
             visited_nodes=state.visited_nodes,
             discovered_artifacts=state.discovered_artifacts,
             revealed_lore=state.revealed_lore,
             ascension=True,
+            gene_choice_locked=True,
         )
 
     if t == "choose_creation":
+        # Write-once: if gene choice is already locked, this event is a no-op.
+        if state.gene_choice_locked:
+            return state
         return TravelerState(
             visited_nodes=state.visited_nodes,
             discovered_artifacts=state.discovered_artifacts,
             revealed_lore=state.revealed_lore,
             ascension=False,
+            gene_choice_locked=True,
         )
 
     # No-ops: exist for event-bus parity with the Swift QSEvent enum.

@@ -4,10 +4,10 @@
     // DSVM-0 Oracle — CI Run Matrix
     //
     // State oracle commits (use for cross-run equality assertions):
-    //   Run A: 3851a7fd15bf06150606e0c9455cd11fcbdd75153bf541fcd26762a8e7cf8177
-//   Run B: 8e08e3956da8c551d4b580304c8d26ca71b2fd1cd42277cb4f4911383878c737
-//   Run C: 3851a7fd15bf06150606e0c9455cd11fcbdd75153bf541fcd26762a8e7cf8177
-//   Run D: 3851a7fd15bf06150606e0c9455cd11fcbdd75153bf541fcd26762a8e7cf8177
+    //   Run A: 07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82
+//   Run B: 23cd067357d3f99eeae6f6b58a00db8a9464a9222aeb7cb035b3e492917758d3
+//   Run C: 07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82
+//   Run D: 07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82
     //
     // Schema: dsvm0-oracle-v1
 
@@ -15,7 +15,7 @@
 
     struct DSVM0Oracle {
         // MARK: Run A — ascension branch: commit_A ≠ commit_B (bifurcation from TravelerState.ascension only)
-    // State oracle commit: 3851a7fd15bf06150606e0c9…
+    // State oracle commit: 07c2bf41d76152a42ba08b0e…
     static let runA = ReplayRun(
         id: "DSVM0-RUN-A",
         events: [
@@ -45,7 +45,7 @@
         )
     )
     // MARK: Run B — creation branch: commit_B ≠ commit_A; same journey, different choice
-    // State oracle commit: 8e08e3956da8c551d4b58030…
+    // State oracle commit: 23cd067357d3f99eeae6f6b5…
     static let runB = ReplayRun(
         id: "DSVM0-RUN-B",
         events: [
@@ -75,7 +75,7 @@
         )
     )
     // MARK: Run C — determinism replay: identical events → commit_C == commit_A
-    // State oracle commit: 3851a7fd15bf06150606e0c9…
+    // State oracle commit: 07c2bf41d76152a42ba08b0e…
     static let runC = ReplayRun(
         id: "DSVM0-RUN-C",
         events: [
@@ -105,7 +105,7 @@
         )
     )
     // MARK: Run D — idempotency: re-entry of visited nodes → commit_D == commit_A (state unchanged)
-    // State oracle commit: 3851a7fd15bf06150606e0c9…
+    // State oracle commit: 07c2bf41d76152a42ba08b0e…
     static let runD = ReplayRun(
         id: "DSVM0-RUN-D",
         events: [

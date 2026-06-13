@@ -55,15 +55,214 @@
           "map-remembers"
         ],
         "ascension": true,
+        "gene_choice_locked": true,
         "convergence_score": 1833
       },
-      "state_commit_hex": "3851a7fd15bf06150606e0c9455cd11fcbdd75153bf541fcd26762a8e7cf8177",
-      "run_commit_hex": "43c26b3ce0112d4801d7c2f0d6377bd9ca4f2377af73bcc3513b037b9e5fc935",
+      "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82",
+      "run_commit_hex": "2adb21f91ad974826f57d5c5ddead18efe76c0c482c169e0ab2fb25c4071e1b5",
       "ct0_verdict": "OK",
       "advisory_projection_hashes": {
         "node_b": "9fc2916941c8e3e6",
         "node_c": "4faec61fe17bccc2"
-      }
+      },
+      "state_trace": [
+        {
+          "step": 0,
+          "event": {
+            "type": "enter_node",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "d555e0580c958a31d1619964a02488af81d4cd62e29538769a949ab93a497423"
+        },
+        {
+          "step": 1,
+          "event": {
+            "type": "discover_artifact",
+            "artifact_id": "broken-star-compass"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "441ffa1a0d589f224dd3796618834beffd4e58ea87341385bb3b25e689d6dece"
+        },
+        {
+          "step": 2,
+          "event": {
+            "type": "reveal_lore",
+            "lore_id": "map-remembers"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 3,
+          "event": {
+            "type": "portal_unlocked",
+            "portal_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 4,
+          "event": {
+            "type": "node_completed",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 5,
+          "event": {
+            "type": "enter_node",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "349671752475d73ae1b430ea61567822dcd29f439851cfeead549527b9894707"
+        },
+        {
+          "step": 6,
+          "event": {
+            "type": "choose_ascension"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "210577f3659875d630758f8e262d8bf2a5102c8ab256232535cb28e5ba4cdb89"
+        },
+        {
+          "step": 7,
+          "event": {
+            "type": "node_completed",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "210577f3659875d630758f8e262d8bf2a5102c8ab256232535cb28e5ba4cdb89"
+        },
+        {
+          "step": 8,
+          "event": {
+            "type": "enter_node",
+            "node_id": "sky-high"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+        }
+      ]
     },
     "B": {
       "id": "DSVM0-RUN-B",
@@ -118,15 +317,214 @@
           "map-remembers"
         ],
         "ascension": false,
+        "gene_choice_locked": true,
         "convergence_score": 1833
       },
-      "state_commit_hex": "8e08e3956da8c551d4b580304c8d26ca71b2fd1cd42277cb4f4911383878c737",
-      "run_commit_hex": "a88ea21c9abf6054c03c38ff0f474fd73e7c450e2951a92baa43d12dc4a8a171",
+      "state_commit_hex": "23cd067357d3f99eeae6f6b58a00db8a9464a9222aeb7cb035b3e492917758d3",
+      "run_commit_hex": "5434faad67f6cff99219cd1cf87fc5f1c4997604a670ec21c1e7ce9dac2b9443",
       "ct0_verdict": "OK",
       "advisory_projection_hashes": {
         "node_b": "669a7759489f8803",
         "node_c": "4faec61fe17bccc2"
-      }
+      },
+      "state_trace": [
+        {
+          "step": 0,
+          "event": {
+            "type": "enter_node",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "d555e0580c958a31d1619964a02488af81d4cd62e29538769a949ab93a497423"
+        },
+        {
+          "step": 1,
+          "event": {
+            "type": "discover_artifact",
+            "artifact_id": "broken-star-compass"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "441ffa1a0d589f224dd3796618834beffd4e58ea87341385bb3b25e689d6dece"
+        },
+        {
+          "step": 2,
+          "event": {
+            "type": "reveal_lore",
+            "lore_id": "map-remembers"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 3,
+          "event": {
+            "type": "portal_unlocked",
+            "portal_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 4,
+          "event": {
+            "type": "node_completed",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 5,
+          "event": {
+            "type": "enter_node",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "349671752475d73ae1b430ea61567822dcd29f439851cfeead549527b9894707"
+        },
+        {
+          "step": 6,
+          "event": {
+            "type": "choose_creation"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "6befaa7ecfe4623f1a2a83a72bea39addb2f63daf245033c2e157612c195055a"
+        },
+        {
+          "step": 7,
+          "event": {
+            "type": "node_completed",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "6befaa7ecfe4623f1a2a83a72bea39addb2f63daf245033c2e157612c195055a"
+        },
+        {
+          "step": 8,
+          "event": {
+            "type": "enter_node",
+            "node_id": "sky-high"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "23cd067357d3f99eeae6f6b58a00db8a9464a9222aeb7cb035b3e492917758d3"
+        }
+      ]
     },
     "C": {
       "id": "DSVM0-RUN-C",
@@ -181,15 +579,214 @@
           "map-remembers"
         ],
         "ascension": true,
+        "gene_choice_locked": true,
         "convergence_score": 1833
       },
-      "state_commit_hex": "3851a7fd15bf06150606e0c9455cd11fcbdd75153bf541fcd26762a8e7cf8177",
-      "run_commit_hex": "16378563945edd63b45f5087d1d7affca73d75903344be64554693db16eb8643",
+      "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82",
+      "run_commit_hex": "b47221a3818076bd5c4d8c312659c170d53aced3388f86ce6bc5e0e0022dcfbd",
       "ct0_verdict": "OK",
       "advisory_projection_hashes": {
         "node_b": "9fc2916941c8e3e6",
         "node_c": "4faec61fe17bccc2"
-      }
+      },
+      "state_trace": [
+        {
+          "step": 0,
+          "event": {
+            "type": "enter_node",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "d555e0580c958a31d1619964a02488af81d4cd62e29538769a949ab93a497423"
+        },
+        {
+          "step": 1,
+          "event": {
+            "type": "discover_artifact",
+            "artifact_id": "broken-star-compass"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "441ffa1a0d589f224dd3796618834beffd4e58ea87341385bb3b25e689d6dece"
+        },
+        {
+          "step": 2,
+          "event": {
+            "type": "reveal_lore",
+            "lore_id": "map-remembers"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 3,
+          "event": {
+            "type": "portal_unlocked",
+            "portal_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 4,
+          "event": {
+            "type": "node_completed",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 5,
+          "event": {
+            "type": "enter_node",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "349671752475d73ae1b430ea61567822dcd29f439851cfeead549527b9894707"
+        },
+        {
+          "step": 6,
+          "event": {
+            "type": "choose_ascension"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "210577f3659875d630758f8e262d8bf2a5102c8ab256232535cb28e5ba4cdb89"
+        },
+        {
+          "step": 7,
+          "event": {
+            "type": "node_completed",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "210577f3659875d630758f8e262d8bf2a5102c8ab256232535cb28e5ba4cdb89"
+        },
+        {
+          "step": 8,
+          "event": {
+            "type": "enter_node",
+            "node_id": "sky-high"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+        }
+      ]
     },
     "D": {
       "id": "DSVM0-RUN-D",
@@ -260,15 +857,310 @@
           "map-remembers"
         ],
         "ascension": true,
+        "gene_choice_locked": true,
         "convergence_score": 1833
       },
-      "state_commit_hex": "3851a7fd15bf06150606e0c9455cd11fcbdd75153bf541fcd26762a8e7cf8177",
-      "run_commit_hex": "4e3f7045ca80b81fb9521672855bd4c2b2a7030d4f43f7919a3722053fb8373f",
+      "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82",
+      "run_commit_hex": "ce78e3987794e475a65144b41cd169e5082e2ede619d309a16099ed7f836af90",
       "ct0_verdict": "OK",
       "advisory_projection_hashes": {
         "node_b": "9fc2916941c8e3e6",
         "node_c": "4faec61fe17bccc2"
-      }
+      },
+      "state_trace": [
+        {
+          "step": 0,
+          "event": {
+            "type": "enter_node",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "d555e0580c958a31d1619964a02488af81d4cd62e29538769a949ab93a497423"
+        },
+        {
+          "step": 1,
+          "event": {
+            "type": "discover_artifact",
+            "artifact_id": "broken-star-compass"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "441ffa1a0d589f224dd3796618834beffd4e58ea87341385bb3b25e689d6dece"
+        },
+        {
+          "step": 2,
+          "event": {
+            "type": "reveal_lore",
+            "lore_id": "map-remembers"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 3,
+          "event": {
+            "type": "portal_unlocked",
+            "portal_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 4,
+          "event": {
+            "type": "node_completed",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1000
+          },
+          "state_commit_hex": "338ac807e2763f4d47cc260e774a79fe70cd1e9aa0c351416606891f180a6916"
+        },
+        {
+          "step": 5,
+          "event": {
+            "type": "enter_node",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": false,
+            "gene_choice_locked": false,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "349671752475d73ae1b430ea61567822dcd29f439851cfeead549527b9894707"
+        },
+        {
+          "step": 6,
+          "event": {
+            "type": "choose_ascension"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "210577f3659875d630758f8e262d8bf2a5102c8ab256232535cb28e5ba4cdb89"
+        },
+        {
+          "step": 7,
+          "event": {
+            "type": "node_completed",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1500
+          },
+          "state_commit_hex": "210577f3659875d630758f8e262d8bf2a5102c8ab256232535cb28e5ba4cdb89"
+        },
+        {
+          "step": 8,
+          "event": {
+            "type": "enter_node",
+            "node_id": "sky-high"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+        },
+        {
+          "step": 9,
+          "event": {
+            "type": "enter_node",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+        },
+        {
+          "step": 10,
+          "event": {
+            "type": "enter_node",
+            "node_id": "godly-dna"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+        },
+        {
+          "step": 11,
+          "event": {
+            "type": "enter_node",
+            "node_id": "sky-high"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+        },
+        {
+          "step": 12,
+          "event": {
+            "type": "enter_node",
+            "node_id": "neon-in-nirvana"
+          },
+          "state_after": {
+            "visited_nodes": [
+              "neon-in-nirvana",
+              "godly-dna",
+              "sky-high"
+            ],
+            "discovered_artifacts": [
+              "broken-star-compass"
+            ],
+            "revealed_lore": [
+              "map-remembers"
+            ],
+            "ascension": true,
+            "gene_choice_locked": true,
+            "convergence_score": 1833
+          },
+          "state_commit_hex": "07c2bf41d76152a42ba08b0e0924d208fc96f32b721a29b6edb19e5540b74b82"
+        }
+      ]
     }
   }
 }

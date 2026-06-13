@@ -30,7 +30,8 @@ from .spatial_vm_conformance import (
     STREAM_RUN_A, STREAM_RUN_B, STREAM_RUN_C, STREAM_RUN_D,
     RunResult,
 )
-from .traveler_state import TravelerState
+from .traveler_state import TravelerState, apply_event, commit_state
+from .spatial_vm_conformance import _STATE_ORACLE_RUN_ID
 
 FIXTURES_DIR = Path(__file__).parent.parent / "spatial_vm_fixtures"
 ORACLE_JSON = FIXTURES_DIR / "oracle_runs.json"
@@ -52,8 +53,24 @@ def _state_to_dict(state: TravelerState) -> dict:
         "discovered_artifacts": list(state.discovered_artifacts),
         "revealed_lore": list(state.revealed_lore),
         "ascension": state.ascension,
+        "gene_choice_locked": state.gene_choice_locked,
         "convergence_score": state.convergence_score,
     }
+
+
+def _generate_trace(events: list[dict]) -> list[dict]:
+    """Step-by-step trace: state after each event in the stream."""
+    s = TravelerState()
+    trace = []
+    for i, ev in enumerate(events):
+        s = apply_event(s, ev)
+        trace.append({
+            "step": i,
+            "event": ev,
+            "state_after": _state_to_dict(s),
+            "state_commit_hex": commit_state(s, _STATE_ORACLE_RUN_ID).hex(),
+        })
+    return trace
 
 
 def _run_to_dict(result: RunResult) -> dict:
@@ -66,6 +83,7 @@ def _run_to_dict(result: RunResult) -> dict:
         "run_commit_hex": result.commit.hex(),
         "ct0_verdict": result.ct0_verdict,
         "advisory_projection_hashes": result.projection_hashes,
+        "state_trace": _generate_trace(result.events),
     }
 
 
