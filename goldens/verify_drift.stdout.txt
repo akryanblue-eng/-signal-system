@@ -1,0 +1,6 @@
+VDCE RESULT: FAIL
+Artifacts: ./.vdce/runs/run-001
+Certificate: none
+Drift Report: ./.vdce/runs/run-001/drift.json
+Next Step: vdce inspect ./.vdce/runs/run-001
+Exit Code: 2

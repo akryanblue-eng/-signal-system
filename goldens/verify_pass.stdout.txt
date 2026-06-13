@@ -1,0 +1,6 @@
+VDCE RESULT: PASS
+Artifacts: ./.vdce/runs/run-001
+Certificate: ./.vdce/runs/run-001/certificate.json
+Drift Report: none
+Next Step: vdce show ./.vdce/runs/run-001
+Exit Code: 0
