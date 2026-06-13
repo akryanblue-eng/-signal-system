@@ -1,0 +1,20 @@
+{
+  "impl_a_stdout.txt": {
+    "sha256": "79a73ce34c279745880244d9660326fd44b37a3d892e774230656c24cc56a776",
+    "size_bytes": 260
+  },
+  "impl_b_stdout.txt": {
+    "sha256": "3b9a442eec271daf3e3cad8325cb505990d4a0b7c1ac857627f29e52c26681e6",
+    "size_bytes": 260
+  },
+  "invariants.json": {
+    "sha256": "8db713eb8eb94ffe81215a6f5b6899c11deed9de9720b7c0140bd8630fb33a58",
+    "size_bytes": 504
+  },
+  "_meta": {
+    "oracle_commit": "4b7dbeb",
+    "kernel_version": "1.2",
+    "baseline_commit": "edb1735ccfa34f0f89206649ce4d1451da280f9563fdc712247bfc7acb81d8a6",
+    "baseline_certificate": "f56a64c3d9b1b4d8383c7d74693cd55cff8eb4ff077c3646fd2bacb13fbab178"
+  }
+}

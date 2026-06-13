@@ -1,0 +1,197 @@
+name: Evidence Gate — CVP-v1.1
+
+on:
+  push:
+    branches: ["claude/simulation-os-v0.5-kernel-ref-inrlk7", "main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  evidence-gate:
+    strategy:
+      fail-fast: true
+      matrix:
+        impl:
+          - id: impl_a
+            label: "Python 3.11 / src/"
+            runner: ubuntu-22.04
+          - id: impl_b
+            label: "Go 1.24 / impl_b/"
+            runner: ubuntu-22.04
+
+    name: "${{ matrix.impl.label }}"
+    runs-on: "${{ matrix.impl.runner }}"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Implementation A ──────────────────────────────────────────────────
+      - name: Set up Python (impl_a only)
+        if: matrix.impl.id == 'impl_a'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run Evidence Gate — Python (byte-safe capture)
+        if: matrix.impl.id == 'impl_a'
+        # python -u: unbuffered stdout (eliminates buffer flush ordering risk)
+        # > stdout.log: direct file redirect, no pipe, no tee
+        run: python -u -m src.evidence_gate > stdout.log
+        shell: bash
+
+      # ── Implementation B ──────────────────────────────────────────────────
+      - name: Set up Go (impl_b only)
+        if: matrix.impl.id == 'impl_b'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Run Evidence Gate — Go (byte-safe capture)
+        if: matrix.impl.id == 'impl_b'
+        # Direct file redirect, no pipe. Go stdout is unbuffered by default.
+        run: cd impl_b && go run main.go > ../stdout.log
+        shell: bash
+
+      # ── Byte-level verification ───────────────────────────────────────────
+      - name: Verify log is non-empty
+        run: |
+          [ -s stdout.log ] || { echo "FAIL: stdout.log is empty"; exit 1; }
+        shell: bash
+
+      - name: Extract and verify commit field
+        run: |
+          set -euo pipefail
+          commit=$(grep '^commit:' stdout.log | awk '{print $2}')
+          echo "commit=$commit" >> "$GITHUB_ENV"
+          # Verify it is exactly 64 lowercase hex chars
+          echo "$commit" | grep -Eq '^[0-9a-f]{64}$' \
+            || { echo "FAIL: commit field malformed: $commit"; exit 1; }
+        shell: bash
+
+      - name: Extract and verify certificate field
+        run: |
+          set -euo pipefail
+          cert=$(grep '^certificate:' stdout.log | awk '{print $2}')
+          echo "cert=$cert" >> "$GITHUB_ENV"
+          echo "$cert" | grep -Eq '^[0-9a-f]{64}$' \
+            || { echo "FAIL: certificate field malformed: $cert"; exit 1; }
+        shell: bash
+
+      - name: Verify against locked baseline
+        run: |
+          set -euo pipefail
+          BASELINE_COMMIT="edb1735ccfa34f0f89206649ce4d1451da280f9563fdc712247bfc7acb81d8a6"
+          BASELINE_CERT="f56a64c3d9b1b4d8383c7d74693cd55cff8eb4ff077c3646fd2bacb13fbab178"
+          if [ "$commit" != "$BASELINE_COMMIT" ]; then
+            echo "FAIL [commit]"
+            echo "  baseline: $BASELINE_COMMIT"
+            echo "  observed: $commit"
+            exit 1
+          fi
+          if [ "$cert" != "$BASELINE_CERT" ]; then
+            echo "FAIL [certificate]"
+            echo "  baseline: $BASELINE_CERT"
+            echo "  observed: $cert"
+            exit 1
+          fi
+          echo "PASS"
+        shell: bash
+
+      - name: Hash the raw stdout log (transport integrity)
+        run: |
+          set -euo pipefail
+          log_hash=$(sha256sum stdout.log | awk '{print $1}')
+          echo "log_sha256=$log_hash" >> "$GITHUB_ENV"
+          echo "log_sha256: $log_hash"
+        shell: bash
+
+      - name: Emit CVP-v1.1 bundle summary
+        run: |
+          set -euo pipefail
+          echo "### CVP-v1.1 Evidence Bundle" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| impl | ${{ matrix.impl.id }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| run_id | $(grep '^run_id:' stdout.log | awk '{print $2}') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| build_id | $(grep '^build_id:' stdout.log | awk '{print $2}') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| commit | \`$commit\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| certificate | \`$cert\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| log_sha256 | \`$log_sha256\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| verdict | PASS |" >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+
+      # Upload raw log as binary artifact before any further normalization
+      - name: Upload stdout.log artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "cvp-v1.1-${{ matrix.impl.id }}-${{ github.sha }}"
+          path: stdout.log
+          # retention: default (90 days); artifact is the immutable record
+          if-no-files-found: error
+
+  # ── Cross-implementation comparator ──────────────────────────────────────
+  compare:
+    name: "Cross-impl comparator"
+    needs: evidence-gate
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Download impl_a artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: "cvp-v1.1-impl_a-${{ github.sha }}"
+          path: logs/impl_a
+
+      - name: Download impl_b artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: "cvp-v1.1-impl_b-${{ github.sha }}"
+          path: logs/impl_b
+
+      - name: Extract commit + certificate from each log
+        run: |
+          set -euo pipefail
+          commit_a=$(grep '^commit:' logs/impl_a/stdout.log | awk '{print $2}')
+          cert_a=$(grep '^certificate:' logs/impl_a/stdout.log | awk '{print $2}')
+          commit_b=$(grep '^commit:' logs/impl_b/stdout.log | awk '{print $2}')
+          cert_b=$(grep '^certificate:' logs/impl_b/stdout.log | awk '{print $2}')
+          echo "commit_a=$commit_a" >> "$GITHUB_ENV"
+          echo "cert_a=$cert_a"     >> "$GITHUB_ENV"
+          echo "commit_b=$commit_b" >> "$GITHUB_ENV"
+          echo "cert_b=$cert_b"     >> "$GITHUB_ENV"
+        shell: bash
+
+      - name: Binary comparator
+        run: |
+          set -euo pipefail
+          fail=0
+          if [ "$commit_a" != "$commit_b" ]; then
+            echo "FAIL [commit]"
+            echo "  impl_a: $commit_a"
+            echo "  impl_b: $commit_b"
+            fail=1
+          fi
+          if [ "$cert_a" != "$cert_b" ]; then
+            echo "FAIL [certificate]"
+            echo "  impl_a: $cert_a"
+            echo "  impl_b: $cert_b"
+            fail=1
+          fi
+          [ $fail -eq 0 ] && echo "PASS — commit_a == commit_b AND cert_a == cert_b"
+          exit $fail
+        shell: bash
+
+      - name: Emit cross-impl comparator summary
+        if: always()
+        run: |
+          echo "### Cross-impl Comparator" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | impl_a | impl_b | Match |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          match_c=$( [ "$commit_a" = "$commit_b" ] && echo "✅" || echo "❌" )
+          match_r=$( [ "$cert_a"   = "$cert_b"   ] && echo "✅" || echo "❌" )
+          echo "| commit | \`${commit_a:0:16}…\` | \`${commit_b:0:16}…\` | $match_c |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| certificate | \`${cert_a:0:16}…\` | \`${cert_b:0:16}…\` | $match_r |" >> "$GITHUB_STEP_SUMMARY"
+        shell: bash

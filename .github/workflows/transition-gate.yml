@@ -1,0 +1,57 @@
+name: CVP Transition Gate — v1.2 → v1.3
+
+on:
+  push:
+    paths:
+      - "transition_morphism.json"
+      - "cvp_transition/**"
+  pull_request:
+    paths:
+      - "transition_morphism.json"
+      - "cvp_transition/**"
+  workflow_dispatch:
+
+jobs:
+  transition-gate:
+    name: "cvp.transition.validate"
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate transition morphism
+        # Exit codes:
+        #   0 — valid morphism
+        #   1 — invariant violation
+        #   2 — determinism failure
+        #   3 — witness failure (pre-populated OK witnesses required)
+        #   4 — semantic reinterpretation detected
+        run: python -m cvp_transition transition_morphism.json
+        shell: bash
+
+      - name: Emit transition gate summary
+        if: always()
+        run: |
+          python -m cvp_transition transition_morphism.json > gate_output.txt 2>&1
+          exit_code=$?
+          echo "### CVP Transition Gate" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          cat gate_output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          case $exit_code in
+            0) echo "**Result: TRANSITION VALID**" >> "$GITHUB_STEP_SUMMARY" ;;
+            1) echo "**Result: INVARIANT VIOLATION (exit 1)**" >> "$GITHUB_STEP_SUMMARY" ;;
+            2) echo "**Result: DETERMINISM FAILURE (exit 2)**" >> "$GITHUB_STEP_SUMMARY" ;;
+            3) echo "**Result: WITNESS FAILURE (exit 3)** — populate independent_execution in transition_morphism.json" >> "$GITHUB_STEP_SUMMARY" ;;
+            4) echo "**Result: SEMANTIC REINTERPRETATION DETECTED (exit 4)**" >> "$GITHUB_STEP_SUMMARY" ;;
+          esac
+          exit $exit_code
+        shell: bash
