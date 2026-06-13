@@ -6,8 +6,7 @@ struct SkyHighView: View {
 	@Binding var travelerState: TravelerState
 
 	@State private var root: Entity?
-	@State private var realityBaseline: Entity?
-	@State private var realityAscended: Entity?
+	@State private var landmark: Entity?
 	@State private var inversionFlash: Entity?
 
 	@State private var pendingSceneEffects = PendingSceneEffects()
@@ -15,15 +14,24 @@ struct SkyHighView: View {
 
 	// MARK: - Node-local VM
 
-	enum QSEvent: Equatable { case onEnterNode(nodeId: String) }
+	enum QSEvent: Equatable {
+		case onEnterNode(nodeId: String)
+	}
 
-	enum Reaction: Equatable { case setFlag(String, Bool) }
+	enum Reaction: Equatable {
+		case setFlag(String, Bool)
+	}
 
-	enum SceneEffect: Equatable { case flashEntity(name: String) }
+	enum SceneEffect: Equatable {
+		case flashEntity(name: String)
+	}
 
-	struct PendingSceneEffects: Equatable { var effects: [SceneEffect] = [] }
+	struct PendingSceneEffects: Equatable {
+		var effects: [SceneEffect] = []
+	}
 
-	struct Rule: Equatable {
+	// Rule omits Equatable: condition is a closure and cannot synthesize it.
+	struct Rule {
 		let whenEvent: QSEvent
 		let condition: (TravelerState) -> Bool
 		let thenReactions: [Reaction]
@@ -53,22 +61,66 @@ struct SkyHighView: View {
 		]
 	}
 
-	private func evaluate(_ event: QSEvent) -> (reactions: [Reaction], scene: [SceneEffect]) {
-		for r in rules() where r.whenEvent == event && r.condition(travelerState) {
-			return (r.thenReactions, r.thenSceneEffects)
-		}
-		return ([], [])
+	// MARK: - Drift model (state-only causal memory field)
+
+	// ascension = semantic depth; visitedNodes = experiential saturation.
+	// Returns a value in [0, 1] representing accumulated narrative weight.
+	private func driftFactor(from state: TravelerState) -> CGFloat {
+		let ascensionWeight = CGFloat(state.ascension) * 0.7
+		let visitWeight = CGFloat(state.visitedNodes.count) * 0.08
+		return min(ascensionWeight + visitWeight, 1.0)
 	}
+
+	// Quantized decoder: three perceptual bands, not a continuous blend.
+	// RealityKit materials are value snapshots — discrete bands give
+	// XR-legible transitions instead of sub-perceptual drift.
+	private func material(for drift: CGFloat) -> SimpleMaterial {
+		switch drift {
+		case 0.0..<0.33:
+			return Self.vinedStoneMaterial
+		case 0.33..<0.66:
+			return Self.midAwakenedMaterial
+		default:
+			return Self.polishedGoldMaterial
+		}
+	}
+
+	// MARK: - Material lattice (static, constructed once)
+
+	private static let vinedStoneMaterial =
+		SimpleMaterial(color: .gray, roughness: 0.95, isMetallic: false)
+
+	private static let midAwakenedMaterial =
+		SimpleMaterial(color: .green, roughness: 0.45, isMetallic: true)
+
+	private static let polishedGoldMaterial =
+		SimpleMaterial(color: .yellow, roughness: 0.15, isMetallic: true)
+
+	// MARK: - Evaluation
+
+	private func evaluate(_ event: QSEvent) -> (reactions: [Reaction], scene: [SceneEffect]) {
+		guard let rule = rules().first(where: {
+			$0.whenEvent == event && $0.condition(travelerState)
+		}) else {
+			return ([], [])
+		}
+		return (rule.thenReactions, rule.thenSceneEffects)
+	}
+
+	// MARK: - Reducer (state truth)
 
 	private func apply(_ reactions: [Reaction]) {
 		var next = travelerState
 		for r in reactions {
 			switch r {
-			case .setFlag(let k, let v): next.flags[k] = v
+			case .setFlag(let k, let v):
+				next.flags[k] = v
 			}
 		}
 		travelerState = next
 	}
+
+	// MARK: - Event spine
 
 	private func emit(_ event: QSEvent) {
 		let (reactions, sceneDelta) = evaluate(event)
@@ -83,9 +135,8 @@ struct SkyHighView: View {
 			let scene = try await Entity(named: "SkyHigh", in: realityKitContentBundle)
 			content.add(scene)
 
-			self.root = scene.findEntity(named: "SkyHighRoot") ?? scene
-			self.realityBaseline = scene.findEntity(named: "Reality_Baseline")
-			self.realityAscended = scene.findEntity(named: "Reality_Ascended")
+			self.root = scene.findEntity(named: "SkyHighRoot")
+			self.landmark = scene.findEntity(named: "TheLandmark")
 			self.inversionFlash = scene.findEntity(named: "InversionFlash")
 
 			emit(.onEnterNode(nodeId: "sky-high"))
@@ -95,20 +146,23 @@ struct SkyHighView: View {
 		}
 	}
 
-	// MARK: - Projection (dual-reality toggle)
+	// MARK: - Projection (f(StateHistory) → Material Identity)
 
 	private func projectWorld() {
 		guard !isProjecting else { return }
 		isProjecting = true
 		defer { isProjecting = false }
 
-		let ascended = travelerState.ascension >= 1
-		realityAscended?.isEnabled = ascended
-		realityBaseline?.isEnabled = !ascended
+		if let landmark,
+		   var model = landmark.components[ModelComponent.self] {
+			model.materials = [material(for: driftFactor(from: travelerState))]
+			landmark.components.set(model)
+		}
+
 		consumePendingSceneEffects()
 	}
 
-	// MARK: - SceneEffects
+	// MARK: - Scene effects (ephemeral)
 
 	private func consumePendingSceneEffects() {
 		guard let root else { return }
