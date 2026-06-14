@@ -28,12 +28,18 @@ step "schema-compiler: 17 tests"
 (cd "$ROOT/schema-compiler" && cargo test --quiet 2>&1) && ok "schema-compiler" || fail "schema-compiler"
 
 # ── Regenerate outputs and verify hash stability ──────────────────────────────
-step "schema-compiler: generate + hash check"
+step "schema-compiler: generate + combined_hash check"
 SCHEMA_OUT="$(mktemp -d)"
-(cd "$ROOT/schema-compiler" && \
+SCHEMA_COMBINED_HASH_LOCKED="772a0ccc18861627c4f4bc6611134ba017b27e7c21b50f4236a7eaf2a25314d7"
+SCHEMA_COMBINED_HASH_ACTUAL=$(cd "$ROOT/schema-compiler" && \
     cargo run --quiet -- build \
         --input EVENT_SCHEMAS.v1.json \
-        --output-dir "$SCHEMA_OUT" 2>&1) && ok "schema-compiler generate" || fail "schema-compiler generate"
+        --output-dir "$SCHEMA_OUT" 2>&1 | grep "Combined hash:" | awk '{print $NF}')
+if [ "$SCHEMA_COMBINED_HASH_ACTUAL" = "$SCHEMA_COMBINED_HASH_LOCKED" ]; then
+    ok "schema-compiler combined_hash stable ($SCHEMA_COMBINED_HASH_ACTUAL)"
+else
+    fail "schema-compiler combined_hash DRIFT: got $SCHEMA_COMBINED_HASH_ACTUAL, expected $SCHEMA_COMBINED_HASH_LOCKED"
+fi
 
 # ── Layer B: impl_c (CT-0 / RI-0 execution core) ─────────────────────────────
 step "impl_c: build + run (CT-0 + spatial replay)"
