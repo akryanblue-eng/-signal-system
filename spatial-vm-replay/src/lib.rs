@@ -1,3 +1,4 @@
+pub mod dispatch;
 pub mod event;
 pub mod lock;
 pub mod machine;

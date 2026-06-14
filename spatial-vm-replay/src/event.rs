@@ -35,17 +35,3 @@ pub enum SpatialEvent {
         portal_id: String,
     },
 }
-
-impl SpatialEvent {
-    pub fn event_type_str(&self) -> &'static str {
-        match self {
-            SpatialEvent::EnterNode { .. } => "enter_node",
-            SpatialEvent::DiscoverArtifact { .. } => "discover_artifact",
-            SpatialEvent::RevealLore { .. } => "reveal_lore",
-            SpatialEvent::ChooseAscension => "choose_ascension",
-            SpatialEvent::ChooseCreation => "choose_creation",
-            SpatialEvent::NodeCompleted { .. } => "node_completed",
-            SpatialEvent::PortalUnlocked { .. } => "portal_unlocked",
-        }
-    }
-}
