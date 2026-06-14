@@ -1,0 +1,40 @@
+[
+  {
+    "eventType": "choose_ascension",
+    "fields": []
+  },
+  {
+    "eventType": "choose_creation",
+    "fields": []
+  },
+  {
+    "eventType": "discover_artifact",
+    "fields": [
+      { "name": "artifactId", "type": "string" }
+    ]
+  },
+  {
+    "eventType": "enter_node",
+    "fields": [
+      { "name": "nodeId", "type": "string" }
+    ]
+  },
+  {
+    "eventType": "node_completed",
+    "fields": [
+      { "name": "nodeId", "type": "string" }
+    ]
+  },
+  {
+    "eventType": "portal_unlocked",
+    "fields": [
+      { "name": "portalId", "type": "string" }
+    ]
+  },
+  {
+    "eventType": "reveal_lore",
+    "fields": [
+      { "name": "loreId", "type": "string" }
+    ]
+  }
+]
