@@ -15,8 +15,15 @@ impl fmt::Display for ValidationError {
 impl Error for ValidationError {}
 
 pub fn validate(schemas: &[Schema]) -> Result<(), ValidationError> {
+    let mut seen_types: HashSet<&str> = HashSet::new();
     for schema in schemas {
         validate_event_type(&schema.eventType)?;
+        if !seen_types.insert(schema.eventType.as_str()) {
+            return Err(ValidationError(format!(
+                "Duplicate eventType: {}",
+                schema.eventType
+            )));
+        }
         validate_fields(&schema.fields, &schema.eventType)?;
     }
     Ok(())

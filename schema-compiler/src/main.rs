@@ -1,11 +1,4 @@
-mod json_gen;
-mod manifest;
-mod normalize;
-mod rust_gen;
-mod schema;
-mod swift;
-mod validate;
-
+use schema_compiler::{json_gen, json_loader, manifest, normalize, rust_gen, swift, validate};
 use clap::{Parser, Subcommand};
 use std::fs;
 
@@ -35,8 +28,8 @@ fn main() {
             let schema_json =
                 fs::read_to_string(&input).expect("Failed to read schema registry");
 
-            let schemas: Vec<schema::Schema> =
-                serde_json::from_str(&schema_json).expect("Failed to parse schema registry");
+            let schemas =
+                json_loader::load_schemas_from_str(&schema_json).expect("Failed to parse schema registry");
 
             validate::validate(&schemas).expect("Schema validation failed");
 

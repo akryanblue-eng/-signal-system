@@ -43,6 +43,18 @@ pub fn emit_rust(schemas: &[Schema]) -> String {
     }
     out.push_str("        }\n");
     out.push_str("    }\n");
+    out.push_str("}\n\n");
+
+    // Bijectivity surface: sorted list of all known event type strings.
+    out.push_str("pub const EVENT_TYPES: &[&str] = &[\n");
+    for schema in schemas {
+        out.push_str(&format!("    \"{}\",\n", schema.eventType));
+    }
+    out.push_str("];\n\n");
+
+    // Binary search on the sorted constant — O(log n), no heap allocation.
+    out.push_str("pub fn is_known_event_type(s: &str) -> bool {\n");
+    out.push_str("    EVENT_TYPES.binary_search(&s).is_ok()\n");
     out.push_str("}\n");
 
     out

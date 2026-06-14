@@ -3,6 +3,14 @@ name = "dsvm-schema-compiler"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "schema_compiler"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dsvm-schema-compiler"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
