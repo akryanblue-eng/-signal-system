@@ -4,6 +4,7 @@
 
 use dsvm_core::{ri0_replay, WitnessPacket304};
 use sha2::{Digest, Sha256};
+use spatial_vm_replay::{event::SpatialEvent, replay, state::TravelerState};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 struct CfrFailureRecord {
@@ -106,6 +107,7 @@ fn build_synthetic_trace() -> WitnessPacket304 {
 }
 
 fn main() {
+    // --- RI-0 / CT-0 path (WitnessPacket304) ---
     let packet = build_synthetic_trace();
 
     let mut trace_input = Vec::new();
@@ -132,4 +134,25 @@ fn main() {
     println!("commit:      {}", hex::encode(replay_commit));
     println!("certificate: {}", cert.certificate_id);
     println!("verdict:     {}", verdict.status);
+
+    // --- Spatial replay path (TravelerState + SpatialEvent → seq_commit → CT-0) ---
+    // SpatialEvent variants are exhaustively matched in machine::apply — no _ arm.
+    let events: Vec<SpatialEvent> = vec![
+        SpatialEvent::EnterNode { node_id: "node-1".into() },
+        SpatialEvent::DiscoverArtifact { artifact_id: "artifact-x".into() },
+        SpatialEvent::RevealLore { lore_id: "lore-42".into() },
+        SpatialEvent::NodeCompleted { node_id: "node-1".into() },
+        SpatialEvent::PortalUnlocked { portal_id: "portal-z".into() },
+        SpatialEvent::ChooseAscension,
+        SpatialEvent::ChooseCreation,
+    ];
+    let rr = replay::replay(TravelerState::default(), &events);
+    // seq_commit is the authority commit: same inputs → same hash (determinism invariant).
+    let spatial_auth = rr.seq_commit;
+    let spatial_replay = replay::replay(TravelerState::default(), &events).seq_commit;
+    let (sv, sc) = ct0_evaluate(&spatial_auth, &spatial_replay, "SPATIAL-V1");
+    println!();
+    println!("spatial seq_commit: {}", hex::encode(spatial_replay));
+    println!("spatial verdict:    {}", sv.status);
+    println!("spatial cert:       {}", sc.certificate_id);
 }
