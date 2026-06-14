@@ -21,14 +21,19 @@ pub fn per_vector_root(id: &str, ri0_commit: &[u8; 32]) -> [u8; 32] {
     h.finalize().into()
 }
 
-/// Global root: spec_hash first (binds execution model), then sorted per-vector roots.
-/// Spec drift and vector drift both break this root — independently attributable.
-pub fn global_root(per_roots: &[(String, [u8; 32])]) -> [u8; 32] {
+/// Global root: spec_hash first (binds execution model), then spatial_global_root
+/// (binds spatial VM replay vectors), then sorted per-vector RI-0 roots.
+/// All three layers must pass — spec drift, spatial drift, and RI-0 vector drift each
+/// independently change this root.
+pub fn global_root(
+    spatial_global_root: &[u8; 32],
+    per_roots: &[(String, [u8; 32])],
+) -> [u8; 32] {
     let spec = spec_hash();
-    // Caller must provide per_roots sorted by id — enforced via load_vectors_from_dir ordering.
     let mut h = Sha256::new();
     h.update(b"GOLDEN_LOCK_V1\0");
     h.update(spec); // VAS Exec Model v1 binding — spec change = new root
+    h.update(spatial_global_root); // spatial-vm-replay global root binding
     for (_, root) in per_roots {
         h.update(root);
     }
@@ -44,6 +49,7 @@ pub struct VectorResult {
 
 pub fn evaluate_vectors(
     vectors: &[crate::vector::GoldenVector],
+    spatial_global_root: &[u8; 32],
 ) -> (Vec<VectorResult>, String, String) {
     let mut per_roots: Vec<(String, [u8; 32])> = Vec::new();
     let mut results: Vec<VectorResult> = Vec::new();
@@ -61,7 +67,7 @@ pub fn evaluate_vectors(
     }
 
     // per_roots already sorted by ID (vectors sorted in load_vectors_from_dir)
-    let gr = global_root(&per_roots);
+    let gr = global_root(spatial_global_root, &per_roots);
     let sh = hex::encode(spec_hash());
     (results, hex::encode(gr), sh)
 }

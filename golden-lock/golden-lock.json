@@ -1,5 +1,6 @@
 {
-  "global_root": "8189ea3959d40ae12904267df11fca6a51da6ffd7e54d7dcb78d686557f193fe",
+  "global_root": "d12983c6619703a47201de7943b4dc4d675db45bfec6e50bca9171c68f60bbb1",
+  "spatial_global_root": "d7834dc4983a4ddf0d2a700e97cbe17e80b0915f2f4e0ffc8e1777456e95f1c2",
   "spec": "vas-exec-model-v1",
   "spec_hash": "5cb4b4e7f660757d39162694b41b708157fd5f40da4e3a5162116b4e25f1a89e",
   "vectors": [
