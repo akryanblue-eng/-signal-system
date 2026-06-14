@@ -1,0 +1,13 @@
+{
+  "id": "TV-P1",
+  "description": "Minimal trace — single signal, zero-value prev/bundle/validator, tests base-case encoding",
+  "run_id": "TV-P1",
+  "prev_state_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+  "frozen_batch_hex": "00",
+  "bundle_hash_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+  "bundle_version": 1,
+  "validator_pubkey_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+  "signals": [
+    ["alive", 1]
+  ]
+}

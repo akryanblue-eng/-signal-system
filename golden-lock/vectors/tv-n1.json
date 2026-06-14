@@ -1,0 +1,16 @@
+{
+  "id": "TV-N1",
+  "description": "Synthetic trace V05 — must produce commit edb1735c... matching impl_a and impl_b",
+  "run_id": "TRACE-V05-0001",
+  "prev_state_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "frozen_batch_hex": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
+  "bundle_hash_preimage": "simulation-os-bundle-v0.5",
+  "bundle_version": 5,
+  "validator_pubkey_preimage": "validator-pubkey-ri0-ct0",
+  "signals": [
+    ["signal.alpha", 1],
+    ["signal.beta", 2],
+    ["signal.gamma", 3],
+    ["signal.alpha", 99]
+  ]
+}

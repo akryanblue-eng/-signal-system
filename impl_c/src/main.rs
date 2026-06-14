@@ -2,21 +2,9 @@
 // RI-0 + CT-0 Evidence Gate chain.
 // Canonical encoding must match Python (impl_a) and Go (impl_b) exactly.
 
+use dsvm_core::{ri0_replay, WitnessPacket304};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-// ---- Types ----
-
-struct WitnessPacket304 {
-    run_id: String,
-    prev_state_bytes: Vec<u8>,
-    frozen_batch_bytes: Vec<u8>,
-    bundle_hash: [u8; 32],
-    bundle_version: u32,
-    validator_pubkey: [u8; 32],
-    signals: Vec<(String, i64)>,
-}
 
 struct CfrFailureRecord {
     cfr_id: String,
@@ -40,70 +28,13 @@ struct Certificate {
     issued_at_ns: u64,
 }
 
-// ---- RI-0 ----
-
-fn encode_signals(signals: &[(String, i64)]) -> Vec<u8> {
-    // Dedup by key (last value wins), then sort lexicographically via BTreeMap.
-    let mut deduped: BTreeMap<String, i64> = BTreeMap::new();
-    for (key, value) in signals {
-        deduped.insert(key.clone(), *value);
-    }
-
-    let mut out = Vec::new();
-    for (key, value) in &deduped {
-        let key_bytes = key.as_bytes();
-        out.extend_from_slice(&(key_bytes.len() as u16).to_be_bytes());
-        out.extend_from_slice(key_bytes);
-        out.extend_from_slice(&(*value as i64).to_be_bytes());
-    }
-    out
-}
-
-fn ri0_replay(p: &WitnessPacket304) -> [u8; 32] {
-    let mut h = Sha256::new();
-
-    // run_id: uint16 length + utf8 bytes
-    let run_id_bytes = p.run_id.as_bytes();
-    h.update((run_id_bytes.len() as u16).to_be_bytes());
-    h.update(run_id_bytes);
-
-    // prev_state_bytes: uint32 length + bytes
-    h.update((p.prev_state_bytes.len() as u32).to_be_bytes());
-    h.update(&p.prev_state_bytes);
-
-    // frozen_batch_bytes: uint32 length + bytes
-    h.update((p.frozen_batch_bytes.len() as u32).to_be_bytes());
-    h.update(&p.frozen_batch_bytes);
-
-    // bundle_hash: fixed 32 bytes
-    h.update(p.bundle_hash);
-
-    // bundle_version: uint32 big-endian
-    h.update(p.bundle_version.to_be_bytes());
-
-    // validator_pubkey: fixed 32 bytes
-    h.update(p.validator_pubkey);
-
-    // signals: uint32 length + encoded bytes
-    let sig_bytes = encode_signals(&p.signals);
-    h.update((sig_bytes.len() as u32).to_be_bytes());
-    h.update(&sig_bytes);
-
-    h.finalize().into()
-}
-
-// ---- CT-0 ----
-
 fn ct0_evaluate(
     auth_commit: &[u8; 32],
     replay_commit: &[u8; 32],
     run_id: &str,
 ) -> (Verdict, Certificate) {
     let verdict = if auth_commit == replay_commit {
-        Verdict {
-            status: "OK".to_string(),
-            cfr: None,
-        }
+        Verdict { status: "OK".to_string(), cfr: None }
     } else {
         let mut ev_input = Vec::new();
         ev_input.extend_from_slice(auth_commit);
@@ -145,8 +76,6 @@ fn ct0_evaluate(
     (verdict, cert)
 }
 
-// ---- Synthetic trace (must match Python build_synthetic_trace) ----
-
 fn build_synthetic_trace() -> WitnessPacket304 {
     let bundle_hash: [u8; 32] = Sha256::digest(b"simulation-os-bundle-v0.5").into();
     let validator_pubkey: [u8; 32] = Sha256::digest(b"validator-pubkey-ri0-ct0").into();
@@ -179,7 +108,6 @@ fn build_synthetic_trace() -> WitnessPacket304 {
 fn main() {
     let packet = build_synthetic_trace();
 
-    // Trace ID: SHA256(run_id_bytes || bundle_hash)[:8] uppercase hex
     let mut trace_input = Vec::new();
     trace_input.extend_from_slice(packet.run_id.as_bytes());
     trace_input.extend_from_slice(&packet.bundle_hash);
@@ -196,7 +124,7 @@ fn main() {
 
     let (verdict, cert) = ct0_evaluate(&auth_commit, &replay_commit, &packet.run_id);
 
-    let build_id = "C1EA5749F20B3D92"; // impl_c build marker
+    let build_id = "C1EA5749F20B3D92";
 
     println!("run_id:      {}", packet.run_id);
     println!("build_id:    {}", build_id);

@@ -1,0 +1,15 @@
+{
+  "id": "TV-P2",
+  "description": "Signal deduplication — [x=1, x=2, y=3] must dedup to [x=2, y=3] (last-value-wins, lex sort)",
+  "run_id": "TV-P2",
+  "prev_state_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+  "frozen_batch_hex": "deadbeef",
+  "bundle_hash_preimage": "tv-p2-bundle",
+  "bundle_version": 2,
+  "validator_pubkey_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+  "signals": [
+    ["x", 1],
+    ["x", 2],
+    ["y", 3]
+  ]
+}
