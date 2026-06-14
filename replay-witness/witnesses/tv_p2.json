@@ -1,0 +1,80 @@
+{
+  "fields": [
+    {
+      "bytes": "54562d5032",
+      "field": "run_id",
+      "length_prefix": "0005"
+    },
+    {
+      "bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "field": "prev_state",
+      "length_prefix": "00000020"
+    },
+    {
+      "bytes": "deadbeef",
+      "field": "frozen_batch",
+      "length_prefix": "00000004"
+    },
+    {
+      "bytes": "18f1050eeaa3934a0fd493143a1207889ea7f4a3780cbd2494a32f9ef62f7be3",
+      "field": "bundle_hash"
+    },
+    {
+      "bytes": "00000002",
+      "field": "bundle_version"
+    },
+    {
+      "bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "field": "validator_pubkey"
+    },
+    {
+      "after_dedup": [
+        [
+          "x",
+          2
+        ],
+        [
+          "y",
+          3
+        ]
+      ],
+      "bytes": "00017800000000000000020001790000000000000003",
+      "field": "signals",
+      "length_prefix": "00000016",
+      "raw": [
+        [
+          "x",
+          1
+        ],
+        [
+          "x",
+          2
+        ],
+        [
+          "y",
+          3
+        ]
+      ],
+      "signal_steps": [
+        {
+          "encoding_hex": "0001780000000000000002",
+          "key": "x",
+          "key_bytes": "78",
+          "key_length_prefix": "0001",
+          "value": 2,
+          "value_bytes": "0000000000000002"
+        },
+        {
+          "encoding_hex": "0001790000000000000003",
+          "key": "y",
+          "key_bytes": "79",
+          "key_length_prefix": "0001",
+          "value": 3,
+          "value_bytes": "0000000000000003"
+        }
+      ]
+    }
+  ],
+  "ri0_commit": "cb68a59e9eb6d2bf7a64a9d3db55ec05eccf87595c7860fae1694052da0cf7d6",
+  "vector_id": "TV-P2"
+}

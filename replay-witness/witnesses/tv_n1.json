@@ -1,0 +1,96 @@
+{
+  "fields": [
+    {
+      "bytes": "54524143452d5630352d30303031",
+      "field": "run_id",
+      "length_prefix": "000e"
+    },
+    {
+      "bytes": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "field": "prev_state",
+      "length_prefix": "00000040"
+    },
+    {
+      "bytes": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
+      "field": "frozen_batch",
+      "length_prefix": "00000030"
+    },
+    {
+      "bytes": "39c24ffe9f762df01380a2c0a567a0f4ee8989ae101ba527cfc723d882b78d32",
+      "field": "bundle_hash"
+    },
+    {
+      "bytes": "00000005",
+      "field": "bundle_version"
+    },
+    {
+      "bytes": "a9fbea62c3e5d83fc07d5aab7b953d86b4240f03c9d306aa3e469f3b23c23be0",
+      "field": "validator_pubkey"
+    },
+    {
+      "after_dedup": [
+        [
+          "signal.alpha",
+          99
+        ],
+        [
+          "signal.beta",
+          2
+        ],
+        [
+          "signal.gamma",
+          3
+        ]
+      ],
+      "bytes": "000c7369676e616c2e616c7068610000000000000063000b7369676e616c2e626574610000000000000002000c7369676e616c2e67616d6d610000000000000003",
+      "field": "signals",
+      "length_prefix": "00000041",
+      "raw": [
+        [
+          "signal.alpha",
+          1
+        ],
+        [
+          "signal.beta",
+          2
+        ],
+        [
+          "signal.gamma",
+          3
+        ],
+        [
+          "signal.alpha",
+          99
+        ]
+      ],
+      "signal_steps": [
+        {
+          "encoding_hex": "000c7369676e616c2e616c7068610000000000000063",
+          "key": "signal.alpha",
+          "key_bytes": "7369676e616c2e616c706861",
+          "key_length_prefix": "000c",
+          "value": 99,
+          "value_bytes": "0000000000000063"
+        },
+        {
+          "encoding_hex": "000b7369676e616c2e626574610000000000000002",
+          "key": "signal.beta",
+          "key_bytes": "7369676e616c2e62657461",
+          "key_length_prefix": "000b",
+          "value": 2,
+          "value_bytes": "0000000000000002"
+        },
+        {
+          "encoding_hex": "000c7369676e616c2e67616d6d610000000000000003",
+          "key": "signal.gamma",
+          "key_bytes": "7369676e616c2e67616d6d61",
+          "key_length_prefix": "000c",
+          "value": 3,
+          "value_bytes": "0000000000000003"
+        }
+      ]
+    }
+  ],
+  "ri0_commit": "edb1735ccfa34f0f89206649ce4d1451da280f9563fdc712247bfc7acb81d8a6",
+  "vector_id": "TV-N1"
+}

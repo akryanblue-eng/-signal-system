@@ -1,0 +1,60 @@
+{
+  "fields": [
+    {
+      "bytes": "54562d5031",
+      "field": "run_id",
+      "length_prefix": "0005"
+    },
+    {
+      "bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "field": "prev_state",
+      "length_prefix": "00000020"
+    },
+    {
+      "bytes": "00",
+      "field": "frozen_batch",
+      "length_prefix": "00000001"
+    },
+    {
+      "bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "field": "bundle_hash"
+    },
+    {
+      "bytes": "00000001",
+      "field": "bundle_version"
+    },
+    {
+      "bytes": "0000000000000000000000000000000000000000000000000000000000000000",
+      "field": "validator_pubkey"
+    },
+    {
+      "after_dedup": [
+        [
+          "alive",
+          1
+        ]
+      ],
+      "bytes": "0005616c6976650000000000000001",
+      "field": "signals",
+      "length_prefix": "0000000f",
+      "raw": [
+        [
+          "alive",
+          1
+        ]
+      ],
+      "signal_steps": [
+        {
+          "encoding_hex": "0005616c6976650000000000000001",
+          "key": "alive",
+          "key_bytes": "616c697665",
+          "key_length_prefix": "0005",
+          "value": 1,
+          "value_bytes": "0000000000000001"
+        }
+      ]
+    }
+  ],
+  "ri0_commit": "207e233913173f17b72f04cf1685964800c601cfe1e485d71b7269993f6bac2c",
+  "vector_id": "TV-P1"
+}
