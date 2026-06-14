@@ -42,29 +42,22 @@ pub fn emit_swift(schemas: &[Schema]) -> String {
     }
     out.push_str("}\n\n");
 
-    // eventType property
+    // eventType property — bare case patterns work for any arity in Swift 5.9+
     out.push_str("extension QSEvent {\n");
     out.push_str("    public var eventType: String {\n");
     out.push_str("        switch self {\n");
     for schema in schemas {
         let case_name = to_swift_case(&schema.eventType);
-        if schema.fields.is_empty() {
-            out.push_str(&format!(
-                "        case .{case_name}: return \"{}\"\n",
-                schema.eventType
-            ));
-        } else {
-            out.push_str(&format!(
-                "        case .{case_name}(_): return \"{}\"\n",
-                schema.eventType
-            ));
-        }
+        out.push_str(&format!(
+            "        case .{case_name}: return \"{}\"\n",
+            schema.eventType
+        ));
     }
     out.push_str("        }\n");
     out.push_str("    }\n");
     out.push_str("}\n\n");
 
-    // Decoder
+    // Decoder — strict dispatch table; default throws on unknown eventType
     out.push_str("extension QSEvent {\n");
     out.push_str("    public init(from decoder: Decoder) throws {\n");
     out.push_str("        let container = try decoder.container(keyedBy: CodingKeys.self)\n");
@@ -86,7 +79,12 @@ pub fn emit_swift(schemas: &[Schema]) -> String {
                     swift_type(&field.r#type)
                 ));
             }
-            let args: Vec<&str> = schema.fields.iter().map(|f| f.name.as_str()).collect();
+            // FIXED: include argument labels to match labeled associated value cases
+            let args: Vec<String> = schema
+                .fields
+                .iter()
+                .map(|f| format!("{0}: {0}", f.name))
+                .collect();
             out.push_str(&format!("            self = .{case_name}({})\n", args.join(", ")));
         }
     }
@@ -96,6 +94,38 @@ pub fn emit_swift(schemas: &[Schema]) -> String {
     out.push_str("                in: container,\n");
     out.push_str("                debugDescription: \"Unknown eventType: \\(type)\"\n");
     out.push_str("            )\n");
+    out.push_str("        }\n");
+    out.push_str("    }\n");
+    out.push_str("}\n\n");
+
+    // Encoder — required by Codable; mirrors the decoder field layout
+    out.push_str("extension QSEvent {\n");
+    out.push_str("    public func encode(to encoder: Encoder) throws {\n");
+    out.push_str("        var container = encoder.container(keyedBy: CodingKeys.self)\n");
+    out.push_str("        try container.encode(eventType, forKey: .eventType)\n");
+    out.push_str("        switch self {\n");
+    for schema in schemas {
+        let case_name = to_swift_case(&schema.eventType);
+        if schema.fields.is_empty() {
+            out.push_str(&format!("        case .{case_name}: break\n"));
+        } else {
+            let bindings: Vec<String> = schema
+                .fields
+                .iter()
+                .map(|f| format!("let {}", f.name))
+                .collect();
+            out.push_str(&format!(
+                "        case .{case_name}({}):\n",
+                bindings.join(", ")
+            ));
+            for field in &schema.fields {
+                out.push_str(&format!(
+                    "            try container.encode({0}, forKey: .{0})\n",
+                    field.name
+                ));
+            }
+        }
+    }
     out.push_str("        }\n");
     out.push_str("    }\n");
     out.push_str("}\n");
