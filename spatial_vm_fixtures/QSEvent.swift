@@ -2,12 +2,26 @@
 // source: EVENT_SCHEMAS.v1
 // generator: dsvm-schema-compiler@v1.0
 
-private enum CodingKeys: String, CodingKey {
-    case eventType
-    case artifactId
-    case loreId
-    case nodeId
-    case portalId
+private enum DiscriminatorKeys: String, CodingKey { case eventType }
+
+public struct DiscoverArtifactPayload: Codable, Equatable {
+    public let artifactId: String
+}
+
+public struct EnterNodePayload: Codable, Equatable {
+    public let nodeId: String
+}
+
+public struct NodeCompletedPayload: Codable, Equatable {
+    public let nodeId: String
+}
+
+public struct PortalUnlockedPayload: Codable, Equatable {
+    public let portalId: String
+}
+
+public struct RevealLorePayload: Codable, Equatable {
+    public let loreId: String
 }
 
 public enum QSEvent: Codable, Equatable {
@@ -36,7 +50,7 @@ extension QSEvent {
 
 extension QSEvent {
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let container = try decoder.container(keyedBy: DiscriminatorKeys.self)
         let type = try container.decode(String.self, forKey: .eventType)
 
         switch type {
@@ -45,20 +59,20 @@ extension QSEvent {
         case "choose_creation":
             self = .chooseCreation
         case "discover_artifact":
-            let artifactId = try container.decode(String.self, forKey: .artifactId)
-            self = .discoverArtifact(artifactId: artifactId)
+            let payload = try DiscoverArtifactPayload(from: decoder)
+            self = .discoverArtifact(artifactId: payload.artifactId)
         case "enter_node":
-            let nodeId = try container.decode(String.self, forKey: .nodeId)
-            self = .enterNode(nodeId: nodeId)
+            let payload = try EnterNodePayload(from: decoder)
+            self = .enterNode(nodeId: payload.nodeId)
         case "node_completed":
-            let nodeId = try container.decode(String.self, forKey: .nodeId)
-            self = .nodeCompleted(nodeId: nodeId)
+            let payload = try NodeCompletedPayload(from: decoder)
+            self = .nodeCompleted(nodeId: payload.nodeId)
         case "portal_unlocked":
-            let portalId = try container.decode(String.self, forKey: .portalId)
-            self = .portalUnlocked(portalId: portalId)
+            let payload = try PortalUnlockedPayload(from: decoder)
+            self = .portalUnlocked(portalId: payload.portalId)
         case "reveal_lore":
-            let loreId = try container.decode(String.self, forKey: .loreId)
-            self = .revealLore(loreId: loreId)
+            let payload = try RevealLorePayload(from: decoder)
+            self = .revealLore(loreId: payload.loreId)
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .eventType,
@@ -71,21 +85,21 @@ extension QSEvent {
 
 extension QSEvent {
     public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+        var container = encoder.container(keyedBy: DiscriminatorKeys.self)
         try container.encode(eventType, forKey: .eventType)
         switch self {
         case .chooseAscension: break
         case .chooseCreation: break
         case .discoverArtifact(let artifactId):
-            try container.encode(artifactId, forKey: .artifactId)
+            try DiscoverArtifactPayload(artifactId: artifactId).encode(to: encoder)
         case .enterNode(let nodeId):
-            try container.encode(nodeId, forKey: .nodeId)
+            try EnterNodePayload(nodeId: nodeId).encode(to: encoder)
         case .nodeCompleted(let nodeId):
-            try container.encode(nodeId, forKey: .nodeId)
+            try NodeCompletedPayload(nodeId: nodeId).encode(to: encoder)
         case .portalUnlocked(let portalId):
-            try container.encode(portalId, forKey: .portalId)
+            try PortalUnlockedPayload(portalId: portalId).encode(to: encoder)
         case .revealLore(let loreId):
-            try container.encode(loreId, forKey: .loreId)
+            try RevealLorePayload(loreId: loreId).encode(to: encoder)
         }
     }
 }

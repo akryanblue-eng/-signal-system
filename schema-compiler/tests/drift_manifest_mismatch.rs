@@ -5,7 +5,7 @@
 #[path = "common/mod.rs"]
 mod common;
 
-use schema_compiler::{json_loader, manifest, normalize, rust_gen, swift};
+use schema_compiler::{json_gen, json_loader, manifest, normalize, rust_gen, swift};
 
 /// Mutate one letter inside the first eventType string value in the JSON bytes.
 /// Produces valid JSON that parses to different schemas (not just a whitespace change,
@@ -15,7 +15,7 @@ use schema_compiler::{json_loader, manifest, normalize, rust_gen, swift};
 /// and rotate it one step in [a-z] (e.g. 'c' → 'd'). The result still passes
 /// snake_case validation but changes the event name.
 fn flip_one_event_name_letter(mut bytes: Vec<u8>) -> Vec<u8> {
-    let needle = b"\"eventType\": \"";
+    let needle = b"\"event_type\": \"";
     if let Some(pos) = bytes.windows(needle.len()).position(|w| w == needle) {
         let value_start = pos + needle.len();
         for b in bytes[value_start..].iter_mut() {
@@ -39,12 +39,13 @@ fn flip_one_event_name_letter(mut bytes: Vec<u8>) -> Vec<u8> {
     bytes
 }
 
-fn compile_manifest(json: &str) -> schema_compiler::manifest::Manifest {
-    let schemas = json_loader::load_schemas_from_str(json).expect("parse");
+fn compile_manifest(schema_json: &str) -> schema_compiler::manifest::Manifest {
+    let schemas = json_loader::load_schemas_from_str(schema_json).expect("parse");
     let normalized = normalize::normalize(schemas);
     let swift = swift::emit_swift(&normalized);
     let rust = rust_gen::emit_rust(&normalized);
-    manifest::Manifest::new(&swift, &rust)
+    let json = json_gen::emit_json(&normalized);
+    manifest::Manifest::new(&swift, &rust, &json)
 }
 
 #[test]
@@ -58,6 +59,7 @@ fn baseline_matches_frozen_identity() {
     );
     assert_eq!(mf.swift_hash, common::BASELINE_SWIFT_HASH);
     assert_eq!(mf.rust_hash, common::BASELINE_RUST_HASH);
+    assert_eq!(mf.json_hash, common::BASELINE_JSON_HASH);
 }
 
 #[test]
@@ -83,7 +85,8 @@ fn one_byte_schema_edit_breaks_combined_hash() {
     let norm_mutated = normalize::normalize(schemas_mutated);
     let swift_mutated = swift::emit_swift(&norm_mutated);
     let rust_mutated = rust_gen::emit_rust(&norm_mutated);
-    let mf_mutated = manifest::Manifest::new(&swift_mutated, &rust_mutated);
+    let json_mutated = json_gen::emit_json(&norm_mutated);
+    let mf_mutated = manifest::Manifest::new(&swift_mutated, &rust_mutated, &json_mutated);
 
     // Sanity: original matches baseline.
     assert_eq!(mf_original.combined_hash, common::BASELINE_COMBINED_HASH);
@@ -101,7 +104,7 @@ fn added_event_breaks_combined_hash() {
     let json = std::fs::read_to_string(common::authority_json_path()).unwrap();
     // Append a new (valid) event to the array.
     let injected = json.trim_end().trim_end_matches(']').to_string()
-        + r#",{"eventType":"injected_event","fields":[]}]"#;
+        + r#",{"event_type":"injected_event","fields":[]}]"#;
 
     let mf = compile_manifest(&injected);
     assert_ne!(

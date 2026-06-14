@@ -63,9 +63,9 @@ fn all_authority_types_present_in_dispatch_table() {
     // Every authority type must appear in the dispatch table.
     for schema in &schemas {
         assert!(
-            generated.contains(&schema.eventType),
+            generated.contains(&schema.event_type),
             "Authority type '{}' missing from generated EVENT_TYPES",
-            schema.eventType
+            schema.event_type
         );
     }
 }
@@ -75,7 +75,7 @@ fn dispatch_table_has_no_extra_types() {
     let json = std::fs::read_to_string(common::authority_json_path()).unwrap();
     let schemas = json_loader::load_schemas_from_str(&json).unwrap();
     let authority_types: std::collections::BTreeSet<String> =
-        schemas.iter().map(|s| s.eventType.clone()).collect();
+        schemas.iter().map(|s| s.event_type.clone()).collect();
     let normalized = normalize::normalize(schemas);
     let rust_src = rust_gen::emit_rust(&normalized);
 

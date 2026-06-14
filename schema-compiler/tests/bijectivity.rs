@@ -41,9 +41,9 @@ fn generated_event_types(json: &str) -> Vec<String> {
 }
 
 fn authority_event_types(json: &str) -> BTreeSet<String> {
-    let schemas: Vec<schema_compiler::schema::Schema> =
+    let schemas: Vec<schema_compiler::schema::EventSchema> =
         serde_json::from_str(json).unwrap();
-    schemas.into_iter().map(|s| s.eventType).collect()
+    schemas.into_iter().map(|s| s.event_type).collect()
 }
 
 #[test]

@@ -1,6 +1,6 @@
-use crate::schema::Schema;
+use crate::schema::EventSchema;
 
-pub fn emit_rust(schemas: &[Schema]) -> String {
+pub fn emit_rust(schemas: &[EventSchema]) -> String {
     let mut out = String::new();
 
     out.push_str("// DSVM-0 GENERATED FILE — DO NOT EDIT\n");
@@ -10,14 +10,14 @@ pub fn emit_rust(schemas: &[Schema]) -> String {
     out.push_str("#[derive(Debug, Clone, PartialEq)]\n");
     out.push_str("pub enum QSEvent {\n");
     for schema in schemas {
-        let name = to_rust_enum(&schema.eventType);
+        let name = to_rust_enum(&schema.event_type);
         if schema.fields.is_empty() {
             out.push_str(&format!("    {name},\n"));
         } else {
             let fields: Vec<String> = schema
                 .fields
                 .iter()
-                .map(|f| format!("{}: {}", f.name, rust_type(&f.r#type)))
+                .map(|f| format!("{}: {}", f.name, f.ty.rust_type()))
                 .collect();
             out.push_str(&format!("    {name} {{ {} }},\n", fields.join(", ")));
         }
@@ -28,16 +28,16 @@ pub fn emit_rust(schemas: &[Schema]) -> String {
     out.push_str("    pub fn event_type(&self) -> &str {\n");
     out.push_str("        match self {\n");
     for schema in schemas {
-        let name = to_rust_enum(&schema.eventType);
+        let name = to_rust_enum(&schema.event_type);
         if schema.fields.is_empty() {
             out.push_str(&format!(
                 "            QSEvent::{name} => \"{}\",\n",
-                schema.eventType
+                schema.event_type
             ));
         } else {
             out.push_str(&format!(
                 "            QSEvent::{name} {{ .. }} => \"{}\",\n",
-                schema.eventType
+                schema.event_type
             ));
         }
     }
@@ -48,7 +48,7 @@ pub fn emit_rust(schemas: &[Schema]) -> String {
     // Bijectivity surface: sorted list of all known event type strings.
     out.push_str("pub const EVENT_TYPES: &[&str] = &[\n");
     for schema in schemas {
-        out.push_str(&format!("    \"{}\",\n", schema.eventType));
+        out.push_str(&format!("    \"{}\",\n", schema.event_type));
     }
     out.push_str("];\n\n");
 
@@ -74,13 +74,4 @@ fn to_rust_enum(s: &str) -> String {
         }
     }
     out
-}
-
-fn rust_type(t: &str) -> &str {
-    match t {
-        "string" => "String",
-        "int" => "i64",
-        "bool" => "bool",
-        _ => panic!("Unknown type: {t} (should be rejected by validator)"),
-    }
 }

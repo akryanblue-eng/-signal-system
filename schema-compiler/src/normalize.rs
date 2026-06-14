@@ -1,43 +1,54 @@
-use crate::schema::Schema;
+use crate::schema::EventSchema;
 
-pub fn normalize(mut schemas: Vec<Schema>) -> Vec<Schema> {
-    schemas.sort_by(|a, b| a.eventType.cmp(&b.eventType));
-
-    for schema in schemas.iter_mut() {
-        schema.fields.sort_by(|a, b| a.name.cmp(&b.name));
-        for (i, field) in schema.fields.iter_mut().enumerate() {
-            field.index = Some(i as u32);
-        }
-    }
-
-    schemas
+/// Idempotent normalization pass.
+/// `load_schemas_from_str` already normalizes, so this is a no-op on already-loaded
+/// schemas — but keeping it explicit in the pipeline makes the contract visible.
+pub fn normalize(mut schemas: Vec<EventSchema>) -> Vec<EventSchema> {
+    schemas.sort_by(|a, b| a.event_type.cmp(&b.event_type));
+    schemas.into_iter().map(|s| s.normalized()).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::schema::{Field, Schema};
+    use crate::schema::{EventSchema, Field, ScalarType};
+
+    fn string_field(name: &str) -> Field {
+        Field { name: name.into(), ty: ScalarType::String, required: true }
+    }
 
     #[test]
     fn test_normalization_sorts_schemas_and_fields() {
         let schemas = vec![
-            Schema::new(
-                "z_event".into(),
-                vec![
-                    Field::new("z_field".into(), "string".into()),
-                    Field::new("a_field".into(), "string".into()),
-                ],
-            ),
-            Schema::new("a_event".into(), vec![Field::new("b".into(), "string".into())]),
+            EventSchema {
+                event_type: "z_event".into(),
+                description: None,
+                fields: vec![string_field("z_field"), string_field("a_field")],
+            },
+            EventSchema {
+                event_type: "a_event".into(),
+                description: None,
+                fields: vec![string_field("b")],
+            },
         ];
 
         let normalized = normalize(schemas);
 
-        assert_eq!(normalized[0].eventType, "a_event");
-        assert_eq!(normalized[1].eventType, "z_event");
+        assert_eq!(normalized[0].event_type, "a_event");
+        assert_eq!(normalized[1].event_type, "z_event");
         assert_eq!(normalized[1].fields[0].name, "a_field");
         assert_eq!(normalized[1].fields[1].name, "z_field");
-        assert_eq!(normalized[1].fields[0].index, Some(0));
-        assert_eq!(normalized[1].fields[1].index, Some(1));
+    }
+
+    #[test]
+    fn test_normalization_is_idempotent() {
+        let schemas = vec![EventSchema {
+            event_type: "enter_node".into(),
+            description: None,
+            fields: vec![string_field("nodeId")],
+        }];
+        let once = normalize(schemas.clone());
+        let twice = normalize(once.clone());
+        assert_eq!(once, twice);
     }
 }

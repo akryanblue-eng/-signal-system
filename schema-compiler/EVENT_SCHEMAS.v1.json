@@ -1,40 +1,47 @@
 [
   {
-    "eventType": "choose_ascension",
+    "event_type": "choose_ascension",
+    "description": "Player chooses the ascension branch (write-once gene lock).",
     "fields": []
   },
   {
-    "eventType": "choose_creation",
+    "event_type": "choose_creation",
+    "description": "Player chooses the creation branch (write-once gene lock).",
     "fields": []
   },
   {
-    "eventType": "discover_artifact",
+    "event_type": "discover_artifact",
+    "description": "An artifact becomes visible to the traveler for the first time.",
     "fields": [
-      { "name": "artifactId", "type": "string" }
+      { "name": "artifactId", "type": "string", "required": true }
     ]
   },
   {
-    "eventType": "enter_node",
+    "event_type": "enter_node",
+    "description": "Traveler enters a spatial node. Duplicate entries are idempotent.",
     "fields": [
-      { "name": "nodeId", "type": "string" }
+      { "name": "nodeId", "type": "string", "required": true }
     ]
   },
   {
-    "eventType": "node_completed",
+    "event_type": "node_completed",
+    "description": "A node's completion condition is satisfied (no-op in state reducer).",
     "fields": [
-      { "name": "nodeId", "type": "string" }
+      { "name": "nodeId", "type": "string", "required": true }
     ]
   },
   {
-    "eventType": "portal_unlocked",
+    "event_type": "portal_unlocked",
+    "description": "A portal becomes traversable (no-op in state reducer).",
     "fields": [
-      { "name": "portalId", "type": "string" }
+      { "name": "portalId", "type": "string", "required": true }
     ]
   },
   {
-    "eventType": "reveal_lore",
+    "event_type": "reveal_lore",
+    "description": "A lore entry is revealed to the traveler. Duplicate entries are idempotent.",
     "fields": [
-      { "name": "loreId", "type": "string" }
+      { "name": "loreId", "type": "string", "required": true }
     ]
   }
 ]

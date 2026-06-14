@@ -28,8 +28,8 @@ fn main() {
             let schema_json =
                 fs::read_to_string(&input).expect("Failed to read schema registry");
 
-            let schemas =
-                json_loader::load_schemas_from_str(&schema_json).expect("Failed to parse schema registry");
+            let schemas = json_loader::load_schemas_from_str(&schema_json)
+                .expect("Failed to parse schema registry");
 
             validate::validate(&schemas).expect("Schema validation failed");
 
@@ -38,7 +38,7 @@ fn main() {
             let swift = swift::emit_swift(&normalized);
             let rust = rust_gen::emit_rust(&normalized);
             let json = json_gen::emit_json(&normalized);
-            let mf = manifest::Manifest::new(&swift, &rust);
+            let mf = manifest::Manifest::new(&swift, &rust, &json);
 
             for dir in &[
                 format!("{output_dir}/swift"),

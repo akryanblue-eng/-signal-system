@@ -1,5 +1,3 @@
-use crate::schema::Schema;
-
-pub fn load_schemas_from_str(s: &str) -> Result<Vec<Schema>, serde_json::Error> {
-    serde_json::from_str(s)
-}
+// Thin re-export for backward compatibility with integration tests.
+// The canonical implementation lives in schema::load_schemas_from_str.
+pub use crate::schema::{load_schemas_from_path, load_schemas_from_str};
