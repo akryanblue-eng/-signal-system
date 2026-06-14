@@ -72,8 +72,14 @@ pub fn load_vectors_from_dir(dir: &str) -> Vec<GoldenVector> {
             if path.extension().and_then(|e| e.to_str()) == Some("json") {
                 let src = std::fs::read_to_string(&path)
                     .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-                Some(serde_json::from_str::<GoldenVector>(&src)
-                    .unwrap_or_else(|e| panic!("parse {}: {e}", path.display())))
+                // Skip registry/manifest files (no "id" field = not a vector)
+                let v: serde_json::Value = serde_json::from_str(&src)
+                    .unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
+                if v.get("id").is_none() {
+                    return None;
+                }
+                Some(serde_json::from_value::<GoldenVector>(v)
+                    .unwrap_or_else(|e| panic!("parse vector {}: {e}", path.display())))
             } else {
                 None
             }

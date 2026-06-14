@@ -1,0 +1,6 @@
+{
+  "version": "golden-vector-spec-v1",
+  "spec": "vas-exec-model-v1",
+  "vectors": ["TV-N1", "TV-P1", "TV-P2"],
+  "machine": "reference-traveler"
+}

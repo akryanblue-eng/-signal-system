@@ -1,5 +1,7 @@
 {
-  "global_root": "9b14c3a44594e56f29c77ad2848fb1e74d8491fd06758109c306513ffbcd48af",
+  "global_root": "8189ea3959d40ae12904267df11fca6a51da6ffd7e54d7dcb78d686557f193fe",
+  "spec": "vas-exec-model-v1",
+  "spec_hash": "5cb4b4e7f660757d39162694b41b708157fd5f40da4e3a5162116b4e25f1a89e",
   "vectors": [
     "TV-N1",
     "TV-P1",
