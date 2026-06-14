@@ -19,6 +19,61 @@
     "node_completed",
     "portal_unlocked"
   ],
+  "event_schemas": {
+    "enter_node": {
+      "swift_case": "enterNode",
+      "params": [
+        {
+          "label": "nodeId",
+          "type": "String"
+        }
+      ]
+    },
+    "discover_artifact": {
+      "swift_case": "discoverArtifact",
+      "params": [
+        {
+          "label": "artifactId",
+          "type": "String"
+        }
+      ]
+    },
+    "reveal_lore": {
+      "swift_case": "revealLore",
+      "params": [
+        {
+          "label": "loreId",
+          "type": "String"
+        }
+      ]
+    },
+    "choose_ascension": {
+      "swift_case": "chooseAscension",
+      "params": []
+    },
+    "choose_creation": {
+      "swift_case": "chooseCreation",
+      "params": []
+    },
+    "node_completed": {
+      "swift_case": "nodeCompleted",
+      "params": [
+        {
+          "label": "nodeId",
+          "type": "String"
+        }
+      ]
+    },
+    "portal_unlocked": {
+      "swift_case": "portalUnlocked",
+      "params": [
+        {
+          "label": "portalId",
+          "type": "String"
+        }
+      ]
+    }
+  },
   "committed_state_fields": [
     "visited_nodes",
     "discovered_artifacts",
