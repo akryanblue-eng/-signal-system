@@ -10,6 +10,16 @@ pub struct ReplayResult {
     pub seq_commit: [u8; 32],
 }
 
+/// Checkpoint interval for sparse replay. Every 256th step is recorded.
+/// Step 0 (initial state) is always recorded regardless.
+pub const CHECKPOINT_INTERVAL: u64 = 256;
+
+/// Pure checkpoint policy: returns true when step should produce a commit.
+/// Deterministic and test-only-callable — no side effects.
+pub fn should_checkpoint(step: u64) -> bool {
+    step == 0 || step % CHECKPOINT_INTERVAL == 0
+}
+
 /// Replay events over initial state, producing a commit for each step including C0.
 /// C0 = initial_state.canonical_commit() (before any event).
 /// C_n = state_after_event_n.canonical_commit().
@@ -21,6 +31,32 @@ pub fn replay(initial: TravelerState, events: &[SpatialEvent]) -> ReplayResult {
     let mut state = initial;
     for event in events {
         state = machine::apply(state, event);
+        commits.push(state.canonical_commit());
+    }
+
+    let sc = seq_commit(&commits);
+    ReplayResult { commits, seq_commit: sc }
+}
+
+/// Sparse replay: only records commits at checkpoint steps (every CHECKPOINT_INTERVAL steps).
+/// C0 is always recorded. seq_commit covers only checkpoint commits, not all steps.
+/// Use for long event streams where per-step commit storage is prohibitive.
+pub fn replay_sparse(initial: TravelerState, events: &[SpatialEvent]) -> ReplayResult {
+    let mut commits: Vec<[u8; 32]> = Vec::new();
+    commits.push(initial.canonical_commit()); // C0 always recorded (step 0)
+
+    let mut state = initial;
+    for (i, event) in events.iter().enumerate() {
+        state = machine::apply(state, event);
+        let step = (i + 1) as u64;
+        if should_checkpoint(step) {
+            commits.push(state.canonical_commit());
+        }
+    }
+
+    // Always include final state if not already a checkpoint step
+    let final_step = events.len() as u64;
+    if final_step > 0 && !should_checkpoint(final_step) {
         commits.push(state.canonical_commit());
     }
 
@@ -88,5 +124,61 @@ mod tests {
             SpatialEvent::EnterNode { node_id: "A".into() },
         ]);
         assert_ne!(empty.seq_commit, one.seq_commit);
+    }
+
+    // --- checkpoint policy tests ---
+
+    #[test]
+    fn checkpoint_policy_always_records_step_zero() {
+        assert!(should_checkpoint(0));
+    }
+
+    #[test]
+    fn checkpoint_policy_records_at_interval_multiples() {
+        assert!(should_checkpoint(CHECKPOINT_INTERVAL));
+        assert!(should_checkpoint(CHECKPOINT_INTERVAL * 2));
+        assert!(should_checkpoint(CHECKPOINT_INTERVAL * 10));
+    }
+
+    #[test]
+    fn checkpoint_policy_skips_non_multiples() {
+        assert!(!should_checkpoint(1));
+        assert!(!should_checkpoint(CHECKPOINT_INTERVAL - 1));
+        assert!(!should_checkpoint(CHECKPOINT_INTERVAL + 1));
+    }
+
+    #[test]
+    fn sparse_replay_always_includes_c0_and_final() {
+        let events: Vec<SpatialEvent> = (0..5)
+            .map(|i| SpatialEvent::EnterNode { node_id: format!("n{i}") })
+            .collect();
+        let r = replay_sparse(TravelerState::default(), &events);
+        // 5 events, no checkpoints hit (all < 256), so C0 + final = 2 commits
+        assert_eq!(r.commits.len(), 2);
+    }
+
+    #[test]
+    fn sparse_replay_equals_full_replay_on_short_traces() {
+        // For traces shorter than CHECKPOINT_INTERVAL, sparse records C0 + final.
+        // Full replay records every step. seq_commits will differ (different chain lengths).
+        // But final state (last commit) must be identical.
+        let events = vec![
+            SpatialEvent::EnterNode { node_id: "A".into() },
+            SpatialEvent::ChooseAscension,
+        ];
+        let full = replay(TravelerState::default(), &events);
+        let sparse = replay_sparse(TravelerState::default(), &events);
+        assert_eq!(full.commits.last(), sparse.commits.last());
+    }
+
+    #[test]
+    fn sparse_replay_is_deterministic() {
+        let events = vec![
+            SpatialEvent::EnterNode { node_id: "X".into() },
+            SpatialEvent::DiscoverArtifact { artifact_id: "Y".into() },
+        ];
+        let r1 = replay_sparse(TravelerState::default(), &events);
+        let r2 = replay_sparse(TravelerState::default(), &events);
+        assert_eq!(r1.seq_commit, r2.seq_commit);
     }
 }
