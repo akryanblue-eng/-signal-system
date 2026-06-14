@@ -1,0 +1,9 @@
+{
+  "id": "TV-P2",
+  "description": "Order invariance: A then B vs B then A should produce the same final-state commit but different seq_commit. This vector records the A-B ordering.",
+  "initial_state": {},
+  "events": [
+    { "event_type": "enter_node", "nodeId": "A" },
+    { "event_type": "enter_node", "nodeId": "B" }
+  ]
+}

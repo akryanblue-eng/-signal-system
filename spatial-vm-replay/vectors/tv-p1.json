@@ -1,0 +1,8 @@
+{
+  "id": "TV-P1",
+  "description": "Minimal: single enter_node event from empty initial state.",
+  "initial_state": {},
+  "events": [
+    { "event_type": "enter_node", "nodeId": "node-alpha" }
+  ]
+}

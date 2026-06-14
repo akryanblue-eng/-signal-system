@@ -1,0 +1,15 @@
+{
+  "id": "TV-N1",
+  "description": "Full-path negative: all event types exercised; NodeCompleted and PortalUnlocked are no-ops on state. Ends with ascension=true and gene_choice_locked=true.",
+  "initial_state": {},
+  "events": [
+    { "event_type": "enter_node", "nodeId": "node-1" },
+    { "event_type": "discover_artifact", "artifactId": "artifact-x" },
+    { "event_type": "reveal_lore", "loreId": "lore-42" },
+    { "event_type": "node_completed", "nodeId": "node-1" },
+    { "event_type": "portal_unlocked", "portalId": "portal-z" },
+    { "event_type": "enter_node", "nodeId": "node-2" },
+    { "event_type": "choose_ascension" },
+    { "event_type": "choose_creation" }
+  ]
+}
