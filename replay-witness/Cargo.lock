@@ -52,6 +52,7 @@ version = "0.1.0"
 dependencies = [
  "hex",
  "sha2",
+ "spatial-vm-replay",
 ]
 
 [[package]]
@@ -169,6 +170,16 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "spatial-vm-replay"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
