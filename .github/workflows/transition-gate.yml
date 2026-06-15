@@ -29,6 +29,16 @@ jobs:
         run: pip install pytest
         shell: bash
 
+      - name: Assert registry is current (no hand-edits)
+        run: |
+          python tools/generate_invariants.py
+          git diff --exit-code invariants/ || {
+            echo "REGISTRY DRIFT: invariants/ differs from generated output."
+            echo "Run 'python tools/generate_invariants.py' and commit the result."
+            exit 1
+          }
+        shell: bash
+
       - name: Invariant tests (proof lattice)
         run: python -m pytest cvp_transition/tests/test_witness.py cvp_transition/tests/test_invariant_registry.py -v
         shell: bash

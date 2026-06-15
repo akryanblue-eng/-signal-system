@@ -38,6 +38,11 @@ REQUIRED_WITNESS_FIELDS = (
     "results", "verdict", "artifacts",
 )
 
+# Fields excluded from the digest domain. Any key in this set that appears in
+# a morphism is stripped before hashing. Extending this set is the only
+# sanctioned way to exclude new witness-adjacent fields — never remove entries.
+DIGEST_EXCLUDED_FIELDS: frozenset[str] = frozenset({"independent_execution"})
+
 
 # ── Schema validation ──────────────────────────────────────────────────────
 
@@ -235,5 +240,12 @@ def evaluate_gate4(witnesses: list[dict], candidate_digest: str) -> tuple[bool, 
 
 def compute_candidate_digest(morphism_path: Path) -> str:
     data = json.loads(morphism_path.read_bytes())
-    data.pop("independent_execution", None)
+    for field in DIGEST_EXCLUDED_FIELDS:
+        data.pop(field, None)
+    # Hard guard: if any excluded field survived the pop loop, the exclusion
+    # set is incomplete. Fail loudly so the leak is caught at call time, not
+    # discovered as a digest mismatch downstream.
+    leaked = DIGEST_EXCLUDED_FIELDS & data.keys()
+    if leaked:
+        raise ValueError(f"WITNESS_LEAK_IN_DIGEST_DOMAIN: {sorted(leaked)}")
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()

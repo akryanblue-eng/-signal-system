@@ -1,38 +1,53 @@
 {
-  "name": "witness_contract",
-  "version": "1.0",
-  "authority": "derived",
-  "source": "cvp_transition/witness.py:REQUIRED_WITNESS_FIELDS",
-  "required_fields": [
-    "schema_version",
-    "witness_id",
-    "candidate_digest",
-    "validator_version",
-    "environment",
-    "execution",
-    "results",
-    "verdict",
-    "artifacts"
-  ],
-  "required_gate_results": ["gate_1", "gate_2", "gate_3"],
-  "valid_verdicts": ["OK", "FAIL"],
-  "valid_runner_types": ["github_actions", "local", "other"],
-  "schema_version_value": "1.0",
-  "binding_rule": "witness.candidate_digest MUST equal compute_candidate_digest(morphism_path)",
-  "authority_class": "non_authoritative",
-  "mutation_policy": "append_only",
-  "independence_rules": [
-    "Rule 1 (anti-replay): witness_id must differ between any pair",
-    "Rule 2 (same-machine rejection): identical fingerprint + both runner_type=local → rejected",
-    "Rule 3 (github_actions acceptance): identical fingerprint + both runner_type=github_actions → accepted (GitHub guarantees distinct VMs)",
-    "Rule 4 (fingerprint divergence): different fingerprint → accepted unconditionally"
-  ],
-  "fingerprint_components": ["environment.os", "environment.architecture", "environment.python_version"],
   "admissibility_rules": [
     "candidate_digest matches computed spec digest",
     "validator_version is non-empty",
     "execution.exit_code == 0",
     "results.gate_1 == PASS AND results.gate_2 == PASS AND results.gate_3 == PASS",
     "verdict == OK"
-  ]
+  ],
+  "authority": "derived",
+  "authority_class": "non_authoritative",
+  "binding_rule": "witness.candidate_digest MUST equal compute_candidate_digest(morphism_path)",
+  "fingerprint_components": [
+    "environment.os",
+    "environment.architecture",
+    "environment.python_version"
+  ],
+  "independence_rules": [
+    "Rule 1 (anti-replay): witness_id must differ between any pair",
+    "Rule 2 (same-machine rejection): identical fingerprint + both runner_type=local -> rejected",
+    "Rule 3 (github_actions acceptance): identical fingerprint + both runner_type=github_actions -> accepted (GitHub guarantees distinct VMs)",
+    "Rule 4 (fingerprint divergence): different fingerprint -> accepted unconditionally"
+  ],
+  "mutation_policy": "append_only",
+  "name": "witness_contract",
+  "required_fields": [
+    "artifacts",
+    "candidate_digest",
+    "environment",
+    "execution",
+    "results",
+    "schema_version",
+    "validator_version",
+    "verdict",
+    "witness_id"
+  ],
+  "required_gate_results": [
+    "gate_1",
+    "gate_2",
+    "gate_3"
+  ],
+  "schema_version_value": "1.0",
+  "source": "cvp_transition/witness.py:REQUIRED_WITNESS_FIELDS",
+  "valid_runner_types": [
+    "github_actions",
+    "local",
+    "other"
+  ],
+  "valid_verdicts": [
+    "FAIL",
+    "OK"
+  ],
+  "version": "1.0"
 }
