@@ -182,3 +182,23 @@ mod tests {
         assert_eq!(r1.seq_commit, r2.seq_commit);
     }
 }
+
+    /// Pinned known-answer test for seq_commit_v1.
+    /// The fixture is canonical: fixed event types, fixed string values, empty initial state.
+    /// Changing DSVM0:STATE:v1 encoding, DSVM0:SEQ:v1 encoding, or the fixture itself
+    /// breaks this test — treat any change as a "universe transition" requiring an explicit
+    /// version bump, not a casual update.
+    #[test]
+    fn seq_commit_known_answer_v1() {
+        const EXPECTED: &str =
+            "237b18923665ab8a36d747a8cc481cb78e1173d1c018ab5fee3c8a8dd0325254";
+        let events = vec![
+            SpatialEvent::EnterNode { node_id: "node-alpha".into() },
+            SpatialEvent::DiscoverArtifact { artifact_id: "artifact-beta".into() },
+            SpatialEvent::RevealLore { lore_id: "lore-gamma".into() },
+            SpatialEvent::ChooseAscension,
+        ];
+        let r = replay(TravelerState::default(), &events);
+        assert_eq!(hex::encode(r.seq_commit), EXPECTED,
+            "seq_commit KAT failed — encoding or fixture drift detected");
+    }

@@ -25,15 +25,43 @@ impl std::error::Error for DispatchError {}
 ///
 /// Routing invariants:
 /// - Unknown event_type values fail at serde decode (before this function returns `Ok`).
+/// - Unknown payload fields on struct variants are rejected by deny_unknown_fields.
+/// - Unknown payload fields on unit variants (no payload) are rejected by pre-validation.
 /// - `machine::apply` has no wildcard arm; the compiler enforces full variant coverage.
 /// - There is no other routing path in this crate.
 pub fn decode_and_apply(
     json: &[u8],
     state: TravelerState,
 ) -> Result<TravelerState, DispatchError> {
+    // Pre-validate unit variants: serde's deny_unknown_fields does not enforce field
+    // rejection on unit variants in internally-tagged enums, so we do it explicitly.
+    reject_stray_fields_on_unit_variants(json)?;
     let event: SpatialEvent =
         serde_json::from_slice(json).map_err(|e| DispatchError::InvalidEvent(e.to_string()))?;
     Ok(machine::apply(state, &event))
+}
+
+/// Unit variants have no payload. Any field beyond event_type is a stray field.
+/// The set of unit variants is derived from EVENT_SCHEMAS.v1 (choose_ascension, choose_creation).
+fn reject_stray_fields_on_unit_variants(json: &[u8]) -> Result<(), DispatchError> {
+    let v: serde_json::Value = serde_json::from_slice(json)
+        .map_err(|e| DispatchError::InvalidEvent(e.to_string()))?;
+    let obj = v.as_object().ok_or_else(|| {
+        DispatchError::InvalidEvent("event must be a JSON object".into())
+    })?;
+    if let Some(et) = obj.get("event_type").and_then(|v| v.as_str()) {
+        let is_unit = matches!(et, "choose_ascension" | "choose_creation");
+        if is_unit && obj.len() > 1 {
+            let stray: Vec<&str> = obj.keys()
+                .filter(|k| *k != "event_type")
+                .map(|k| k.as_str())
+                .collect();
+            return Err(DispatchError::InvalidEvent(format!(
+                "unit event '{et}' must have no payload fields; found: {stray:?}"
+            )));
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -86,5 +114,27 @@ mod tests {
                 std::str::from_utf8(json).unwrap()
             );
         }
+    }
+
+    #[test]
+    fn unknown_payload_field_rejected_at_decode() {
+        // deny_unknown_fields: extra fields in payload must not silently pass through.
+        let state = TravelerState::default();
+        let json = br#"{"event_type":"enter_node","nodeId":"n1","injection":"ignored"}"#;
+        assert!(
+            decode_and_apply(json, state).is_err(),
+            "extra payload field must be rejected, not silently dropped"
+        );
+    }
+
+    #[test]
+    fn unknown_payload_field_on_unit_variant_rejected() {
+        // choose_ascension has no payload fields — any extra field must fail.
+        let state = TravelerState::default();
+        let json = br#"{"event_type":"choose_ascension","nodeId":"stray"}"#;
+        assert!(
+            decode_and_apply(json, state).is_err(),
+            "stray field on unit variant must be rejected"
+        );
     }
 }
