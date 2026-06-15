@@ -30,7 +30,7 @@ step "schema-compiler: 17 tests"
 # ── Regenerate outputs and verify hash stability ──────────────────────────────
 step "schema-compiler: generate + combined_hash check"
 SCHEMA_OUT="$(mktemp -d)"
-SCHEMA_COMBINED_HASH_LOCKED="772a0ccc18861627c4f4bc6611134ba017b27e7c21b50f4236a7eaf2a25314d7"
+SCHEMA_COMBINED_HASH_LOCKED="c1451a41443ae601d510ce1e667e633a836995fb760d959326eccce28ba7dc64"
 SCHEMA_COMBINED_HASH_ACTUAL=$(cd "$ROOT/schema-compiler" && \
     cargo run --quiet -- build \
         --input EVENT_SCHEMAS.v1.json \

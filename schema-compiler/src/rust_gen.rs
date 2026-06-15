@@ -55,6 +55,21 @@ pub fn emit_rust(schemas: &[EventSchema]) -> String {
     // Binary search on the sorted constant — O(log n), no heap allocation.
     out.push_str("pub fn is_known_event_type(s: &str) -> bool {\n");
     out.push_str("    EVENT_TYPES.binary_search(&s).is_ok()\n");
+    out.push_str("}\n\n");
+
+    // Unit variants: event types with no payload fields (empty fields list).
+    // dispatch.rs uses this to reject stray fields on unit-variant events where
+    // serde deny_unknown_fields does not enforce on internally-tagged unit variants.
+    out.push_str("pub const UNIT_EVENT_TYPES: &[&str] = &[\n");
+    for schema in schemas {
+        if schema.fields.is_empty() {
+            out.push_str(&format!("    \"{}\",\n", schema.event_type));
+        }
+    }
+    out.push_str("];\n\n");
+
+    out.push_str("pub fn is_unit_event_type(s: &str) -> bool {\n");
+    out.push_str("    UNIT_EVENT_TYPES.binary_search(&s).is_ok()\n");
     out.push_str("}\n");
 
     out

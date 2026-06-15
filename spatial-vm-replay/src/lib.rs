@@ -3,5 +3,6 @@ pub mod event;
 pub mod lock;
 pub mod machine;
 pub mod replay;
+pub mod schema_derived;
 pub mod state;
 pub mod vector;

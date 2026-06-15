@@ -42,7 +42,7 @@ pub fn decode_and_apply(
 }
 
 /// Unit variants have no payload. Any field beyond event_type is a stray field.
-/// The set of unit variants is derived from EVENT_SCHEMAS.v1 (choose_ascension, choose_creation).
+/// UNIT_EVENT_TYPES is generated from EVENT_SCHEMAS.v1 by schema-compiler — no manual list here.
 fn reject_stray_fields_on_unit_variants(json: &[u8]) -> Result<(), DispatchError> {
     let v: serde_json::Value = serde_json::from_slice(json)
         .map_err(|e| DispatchError::InvalidEvent(e.to_string()))?;
@@ -50,8 +50,7 @@ fn reject_stray_fields_on_unit_variants(json: &[u8]) -> Result<(), DispatchError
         DispatchError::InvalidEvent("event must be a JSON object".into())
     })?;
     if let Some(et) = obj.get("event_type").and_then(|v| v.as_str()) {
-        let is_unit = matches!(et, "choose_ascension" | "choose_creation");
-        if is_unit && obj.len() > 1 {
+        if crate::schema_derived::is_unit_event_type(et) && obj.len() > 1 {
             let stray: Vec<&str> = obj.keys()
                 .filter(|k| *k != "event_type")
                 .map(|k| k.as_str())
