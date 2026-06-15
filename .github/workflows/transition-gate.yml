@@ -30,7 +30,7 @@ jobs:
         shell: bash
 
       - name: Invariant tests (proof lattice)
-        run: python -m pytest cvp_transition/tests/test_witness.py -v
+        run: python -m pytest cvp_transition/tests/test_witness.py cvp_transition/tests/test_invariant_registry.py -v
         shell: bash
 
       - name: Validate transition morphism

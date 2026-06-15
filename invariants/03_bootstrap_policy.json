@@ -1,0 +1,25 @@
+{
+  "name": "bootstrap_policy",
+  "version": "1.0",
+  "authority": "derived",
+  "source": "cvp_transition/witness.py:evaluate_gate4",
+  "minimum_admissible_witnesses": 2,
+  "cold_start_admissible": false,
+  "rationale": "Gate 4 requires ≥2 independent admissible witnesses. In cold-start (no prior CI runs), bootstrap witnesses must be pre-populated by independent local executions covering gates 1–3 before the first CI merge. Gate 4 is PENDING in bootstrap witnesses; they attest to gates 1–3 only.",
+  "execution_ordering": [
+    "1. load and schema-validate morphism",
+    "2. semantic reinterpretation check (removed components in EXTENSION/REFINEMENT)",
+    "3. gate_1: frozen oracle (verify.py exit 0)",
+    "4. gate_2: outcome preservation (unchanged components still match baseline)",
+    "5. gate_3: determinism (evidence gate identical across 3 runs)",
+    "6. gate_3b: fixture pack (E1.2 corpus byte-exact)",
+    "7. gate_4: witness obligation (≥2 independent admissible witnesses)",
+    "8. emit CVP_COMPAT.json"
+  ],
+  "bootstrap_witness_constraints": {
+    "gate_4_result_in_witness": "PENDING",
+    "exit_code": 0,
+    "verdict": "OK",
+    "candidate_digest": "sha256 of morphism spec excluding independent_execution"
+  }
+}

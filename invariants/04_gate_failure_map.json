@@ -1,0 +1,51 @@
+{
+  "name": "gate_failure_map",
+  "version": "1.0",
+  "authority": "derived",
+  "source": "cvp_transition/validate.py:run",
+  "exit_codes": {
+    "0": {
+      "label": "TRANSITION_VALID",
+      "class": "success",
+      "description": "All gates passed; CVP_COMPAT.json emitted"
+    },
+    "1": {
+      "label": "INVARIANT_VIOLATION",
+      "class": "contract_violation",
+      "description": "Schema invalid, oracle unstable, outcome preservation failed, fixture pack mismatch, or removed component in EXTENSION/REFINEMENT transition",
+      "triggers": [
+        "morphism schema validation errors",
+        "gate_1 (frozen oracle) failure",
+        "gate_2 (outcome preservation) failure",
+        "gate_3b (fixture pack) failure",
+        "semantic reinterpretation: removed component in non-BREAKING transition"
+      ]
+    },
+    "2": {
+      "label": "DETERMINISM_FAILURE",
+      "class": "cryptographic_invariant_violation",
+      "description": "Evidence gate produced non-identical commit or certificate across repeated runs",
+      "triggers": [
+        "gate_3 (determinism) failure: commit or certificate varies across 3 runs"
+      ]
+    },
+    "3": {
+      "label": "WITNESS_FAILURE",
+      "class": "attestation_obligation_violation",
+      "description": "Gate 4 precondition not met: zero witnesses, fewer than 2 admissible witnesses, or no independent pair",
+      "triggers": [
+        "independent_execution is empty",
+        "fewer than 2 admissible witness records after schema + admissibility filtering",
+        "all admitted pairs fail independence rules"
+      ]
+    },
+    "4": {
+      "label": "SEMANTIC_REINTERPRETATION",
+      "class": "breaking_change_in_non_breaking_transition",
+      "description": "Components declared 'removed' in a transition typed EXTENSION or REFINEMENT",
+      "triggers": [
+        "artifact_mapping contains 'removed' value and transition_type is EXTENSION or REFINEMENT"
+      ]
+    }
+  }
+}
