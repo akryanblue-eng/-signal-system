@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quantum Star Runtime — v0.5</title>
+  <title>Quantum Star Runtime — v0.6</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -28,13 +28,16 @@
     .stat { background: #0d1117; padding: 5px 8px; border-left: 2px solid #1e2a3a; }
     .stat-label { color: #334455; margin-bottom: 2px; }
     .stat-value { color: #aaccee; font-size: 13px; }
+    .stat.graph { border-left-color: #2a4a2a; }
+    .stat.graph .stat-value { color: #88bb88; }
     #controls {
       width: 480px;
       color: #334455;
-      display: flex;
-      gap: 14px;
-      align-items: center;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
     }
+    .ctrl { background: #080b12; padding: 4px 6px; }
     kbd {
       background: #0d1117;
       border: 1px solid #1e2a3a;
@@ -51,16 +54,13 @@
       line-height: 2;
       color: #1e2a3a;
     }
-    .pipe-tape    { color: #2a4060; }
-    .pipe-bus     { color: #3a5070; }
-    .pipe-runtime { color: #446080; }
-    .pipe-skin    { color: #3a6080; }
-    .pipe-render  { color: #2a5060; }
-    #mode { color: #557799; min-width: 160px; }
+    .pl { color: #2a4060; }
+    .pl-new { color: #2a5040; }
+    #mode { grid-column: 1 / -1; color: #557799; padding: 4px 6px; background: #080b12; }
   </style>
 </head>
 <body>
-  <canvas id="stage" width="480" height="300"></canvas>
+  <canvas id="stage" width="480" height="280"></canvas>
 
   <div id="hud">
     <div class="stat"><div class="stat-label">time</div><div class="stat-value" id="s-t">0.00</div></div>
@@ -71,24 +71,27 @@
     <div class="stat"><div class="stat-label">flow</div><div class="stat-value" id="s-flow">0.00</div></div>
     <div class="stat"><div class="stat-label">chaos</div><div class="stat-value" id="s-chaos">0.00</div></div>
     <div class="stat"><div class="stat-label">focus</div><div class="stat-value" id="s-focus">0.00</div></div>
+    <div class="stat graph"><div class="stat-label">checkpoints</div><div class="stat-value" id="s-nodes">1</div></div>
+    <div class="stat graph"><div class="stat-label">branches</div><div class="stat-value" id="s-branches">1</div></div>
+    <div class="stat graph" style="grid-column:span 2"><div class="stat-label">timeline</div><div class="stat-value">checkpoints every 5s · auto</div></div>
   </div>
 
   <div id="controls">
-    <span id="mode">PAUSED</span>
-    <span><kbd>SPACE</kbd> play</span>
-    <span><kbd>H</kbd> hit</span>
-    <span><kbd>M</kbd> miss</span>
-    <span><kbd>R</kbd> replay verify</span>
-    <span><kbd>X</kbd> reset</span>
+    <div id="mode">PAUSED</div>
+    <div class="ctrl"><kbd>SPACE</kbd> play/pause</div>
+    <div class="ctrl"><kbd>H</kbd> hit &nbsp;<kbd>M</kbd> miss</div>
+    <div class="ctrl"><kbd>G</kbd> manual checkpoint</div>
+    <div class="ctrl"><kbd>R</kbd> branch + verify replay</div>
+    <div class="ctrl"><kbd>F</kbd> fork what-if branch</div>
+    <div class="ctrl"><kbd>X</kbd> reset</div>
   </div>
 
   <div id="pipeline">
-    <span class="pipe-tape">BeatTape · PhysicsTape · VisualTape · MetaTape</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;↓ <span class="pipe-bus">MultiTapeBus (dispatcher)</span><br>
-    <span class="pipe-runtime">ZapRuntime (beat) &nbsp;|&nbsp; PhysicsRuntime &nbsp;|&nbsp; VisualRuntime</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;↓ WorldSnapshot<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;↓ <span class="pipe-skin">SkinRuntime.project(world)</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;↓ <span class="pipe-render">render(ctx, vis)</span>
+    <span class="pl">BeatTape · PhysicsTape · VisualTape · MetaTape</span><br>
+    &nbsp;&nbsp;↓ <span class="pl">MultiTapeBus</span> → ZapRuntime | PhysicsRuntime | VisualRuntime<br>
+    &nbsp;&nbsp;↓ WorldSnapshot → <span class="pl-new">TimelineGraph</span> (checkpoint every 5s)<br>
+    &nbsp;&nbsp;↓ <span class="pl-new">BranchExecutor</span> (fork · replay · compare · diff)<br>
+    &nbsp;&nbsp;↓ SkinRuntime → render
   </div>
 
   <script type="module" src="./src/main.js"></script>

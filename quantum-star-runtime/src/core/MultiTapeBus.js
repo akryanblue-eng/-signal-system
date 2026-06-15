@@ -49,6 +49,14 @@ export class MultiTapeBus {
     };
   }
 
+  // Load all runtimes from a TimelineNode checkpoint — O(1) state restore.
+  // Caller must call catchUpSeqs() if resuming live mode after this.
+  loadSnapshot(node) {
+    this.#zap.loadSnapshot(node.zapSnap);
+    this.#physics.loadSnapshot(node.physicsSnap);
+    this.#visual.loadSnapshot(node.visualSnap);
+  }
+
   reset() {
     this.#zap     = new ZapRuntime(createCoreState());
     this.#physics = new PhysicsRuntime();
