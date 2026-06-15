@@ -30,6 +30,14 @@ REQUIRED_GATES = ("gate_1", "gate_2", "gate_3")
 VALID_RUNNER_TYPES = ("github_actions", "local", "other")
 ISO8601_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
+# Canonical field set for independent_execution entries — single source of truth.
+# schema.py imports this to prevent the two validators from drifting again.
+REQUIRED_WITNESS_FIELDS = (
+    "schema_version", "witness_id", "candidate_digest",
+    "validator_version", "environment", "execution",
+    "results", "verdict", "artifacts",
+)
+
 
 # ── Schema validation ──────────────────────────────────────────────────────
 

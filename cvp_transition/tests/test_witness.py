@@ -6,12 +6,16 @@ transition_morphism.json). These records are test fixtures only: they prove
 the validator logic is correct, not that external corroboration has occurred.
 No synthetic record should ever appear in transition_morphism.independent_execution.
 """
+import json
 import pytest
+from pathlib import Path
 from cvp_transition.witness import (
     validate_witness,
     is_admissible,
     are_independent,
     evaluate_gate4,
+    compute_candidate_digest,
+    REQUIRED_WITNESS_FIELDS,
 )
 
 # Real digest of the committed transition_morphism.json.
@@ -284,3 +288,169 @@ class TestEvaluateGate4:
         w2 = _make_witness(witness_id="aaaa-0002", runner_type="github_actions")
         ok, _ = evaluate_gate4([w1, w2], REAL_DIGEST)
         assert not ok
+
+
+# ── Invariant: digest is witness-independent ───────────────────────────────
+
+MORPHISM_ROOT = Path(__file__).parent.parent.parent
+
+
+class TestDigestWitnessIndependence:
+    """
+    Adding or removing witnesses must not change compute_candidate_digest().
+    Witnesses attest to identity; they must not constitute it.
+    """
+
+    def _write(self, tmp_path: Path, witnesses: list) -> Path:
+        morphism = {
+            "from_version": "1.2",
+            "to_version": "1.3",
+            "transition_type": "EXTENSION",
+            "artifact_mapping": {
+                "cvl1_extraction": "unchanged",
+                "drift_engine": "unchanged",
+                "verify_kernel": "unchanged",
+                "artifact_schema": "unchanged",
+            },
+            "invariants_preserved": [],
+            "invariants_added": [],
+            "breaking_changes": [],
+            "independent_execution": witnesses,
+        }
+        p = tmp_path / "morphism.json"
+        p.write_text(json.dumps(morphism, sort_keys=True))
+        return p
+
+    def test_empty_witnesses_same_digest_as_one_witness(self, tmp_path):
+        d_empty = compute_candidate_digest(self._write(tmp_path, []))
+        d_one   = compute_candidate_digest(self._write(tmp_path, [_make_witness()]))
+        assert d_empty == d_one
+
+    def test_digest_stable_as_witness_array_grows(self, tmp_path):
+        d_base = compute_candidate_digest(self._write(tmp_path, []))
+        for n in range(1, 4):
+            ws = [_make_witness(witness_id=f"aaaa-{n:04d}") for _ in range(n)]
+            d = compute_candidate_digest(self._write(tmp_path, ws))
+            assert d == d_base, f"digest changed with {n} witness(es)"
+
+    def test_witness_candidate_digest_matches_spec_only_hash(self):
+        path = MORPHISM_ROOT / "transition_morphism.json"
+        morphism = json.loads(path.read_bytes())
+        spec_digest = compute_candidate_digest(path)
+        for i, w in enumerate(morphism.get("independent_execution", [])):
+            assert w["candidate_digest"] == spec_digest, (
+                f"witness[{i}].candidate_digest does not match spec-only hash"
+            )
+
+
+# ── Invariant: schema.py and witness.py use the same field set ─────────────
+
+class TestSchemaFieldConsistency:
+    """
+    schema.py must iterate over REQUIRED_WITNESS_FIELDS from witness.py.
+    A schema-valid witness record (per witness.py) must always pass the
+    morphism-level schema check (per schema.py) with no witness-related errors.
+    """
+
+    def test_shared_constant_drives_schema_py(self):
+        from cvp_transition.schema import validate_schema
+        w = _make_witness()
+        assert validate_witness(w) == [], "fixture must be witness.py-valid"
+
+        morphism = {
+            "from_version": "1.2",
+            "to_version": "1.3",
+            "transition_type": "EXTENSION",
+            "artifact_mapping": {
+                "cvl1_extraction": "unchanged",
+                "drift_engine": "unchanged",
+                "verify_kernel": "unchanged",
+                "artifact_schema": "unchanged",
+            },
+            "invariants_preserved": [],
+            "invariants_added": [],
+            "breaking_changes": [],
+            "independent_execution": [w],
+        }
+        errs = validate_schema(morphism)
+        witness_errs = [e for e in errs if "independent_execution" in e]
+        assert witness_errs == [], (
+            f"witness.py-valid record failed schema.py: {witness_errs}"
+        )
+
+    def test_required_witness_fields_constant_is_complete(self):
+        required = set(REQUIRED_WITNESS_FIELDS)
+        assert "schema_version" in required
+        assert "witness_id" in required
+        assert "candidate_digest" in required
+        assert "validator_version" in required
+        assert "environment" in required
+        assert "execution" in required
+        assert "results" in required
+        assert "verdict" in required
+        assert "artifacts" in required
+
+    def test_removing_any_required_field_fails_both_validators(self):
+        from cvp_transition.schema import validate_schema
+
+        base_morphism = {
+            "from_version": "1.2",
+            "to_version": "1.3",
+            "transition_type": "EXTENSION",
+            "artifact_mapping": {
+                "cvl1_extraction": "unchanged",
+                "drift_engine": "unchanged",
+                "verify_kernel": "unchanged",
+                "artifact_schema": "unchanged",
+            },
+            "invariants_preserved": [],
+            "invariants_added": [],
+            "breaking_changes": [],
+        }
+        for field in REQUIRED_WITNESS_FIELDS:
+            w = _make_witness()
+            del w[field]
+
+            witness_errs = validate_witness(w)
+            assert any(field in e for e in witness_errs), (
+                f"witness.py did not catch missing {field!r}"
+            )
+
+            morphism = {**base_morphism, "independent_execution": [w]}
+            schema_errs = validate_schema(morphism)
+            assert any(field in e for e in schema_errs), (
+                f"schema.py did not catch missing {field!r}"
+            )
+
+
+# ── Invariant: bootstrap witnesses in transition_morphism.json are live ────
+
+class TestBootstrapWitnessesAdmissible:
+    """
+    The actual witnesses in transition_morphism.json must satisfy Gate 4
+    using the spec-only digest. This test fails if witnesses go stale or
+    the morphism spec drifts without updating them.
+    """
+
+    def test_bootstrap_witnesses_pass_gate4(self):
+        path = MORPHISM_ROOT / "transition_morphism.json"
+        morphism = json.loads(path.read_bytes())
+        digest = compute_candidate_digest(path)
+        witnesses = morphism.get("independent_execution", [])
+        ok, msg = evaluate_gate4(witnesses, digest)
+        assert ok, f"bootstrap witnesses failed Gate 4: {msg}"
+
+    def test_at_least_two_witnesses_present(self):
+        path = MORPHISM_ROOT / "transition_morphism.json"
+        morphism = json.loads(path.read_bytes())
+        witnesses = morphism.get("independent_execution", [])
+        assert len(witnesses) >= 2, (
+            f"expected ≥2 bootstrap witnesses, found {len(witnesses)}"
+        )
+
+    def test_all_witnesses_schema_valid(self):
+        path = MORPHISM_ROOT / "transition_morphism.json"
+        morphism = json.loads(path.read_bytes())
+        for i, w in enumerate(morphism.get("independent_execution", [])):
+            errs = validate_witness(w)
+            assert errs == [], f"witness[{i}] schema errors: {errs}"
