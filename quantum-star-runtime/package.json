@@ -1,0 +1,12 @@
+{
+  "name": "quantum-star-runtime",
+  "version": "0.4.0",
+  "description": "ZapRuntime bootstrap — deterministic state machine with multiple render targets",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . --listen 3000 --no-clipboard"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
