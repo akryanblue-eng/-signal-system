@@ -69,7 +69,9 @@ def validate_schema(morphism: dict) -> list[str]:
         errors.append("independent_execution must be an array")
     else:
         for i, w in enumerate(witnesses):
-            for field in ("runner_id", "artifact_hash", "verifier_version", "result"):
+            for field in ("schema_version", "witness_id", "candidate_digest",
+                          "validator_version", "environment", "execution",
+                          "results", "verdict", "artifacts"):
                 if field not in w:
                     errors.append(
                         f"independent_execution[{i}] missing field: {field!r}"

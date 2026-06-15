@@ -226,4 +226,6 @@ def evaluate_gate4(witnesses: list[dict], candidate_digest: str) -> tuple[bool, 
 
 
 def compute_candidate_digest(morphism_path: Path) -> str:
-    return hashlib.sha256(morphism_path.read_bytes()).hexdigest()
+    data = json.loads(morphism_path.read_bytes())
+    data.pop("independent_execution", None)
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
