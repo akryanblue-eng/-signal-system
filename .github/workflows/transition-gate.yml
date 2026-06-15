@@ -25,6 +25,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install test runner
+        run: pip install pytest
+        shell: bash
+
+      - name: Invariant tests (proof lattice)
+        run: python -m pytest cvp_transition/tests/test_witness.py -v
+        shell: bash
+
       - name: Validate transition morphism
         # Exit codes:
         #   0 — valid morphism
