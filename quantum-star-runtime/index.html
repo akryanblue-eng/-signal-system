@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quantum Star Runtime — v0.4 Bootstrap</title>
+  <title>Quantum Star Runtime — v0.5</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -16,7 +16,7 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      gap: 12px;
+      gap: 10px;
     }
     canvas { display: block; }
     #hud {
@@ -25,37 +25,42 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 4px;
     }
-    .stat { background: #0d1117; padding: 6px 8px; border-left: 2px solid #1e2a3a; }
-    .stat-label { color: #445566; margin-bottom: 2px; }
+    .stat { background: #0d1117; padding: 5px 8px; border-left: 2px solid #1e2a3a; }
+    .stat-label { color: #334455; margin-bottom: 2px; }
     .stat-value { color: #aaccee; font-size: 13px; }
     #controls {
       width: 480px;
       color: #334455;
       display: flex;
-      gap: 16px;
+      gap: 14px;
+      align-items: center;
     }
     kbd {
       background: #0d1117;
       border: 1px solid #1e2a3a;
       padding: 1px 5px;
-      color: #667788;
+      color: #556677;
       border-radius: 2px;
     }
     #pipeline {
       width: 480px;
-      color: #223;
       font-size: 10px;
-      padding: 8px;
-      background: #0a0c12;
-      border: 1px solid #1a1f2e;
-      line-height: 1.8;
+      padding: 8px 10px;
+      background: #080b12;
+      border: 1px solid #131926;
+      line-height: 2;
+      color: #1e2a3a;
     }
-    .pipe-active { color: #3a5a7a; }
-    #mode { color: #557799; }
+    .pipe-tape    { color: #2a4060; }
+    .pipe-bus     { color: #3a5070; }
+    .pipe-runtime { color: #446080; }
+    .pipe-skin    { color: #3a6080; }
+    .pipe-render  { color: #2a5060; }
+    #mode { color: #557799; min-width: 160px; }
   </style>
 </head>
 <body>
-  <canvas id="stage" width="480" height="320"></canvas>
+  <canvas id="stage" width="480" height="300"></canvas>
 
   <div id="hud">
     <div class="stat"><div class="stat-label">time</div><div class="stat-value" id="s-t">0.00</div></div>
@@ -70,119 +75,22 @@
 
   <div id="controls">
     <span id="mode">PAUSED</span>
-    <span><kbd>SPACE</kbd> play/pause</span>
+    <span><kbd>SPACE</kbd> play</span>
     <span><kbd>H</kbd> hit</span>
     <span><kbd>M</kbd> miss</span>
-    <span><kbd>R</kbd> replay</span>
+    <span><kbd>R</kbd> replay verify</span>
     <span><kbd>X</kbd> reset</span>
   </div>
 
   <div id="pipeline">
-    EventTape → TimelineClock → <span class="pipe-active">ZapRuntime</span> → DerivedState → SkinRuntime → render
+    <span class="pipe-tape">BeatTape · PhysicsTape · VisualTape · MetaTape</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;↓ <span class="pipe-bus">MultiTapeBus (dispatcher)</span><br>
+    <span class="pipe-runtime">ZapRuntime (beat) &nbsp;|&nbsp; PhysicsRuntime &nbsp;|&nbsp; VisualRuntime</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;↓ WorldSnapshot<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;↓ <span class="pipe-skin">SkinRuntime.project(world)</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;↓ <span class="pipe-render">render(ctx, vis)</span>
   </div>
 
-  <script type="module">
-    import { TimelineClock }    from './src/TimelineClock.js';
-    import { EventTape }        from './src/EventTape.js';
-    import { ZapRuntime }       from './src/ZapRuntime.js';
-    import { WindowAccumulator } from './src/WindowAccumulator.js';
-    import { BeatManiaSkin }    from './src/SkinRuntime.js';
-    import { render }           from './src/render.js';
-
-    const clock   = new TimelineClock();
-    const tape    = new EventTape();
-    const runtime = new ZapRuntime();
-    const accum   = new WindowAccumulator();
-    const canvas  = document.getElementById('stage');
-    const ctx     = canvas.getContext('2d');
-
-    // Beat emission state — no setTimeout, derived from clock cursor
-    const BPM = 120;
-    const BEAT_INTERVAL = 60 / BPM;
-    let lastBeatTick = -1;
-
-    function emitScheduledBeats(t) {
-      const currentTick = Math.floor(t / BEAT_INTERVAL);
-      for (let tick = lastBeatTick + 1; tick <= currentTick; tick++) {
-        tape.append('BEAT', { tick, bpm: BPM }, tick * BEAT_INTERVAL);
-      }
-      lastBeatTick = currentTick;
-    }
-
-    // Event seq tracking for live mode — process only new events each frame
-    let lastSeq = -1;
-
-    function loop() {
-      requestAnimationFrame(loop);
-
-      const dt = clock.tick();
-      const t = clock.cursor;
-
-      if (clock.isRunning) emitScheduledBeats(t);
-
-      // Collect new events since last frame (by seq, not time — avoids double-processing)
-      const newEvents = tape.since(lastSeq + 1);
-      if (newEvents.length > 0) lastSeq = newEvents[newEvents.length - 1].seq;
-
-      // ZapRuntime is the ONLY place state advances
-      const state = runtime.step(dt, newEvents);
-      const win   = accum.update(tape, t);
-      const vis   = BeatManiaSkin.project(state, win);
-
-      render(ctx, vis);
-      updateHUD(state, t);
-    }
-
-    function updateHUD(state, t) {
-      const c = state.core;
-      document.getElementById('s-t').textContent     = t.toFixed(2);
-      document.getElementById('s-score').textContent = c.score;
-      document.getElementById('s-combo').textContent = c.comboCount;
-      document.getElementById('s-hits').textContent  = c.hitCount;
-      document.getElementById('s-force').textContent = c.zap.force.toFixed(2);
-      document.getElementById('s-flow').textContent  = c.zap.flow.toFixed(2);
-      document.getElementById('s-chaos').textContent = c.zap.chaos.toFixed(2);
-      document.getElementById('s-focus').textContent = c.zap.focus.toFixed(2);
-    }
-
-    function setMode(label) {
-      document.getElementById('mode').textContent = label;
-    }
-
-    document.addEventListener('keydown', e => {
-      if (e.repeat) return;
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (clock.isRunning) { clock.pause(); setMode('PAUSED'); }
-        else                 { clock.play();  setMode('LIVE');   }
-      }
-      if (e.code === 'KeyH' && clock.isRunning) tape.append('HIT',  {}, clock.cursor);
-      if (e.code === 'KeyM' && clock.isRunning) tape.append('MISS', {}, clock.cursor);
-
-      // R = deterministic replay proof: resets runtime, replays full tape, resumes
-      if (e.code === 'KeyR') {
-        clock.pause();
-        setMode('REPLAYING…');
-        const t = clock.cursor;
-        const replayed = ZapRuntime.replay(tape, t);
-        runtime.loadSnapshot(replayed);
-        lastSeq = tape.length - 1;
-        setTimeout(() => { clock.play(); setMode('LIVE (post-replay)'); }, 400);
-      }
-
-      // X = full reset
-      if (e.code === 'KeyX') {
-        clock.pause();
-        clock.seek(0);
-        lastBeatTick = -1;
-        lastSeq = -1;
-        runtime.loadSnapshot({ core: { t: 0, hitCount: 0, comboCount: 0, score: 0,
-          zap: { force: 0, flow: 0, chaos: 0, focus: 0 } } });
-        setMode('PAUSED');
-      }
-    });
-
-    requestAnimationFrame(loop);
-  </script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
