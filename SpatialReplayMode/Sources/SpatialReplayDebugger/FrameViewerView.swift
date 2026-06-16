@@ -1,9 +1,11 @@
 import SwiftUI
 
-struct FrameViewerView: View {
-    let frame: DebugSnapshot?
+public struct FrameViewerView: View {
+    public let frame: DebugSnapshot?
 
-    var body: some View {
+    public init(frame: DebugSnapshot?) { self.frame = frame }
+
+    public var body: some View {
         ZStack {
             Color.black.opacity(0.9)
 
@@ -34,7 +36,7 @@ struct FrameViewerView: View {
         }
     }
 
-    private func hashLine(_ label: String, _ hash: String) -> some View {
+    public func hashLine(_ label: String, _ hash: String) -> some View {
         HStack(spacing: 6) {
             Text(label)
                 .foregroundColor(.gray)

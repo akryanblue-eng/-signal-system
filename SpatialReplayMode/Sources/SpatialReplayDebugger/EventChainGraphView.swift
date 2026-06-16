@@ -1,9 +1,11 @@
 import SwiftUI
 
-struct EventChainGraphView: View {
-    let snapshots: [DebugSnapshot]
+public struct EventChainGraphView: View {
+    public let snapshots: [DebugSnapshot]
 
-    var body: some View {
+    public init(snapshots: [DebugSnapshot]) { self.snapshots = snapshots }
+
+    public var body: some View {
         Canvas { context, size in
             guard !snapshots.isEmpty else { return }
             let spacing = size.width / CGFloat(snapshots.count)

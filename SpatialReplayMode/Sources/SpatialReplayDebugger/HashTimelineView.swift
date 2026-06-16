@@ -1,10 +1,15 @@
 import SwiftUI
 
-struct HashTimelineView: View {
-    let snapshots: [DebugSnapshot]
-    @Binding var selectedFrame: UInt64
+public struct HashTimelineView: View {
+    public let snapshots: [DebugSnapshot]
+    @Binding public var selectedFrame: UInt64
 
-    var body: some View {
+    public init(snapshots: [DebugSnapshot], selectedFrame: Binding<UInt64>) {
+        self.snapshots = snapshots
+        self._selectedFrame = selectedFrame
+    }
+
+    public var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
                 ForEach(snapshots) { snap in
@@ -27,7 +32,7 @@ struct HashTimelineView: View {
         .background(Color.black.opacity(0.2))
     }
 
-    private func color(for snap: DebugSnapshot) -> Color {
+    public func color(for snap: DebugSnapshot) -> Color {
         if !snap.is_chain_valid { return .red }
         if !snap.is_projection_match { return .orange }
         return .green
