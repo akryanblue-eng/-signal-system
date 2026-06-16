@@ -1,0 +1,7 @@
+{
+  "version": "state_types.v1",
+  "state_root_types": [
+    "TravelerState"
+  ],
+  "notes": "Canonical list of application state root types. STATE_INIT op is emitted by audit_extractor.py for any constructor call whose callee matches a type in this list. Update here + regenerate when adding new state types."
+}
