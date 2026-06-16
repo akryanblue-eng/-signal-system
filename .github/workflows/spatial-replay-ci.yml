@@ -1,0 +1,36 @@
+name: SpatialReplayCore CI
+
+on:
+  push:
+    paths:
+      - 'SpatialReplayMode/**'
+  pull_request:
+    paths:
+      - 'SpatialReplayMode/**'
+
+jobs:
+  test:
+    name: Core + Diff golden tests
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Resolve dependencies
+        working-directory: SpatialReplayMode
+        run: swift package resolve
+
+      - name: Build SpatialReplayCore
+        working-directory: SpatialReplayMode
+        run: swift build --target SpatialReplayCore
+
+      - name: Run SpatialReplayCoreTests (golden truth gate)
+        working-directory: SpatialReplayMode
+        run: swift test --filter SpatialReplayCoreTests
+
+      - name: Run SpatialReplayDiffTests (causal comparison gate)
+        working-directory: SpatialReplayMode
+        run: swift test --filter SpatialReplayDiffTests

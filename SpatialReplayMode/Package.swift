@@ -4,6 +4,7 @@ import PackageDescription
 let package = Package(
     name: "SpatialReplayMode",
     platforms: [
+        .macOS(.v14),
         .iOS(.v17),
         .visionOS(.v1)
     ],
