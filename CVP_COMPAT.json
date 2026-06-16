@@ -1,23 +1,18 @@
 {
+  "kernel_version": "1.3",
+  "base_oracle_commit": "4b7dbeb",
+  "transition_spec": "docs/cvp-transition-spec-v1.2-to-v1.3.md",
   "from_version": "1.2",
   "to_version": "1.3",
   "transition_type": "EXTENSION",
-  "artifact_mapping": {
-    "cvl1_extraction": "unchanged",
-    "drift_engine": "unchanged",
-    "verify_kernel": "unchanged",
-    "artifact_schema": "unchanged"
+  "regression_results": {
+    "baseline_hash_check": "PASS",
+    "cross_impl_check": "PASS",
+    "drift_immunity": "PASS",
+    "test_suite": "PASS",
+    "fixture_pack": "PASS"
   },
-  "invariants_preserved": [
-    "commit field is sha256 hex, 64 chars",
-    "certificate preimage: auth_commit || replay_commit || verdict_status || run_id",
-    "CVL1 field line format: ^<name>:\\s+<value>",
-    "derive_seed is content-addressed: sha256(stream || config)",
-    "verify.py exits 0 on baseline match"
-  ],
-  "invariants_added": [],
-  "breaking_changes": [],
-  "independent_execution": [
+  "witness_environment": [
     {
       "schema_version": "1.0",
       "witness_id": "1ad5647a-3c6a-4f61-ac7f-c6803c21c964",
@@ -76,5 +71,7 @@
         "log_sha256": "79a73ce34c279745880244d9660326fd44b37a3d892e774230656c24cc56a776"
       }
     }
-  ]
+  ],
+  "issued_at_iso": "2026-06-15T18:41:07Z",
+  "artifact_hash": "bcdf04e91cba98d75462a987bc2190b8880b900072ce5ced94b1ee7252863f65"
 }

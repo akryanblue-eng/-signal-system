@@ -1,0 +1,52 @@
+{
+  "authority": "derived",
+  "exit_codes": {
+    "0": {
+      "class": "success",
+      "description": "All gates passed; CVP_COMPAT.json emitted",
+      "label": "TRANSITION_VALID",
+      "triggers": []
+    },
+    "1": {
+      "class": "contract_violation",
+      "description": "Schema invalid, oracle unstable, outcome preservation failed, fixture pack mismatch, or removed component in EXTENSION/REFINEMENT transition",
+      "label": "INVARIANT_VIOLATION",
+      "triggers": [
+        "morphism schema validation errors",
+        "gate_1 (frozen oracle) failure",
+        "gate_2 (outcome preservation) failure",
+        "gate_3b (fixture pack) failure",
+        "semantic reinterpretation: removed component in non-BREAKING transition"
+      ]
+    },
+    "2": {
+      "class": "cryptographic_invariant_violation",
+      "description": "Evidence gate produced non-identical commit or certificate across repeated runs",
+      "label": "DETERMINISM_FAILURE",
+      "triggers": [
+        "gate_3 (determinism) failure: commit or certificate varies across 3 runs"
+      ]
+    },
+    "3": {
+      "class": "attestation_obligation_violation",
+      "description": "Gate 4 precondition not met: zero witnesses, fewer than 2 admissible witnesses, or no independent pair",
+      "label": "WITNESS_FAILURE",
+      "triggers": [
+        "independent_execution is empty",
+        "fewer than 2 admissible witness records after schema + admissibility filtering",
+        "all admitted pairs fail independence rules"
+      ]
+    },
+    "4": {
+      "class": "breaking_change_in_non_breaking_transition",
+      "description": "Components declared 'removed' in a transition typed EXTENSION or REFINEMENT",
+      "label": "SEMANTIC_REINTERPRETATION",
+      "triggers": [
+        "artifact_mapping contains 'removed' value and transition_type is EXTENSION or REFINEMENT"
+      ]
+    }
+  },
+  "name": "gate_failure_map",
+  "source": "cvp_transition/validate.py:run",
+  "version": "1.0"
+}

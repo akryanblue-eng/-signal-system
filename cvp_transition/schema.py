@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .witness import REQUIRED_WITNESS_FIELDS
+
 VALID_ARTIFACT_VALUES = {"unchanged", "modified_with_diff", "removed"}
 VALID_CHANGE_TYPES = {"semantic", "structural", "deterministic"}
 VALID_COMPONENTS = {"cvl1_extraction", "drift_engine", "verify_kernel", "artifact_schema"}
@@ -69,7 +71,7 @@ def validate_schema(morphism: dict) -> list[str]:
         errors.append("independent_execution must be an array")
     else:
         for i, w in enumerate(witnesses):
-            for field in ("runner_id", "artifact_hash", "verifier_version", "result"):
+            for field in REQUIRED_WITNESS_FIELDS:
                 if field not in w:
                     errors.append(
                         f"independent_execution[{i}] missing field: {field!r}"

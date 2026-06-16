@@ -1,0 +1,19 @@
+{
+  "authority": "derived",
+  "excluded_fields": [
+    "independent_execution"
+  ],
+  "hash_algorithm": "sha256",
+  "invariant": "digest_value_must_not_change_when_independent_execution_is_mutated",
+  "law": "digest = sha256(json.dumps(candidate_spec, sort_keys=True).encode('utf-8'))",
+  "name": "candidate_digest_contract",
+  "rationale": "Witness material is excluded by type, not convention. Any presence of witness keys in the digest domain is a hard law violation. Identity must be computable without any attestation existing.",
+  "serialization": {
+    "encoding": "utf-8",
+    "format": "json",
+    "key_ordering": "sorted",
+    "null_field_inference": false
+  },
+  "source": "cvp_transition/witness.py:compute_candidate_digest",
+  "version": "1.0"
+}
