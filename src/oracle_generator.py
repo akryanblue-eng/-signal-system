@@ -46,6 +46,98 @@ FREEZE_TAG = FIXTURES_DIR / "DSVM0Freeze.json"
 CI_PIPELINE_SPEC = FIXTURES_DIR / "DSVM0CIPipeline.json"
 QS_EVENT_SWIFT = FIXTURES_DIR / "QSEvent.swift"
 
+POLICY_DIR = Path(__file__).parent.parent / "policy"
+ROLE_REGISTRY_PATH = POLICY_DIR / "role_registry.v1.json"
+AUDIT_POLICY_PATH  = POLICY_DIR / "audit_policy.v1.json"
+
+# ---------------------------------------------------------------------------
+# Role registry — single authority surface for all audit policy
+#
+# To add a new generated file: add it to resolution["by_file_exact"] with
+# the correct role, then run python -m src.oracle_generator.
+# Never add names or strings to generate_audit_script() directly.
+# ---------------------------------------------------------------------------
+
+ROLE_REGISTRY: dict = {
+    "version": "role_registry.v1",
+    "roles": {
+        "kernel": {
+            "description": "Reducer and core state logic — strict mutation isolation.",
+            "allowed_ops": ["ReducerMutation", "PureCompute", "FilesystemRead"],
+            "forbidden_ops": [
+                "StateConstruction", "Reconstruction", "NonReducerMutation",
+                "TimeRead", "RandomRead", "NetworkIO", "FilesystemWrite",
+            ],
+        },
+        "bootstrap": {
+            "description": "DSVM-0 genesis layer — may construct initial TravelerState.",
+            "allowed_ops": [
+                "StateConstruction", "ReducerMutation", "PureCompute", "FilesystemRead",
+            ],
+            "forbidden_ops": [
+                "Reconstruction", "NonReducerMutation", "TimeRead", "RandomRead", "NetworkIO",
+            ],
+        },
+        "oracle": {
+            "description": "CI oracle — reconstructs expected states from fixture values.",
+            "allowed_ops": ["Reconstruction", "PureCompute", "FilesystemRead"],
+            "forbidden_ops": [
+                "StateConstruction", "ReducerMutation", "NonReducerMutation",
+                "TimeRead", "RandomRead", "NetworkIO", "FilesystemWrite",
+            ],
+        },
+        "non_audited": {
+            "description": "Harness/navigator — outside the causality boundary.",
+            "allowed_ops": [],
+            "forbidden_ops": [],
+        },
+    },
+    "resolution": {
+        "by_file_exact": {
+            "AppFlow.swift":           "bootstrap",
+            "DSVM0Oracle.swift":       "oracle",
+            "ReplayHarnessCI.swift":   "non_audited",
+            "ReplayHarnessDiff.swift": "non_audited",
+            "QuantumStarApp.swift":    "non_audited",
+            "AppNavigator.swift":      "non_audited",
+            "QSEvent.swift":           "non_audited",
+        },
+        "default_swift_role": "kernel",
+    },
+}
+
+
+def compile_roles(registry: dict) -> dict:
+    """Compile ROLE_REGISTRY into a pinned, flattened audit_policy.v1.json.
+
+    The returned dict is written to policy/audit_policy.v1.json and also
+    passed directly to generate_audit_script() so the script's grep
+    exclusions are derived from this same compilation, not hardcoded.
+    """
+    import hashlib as _hl
+
+    registry_bytes = json.dumps(registry, sort_keys=True).encode()
+    registry_sha = _hl.sha256(registry_bytes).hexdigest()
+
+    roles = registry["roles"]
+    resolution = registry["resolution"]
+
+    return {
+        "version": "audit_policy.v1",
+        "source_registry_sha256": registry_sha,
+        "roles": {
+            name: {
+                "description": r["description"],
+                "allowed_ops": r["allowed_ops"],
+                "forbidden_ops": r["forbidden_ops"],
+            }
+            for name, r in roles.items()
+        },
+        "scoped_roles": dict(resolution["by_file_exact"]),
+        "default_swift_role": resolution["default_swift_role"],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Event schema — canonical grammar definition
 #
@@ -480,57 +572,94 @@ def generate_app_navigator_swift() -> str:
     """)
 
 
-def generate_audit_script() -> str:
-    return textwrap.dedent("""\
+def generate_audit_script(policy: dict) -> str:
+    """Emit audit_dsvm.sh with role-policy-derived file exemptions.
+
+    Exemptions are NEVER hardcoded here.  They are compiled from
+    policy/role_registry.v1.json by compile_roles() and passed in via
+    ``policy["scoped_roles"]``.  To add a new generated file: update
+    ROLE_REGISTRY.resolution in oracle_generator.py and regenerate.
+    """
+    scoped_roles: dict[str, str] = policy["scoped_roles"]
+
+    # Files whose role exempts them from the STATE_INIT check:
+    #   bootstrap — genesis state construction is explicitly allowed
+    #   oracle    — Reconstruction (same syntax) is allowed
+    #   non_audited — outside the causality boundary
+    ctor_exempt_files = sorted(
+        f for f, r in scoped_roles.items()
+        if r in {"bootstrap", "oracle", "non_audited"}
+    )
+    # Files whose role exempts them from the travelerState mutation check:
+    #   only bootstrap (AppFlow.send is the single write authority)
+    mut_exempt_files = sorted(
+        f for f, r in scoped_roles.items()
+        if r == "bootstrap"
+    )
+
+    def _pat(*items: str) -> str:
+        """BRE alternation for bash grep -v  (\\| in Python → \\| in file)."""
+        return "\\|".join(items)
+
+    # Check 1: STATE_INIT — exempt reducer gate + comments + role-assigned files
+    ctor_excl = _pat("applyReducer", "func applyReducer", "//", *ctor_exempt_files)
+    # Check 1b: travelerState mutation — exempt reducer call-through + comments + bootstrap files
+    mut_excl  = _pat("apply(", "//", *mut_exempt_files)
+
+    return textwrap.dedent(f"""\
     #!/usr/bin/env bash
     # audit_dsvm.sh — DSVM-0 Pre-Compilation Causality Gate (Phase 1 of CI pipeline)
     #
-    # This is NOT a utility script. It is a pre-test causality gate.
+    # This is NOT a utility script.  It is a pre-test causality gate.
     # It sits above Swift, below CI, and decides whether the system is even
     # allowed to become a testable object.
     #
     # If this script fails → nothing else executes.
     #
     # Generated by src/oracle_generator.py — do not edit manually.
+    # File-role exemptions are derived from ROLE_REGISTRY in oracle_generator.py
+    # via compile_roles() → policy/audit_policy.v1.json.  Never add names here
+    # directly; update ROLE_REGISTRY.resolution instead.
     #
     # Usage:
     #   bash audit_dsvm.sh [SWIFT_ROOT]
-    #   SWIFT_ROOT defaults to the directory containing this script (assuming
-    #   spatial_vm_fixtures/ lives inside the Xcode project root).
+    #   SWIFT_ROOT defaults to the directory containing this script.
     #
     # Exit codes:
     #   0 — all invariants satisfied; system is allowed to compile
     #   1 — violation detected; build must halt
 
     set -euo pipefail
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    SWIFT_ROOT="${1:-$(dirname "$SCRIPT_DIR")}"
+    SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+    SWIFT_ROOT="${{1:-$(dirname "$SCRIPT_DIR")}}"
 
     echo "🔒 DSVM-0 STATIC AUDIT START"
     echo "   scanning: $SWIFT_ROOT"
+    echo "   policy:   $(dirname "$SCRIPT_DIR")/policy/audit_policy.v1.json"
     echo ""
 
-    # ── 1. Reducer exclusivity ────────────────────────────────────────────────────
-    echo "→ Checking reducer exclusivity..."
+    # ── 1. STATE_INIT exclusivity (op: StateConstruction) ─────────────────────────
+    echo "→ Checking STATE_INIT exclusivity..."
 
-    # Ban: TravelerState( constructed outside applyReducer
-    # A TravelerState value may only be created inside the reducer function.
+    # Deny: TravelerState( constructed outside applyReducer.
+    # Exempt files are determined by role (bootstrap/oracle/non_audited) from
+    # ROLE_REGISTRY.  This grep -v pattern is generated — not hand-maintained.
     if grep -Rn "TravelerState(" "$SWIFT_ROOT" --include="*.swift" \\
-       | grep -v "applyReducer\\|func applyReducer\\|test\\|spec\\|//.*TravelerState(\\|DSVM0Oracle\\|initialState" \\
+       | grep -v "{ctor_excl}" \\
        | grep -q .; then
-      echo "❌ VIOLATION: Direct TravelerState construction outside reducer path"
+      echo "❌ VIOLATION: STATE_INIT op detected outside allowed roles"
       grep -Rn "TravelerState(" "$SWIFT_ROOT" --include="*.swift" \\
-        | grep -v "applyReducer\\|func applyReducer\\|test\\|spec\\|//\\|DSVM0Oracle\\|initialState" || true
+        | grep -v "{ctor_excl}" || true
       exit 1
     fi
 
-    # Ban: `travelerState =` outside AppFlow.send(_:) which calls apply(_:)
+    # Deny: travelerState = outside AppFlow.send(_:)
     if grep -Rn "travelerState\\s*=" "$SWIFT_ROOT" --include="*.swift" \\
-       | grep -v "apply(\\|AppFlow\\.swift\\|//.*travelerState" \\
+       | grep -v "{mut_excl}" \\
        | grep -q .; then
-      echo "❌ VIOLATION: Unauthorized state mutation path detected"
+      echo "❌ VIOLATION: Unauthorized NonReducerMutation op detected"
       grep -Rn "travelerState\\s*=" "$SWIFT_ROOT" --include="*.swift" \\
-        | grep -v "apply(\\|AppFlow\\.swift\\|//" || true
+        | grep -v "{mut_excl}" || true
       exit 1
     fi
     echo "   ✅ TravelerState mutations confined to reducer path"
@@ -538,11 +667,8 @@ def generate_audit_script() -> str:
     # ── 2. Rule-layer purity (no scene access) ────────────────────────────────────
     echo "→ Checking rule-layer purity..."
 
-    # Rule/View files (Node A, B, C) must not reference RealityKit in rule logic.
-    # Projections are the only legal RealityKit boundary.
     VIEW_RULE_FILES=$(find "$SWIFT_ROOT" -name "*View.swift" -o -name "*Rule*.swift" 2>/dev/null || true)
     if [ -n "$VIEW_RULE_FILES" ]; then
-      # Check if any non-projection symbol from RealityKit leaks into rule evaluation
       if echo "$VIEW_RULE_FILES" | xargs grep -ln "entity\\.isEnabled\\|entity\\.components" 2>/dev/null | grep -q .; then
         echo "❌ VIOLATION: Scene access (entity.isEnabled / entity.components) in rule/view layer"
         echo "$VIEW_RULE_FILES" | xargs grep -ln "entity\\.isEnabled\\|entity\\.components" || true
@@ -551,13 +677,13 @@ def generate_audit_script() -> str:
     fi
     echo "   ✅ Rule layer: no forbidden scene access"
 
-    # ── 3. Event determinism (no runtime identity) ────────────────────────────────
+    # ── 3. Event determinism (ops: TIME_READ, RANDOM_READ) ────────────────────────
     echo "→ Checking event determinism..."
 
     if grep -Rn "UUID()" "$SWIFT_ROOT" --include="*.swift" \\
        | grep -v "//.*UUID()\\|witness_id\\|certificate_id" \\
        | grep -q .; then
-      echo "❌ VIOLATION: Runtime UUID usage detected — events must not carry runtime identity"
+      echo "❌ VIOLATION: RANDOM_READ op (UUID()) — events must not carry runtime identity"
       grep -Rn "UUID()" "$SWIFT_ROOT" --include="*.swift" | grep -v "//.*UUID()" || true
       exit 1
     fi
@@ -565,16 +691,15 @@ def generate_audit_script() -> str:
     if grep -Rn "Date()" "$SWIFT_ROOT" --include="*.swift" \\
        | grep -v "//.*Date()" \\
        | grep -q .; then
-      echo "❌ VIOLATION: Time dependency detected — events must not carry implicit temporal context"
+      echo "❌ VIOLATION: TIME_READ op (Date()) — events must not carry implicit temporal context"
       grep -Rn "Date()" "$SWIFT_ROOT" --include="*.swift" | grep -v "//" || true
       exit 1
     fi
-    echo "   ✅ Event bus: no UUID() or Date() injection"
+    echo "   ✅ Event bus: no RANDOM_READ / TIME_READ ops"
 
-    # ── 4. Projection safety (no side-effect writes) ──────────────────────────────
+    # ── 4. Projection purity (no EMIT op from read-only layer) ───────────────────
     echo "→ Checking projection purity..."
 
-    # projectWorld() must not call emit/send
     if grep -Rn "emit(\\|send(" "$SWIFT_ROOT" --include="*.swift" \\
        | grep "projectWorld" \\
        | grep -v "//" \\
@@ -603,6 +728,16 @@ def generate_audit_script() -> str:
       exit 1
     fi
     echo "   ✅ ReplayHarnessCI.swift: $HARNESS_FILE"
+
+    # ── 6. Policy artifact presence ────────────────────────────────────────────────
+    echo "→ Checking role policy artifacts..."
+
+    POLICY_FILE="$(dirname "$SCRIPT_DIR")/policy/audit_policy.v1.json"
+    if [ ! -f "$POLICY_FILE" ]; then
+      echo "❌ VIOLATION: audit_policy.v1.json not found — run: python -m src.oracle_generator"
+      exit 1
+    fi
+    echo "   ✅ audit_policy.v1.json: $POLICY_FILE"
 
     # ── Result ────────────────────────────────────────────────────────────────────
     echo ""
@@ -916,7 +1051,15 @@ def main() -> None:
     QS_EVENT_SWIFT.write_text(generate_qs_event_swift())
     print(f"✅ Written: {QS_EVENT_SWIFT}")
 
-    audit_script = generate_audit_script()
+    POLICY_DIR.mkdir(exist_ok=True)
+    ROLE_REGISTRY_PATH.write_text(json.dumps(ROLE_REGISTRY, indent=2))
+    print(f"✅ Written: {ROLE_REGISTRY_PATH}")
+
+    policy = compile_roles(ROLE_REGISTRY)
+    AUDIT_POLICY_PATH.write_text(json.dumps(policy, indent=2))
+    print(f"✅ Written: {AUDIT_POLICY_PATH}")
+
+    audit_script = generate_audit_script(policy)
     AUDIT_SCRIPT.write_text(audit_script)
     AUDIT_SCRIPT.chmod(0o755)
     print(f"✅ Written: {AUDIT_SCRIPT}")

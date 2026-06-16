@@ -1,0 +1,72 @@
+{
+  "version": "role_registry.v1",
+  "roles": {
+    "kernel": {
+      "description": "Reducer and core state logic \u2014 strict mutation isolation.",
+      "allowed_ops": [
+        "ReducerMutation",
+        "PureCompute",
+        "FilesystemRead"
+      ],
+      "forbidden_ops": [
+        "StateConstruction",
+        "Reconstruction",
+        "NonReducerMutation",
+        "TimeRead",
+        "RandomRead",
+        "NetworkIO",
+        "FilesystemWrite"
+      ]
+    },
+    "bootstrap": {
+      "description": "DSVM-0 genesis layer \u2014 may construct initial TravelerState.",
+      "allowed_ops": [
+        "StateConstruction",
+        "ReducerMutation",
+        "PureCompute",
+        "FilesystemRead"
+      ],
+      "forbidden_ops": [
+        "Reconstruction",
+        "NonReducerMutation",
+        "TimeRead",
+        "RandomRead",
+        "NetworkIO"
+      ]
+    },
+    "oracle": {
+      "description": "CI oracle \u2014 reconstructs expected states from fixture values.",
+      "allowed_ops": [
+        "Reconstruction",
+        "PureCompute",
+        "FilesystemRead"
+      ],
+      "forbidden_ops": [
+        "StateConstruction",
+        "ReducerMutation",
+        "NonReducerMutation",
+        "TimeRead",
+        "RandomRead",
+        "NetworkIO",
+        "FilesystemWrite"
+      ]
+    },
+    "non_audited": {
+      "description": "Harness/navigator \u2014 outside the causality boundary.",
+      "allowed_ops": [],
+      "forbidden_ops": []
+    }
+  },
+  "resolution": {
+    "by_file_exact": {
+      "AppFlow.swift": "bootstrap",
+      "DSVM0Oracle.swift": "oracle",
+      "ReplayHarnessCI.swift": "non_audited",
+      "ReplayHarnessDiff.swift": "non_audited",
+      "QuantumStarApp.swift": "non_audited",
+      "AppNavigator.swift": "non_audited",
+      "QSEvent.swift": "non_audited"
+    },
+    "default_swift_role": "kernel"
+  }
+}
