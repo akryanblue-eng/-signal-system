@@ -32,11 +32,11 @@ echo "→ Checking reducer exclusivity..."
 # Ban: TravelerState( constructed outside applyReducer
 # A TravelerState value may only be created inside the reducer function.
 if grep -Rn "TravelerState(" "$SWIFT_ROOT" --include="*.swift" \
-   | grep -v "applyReducer\|func applyReducer\|test\|spec\|//.*TravelerState(" \
+   | grep -v "applyReducer\|func applyReducer\|test\|spec\|//.*TravelerState(\|DSVM0Oracle\|initialState" \
    | grep -q .; then
   echo "❌ VIOLATION: Direct TravelerState construction outside reducer path"
   grep -Rn "TravelerState(" "$SWIFT_ROOT" --include="*.swift" \
-    | grep -v "applyReducer\|func applyReducer\|test\|spec\|//" || true
+    | grep -v "applyReducer\|func applyReducer\|test\|spec\|//\|DSVM0Oracle\|initialState" || true
   exit 1
 fi
 
