@@ -13,15 +13,10 @@ let package = Package(
         .library(name: "SpatialReplayDebugger", targets: ["SpatialReplayDebugger"]),
         .library(name: "SpatialReplayDiff",     targets: ["SpatialReplayDiff"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/krzyzanowskim/CryptoSwift", from: "1.8.0")
-    ],
+    // No external dependencies — CryptoKit is bundled on iOS 13+ / visionOS 1+
     targets: [
-        // Truth engine — no IO, no UI, no platform APIs
-        .target(
-            name: "SpatialReplayCore",
-            dependencies: ["CryptoSwift"]
-        ),
+        // Truth engine — no IO, no UI, no platform APIs beyond CryptoKit
+        .target(name: "SpatialReplayCore"),
         // Adapter boundary — VisionPro gaze → Core event stream
         .target(
             name: "SpatialReplayVision",

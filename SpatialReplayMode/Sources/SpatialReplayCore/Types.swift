@@ -1,8 +1,8 @@
 import Foundation
 
-// MARK: - Primitives
+// MARK: - Vec3
 
-public struct Vec3: Equatable {
+public struct Vec3: Equatable, Codable {
     public let x: Float
     public let y: Float
     public let z: Float
@@ -14,7 +14,9 @@ public struct Vec3: Equatable {
     }
 }
 
-public struct Hash32: Equatable {
+// MARK: - Hash32
+
+public struct Hash32: Equatable, Codable {
     public let bytes: Data
 
     public init(bytes: Data) {
@@ -25,24 +27,27 @@ public struct Hash32: Equatable {
 
 // MARK: - Enums
 
-public enum TrackingState: String {
-    case tracked
+public enum OracleSource: String, Codable {
+    case gaze
+    case hands
+    case world
+}
+
+public enum EventType: String, Codable {
+    case oracleGazeSample
+    case oracleGazeFixation
+    case oracleGazeLost
+}
+
+public enum TrackingState: String, Codable {
+    case normal
     case limited
-    case notAvailable
+    case lost
 }
 
-public enum EventType: String {
-    case gazeSample
-}
+// MARK: - GazeSamplePayload
 
-public enum EventSource: String {
-    case device
-    case replay
-}
-
-// MARK: - Payloads
-
-public struct GazeSamplePayload {
+public struct GazeSamplePayload: Codable, Equatable {
     public let origin_m: Vec3
     public let direction_unit: Vec3
     public let hit_point_m: Vec3?
@@ -67,31 +72,31 @@ public struct GazeSamplePayload {
     }
 }
 
-// MARK: - Event envelope
+// MARK: - OracleEventEnvelope
 
-public struct OracleEventEnvelope<Payload> {
+public struct OracleEventEnvelope<Payload: Codable & Equatable>: Codable, Equatable {
     public let event_id: UUID
     public let event_type: EventType
     public let timestamp_device_ns: UInt64
     public let timestamp_log_ns: UInt64
-    public let source: EventSource
+    public let source: OracleSource
     public let confidence: Float
     public let frame_index: UInt64
     public let payload: Payload
     public let hash_prev_event: Hash32?
-    public var hash_this_event: Hash32?
+    public let hash_this_event: Hash32
 
     public init(
         event_id: UUID,
         event_type: EventType,
         timestamp_device_ns: UInt64,
         timestamp_log_ns: UInt64,
-        source: EventSource,
+        source: OracleSource,
         confidence: Float,
         frame_index: UInt64,
         payload: Payload,
         hash_prev_event: Hash32?,
-        hash_this_event: Hash32?
+        hash_this_event: Hash32
     ) {
         self.event_id = event_id
         self.event_type = event_type
@@ -106,9 +111,9 @@ public struct OracleEventEnvelope<Payload> {
     }
 }
 
-// MARK: - Projection frame
+// MARK: - ProjectionFrame
 
-public struct ProjectionFrame {
+public struct ProjectionFrame: Equatable, Codable {
     public let frame_index: UInt64
     public let gaze_origin_m: Vec3?
     public let gaze_direction_unit: Vec3?
@@ -130,7 +135,7 @@ public struct ProjectionFrame {
     }
 }
 
-// MARK: - String → Data helper (UTF-8, for canonical encoding only)
+// MARK: - String → Data (UTF-8, canonical encoding only)
 
 extension String {
     var data: Data { Data(utf8) }

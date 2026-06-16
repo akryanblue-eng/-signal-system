@@ -3,14 +3,14 @@ import XCTest
 
 final class CanonicalHashingTests: XCTestCase {
 
-    // Identical Vec3 values must produce identical bytes every time.
+    // Identical Vec3 values must produce identical encoded bytes.
     func testVec3Determinism() {
         let a = Vec3(x: 1.0, y: 2.0, z: 3.0)
         let b = Vec3(x: 1.0, y: 2.0, z: 3.0)
         XCTAssertEqual(CanonicalEncoder.encode(a), CanonicalEncoder.encode(b))
     }
 
-    // Same seed → same event → same hash.
+    // Same seed → same event → identical hash every time.
     func testEventHashStability() {
         let e1 = makeSyntheticEvent(seed: 1)
         let e2 = makeSyntheticEvent(seed: 1)
@@ -28,29 +28,75 @@ final class CanonicalHashingTests: XCTestCase {
         )
     }
 
+    // Reducer must reject an event whose hash_prev_event doesn't match state.
+    func testReducerRejectsChainBrokenEvent() {
+        let state = AppState()
+        let event = makeChainBrokenEvent()
+        XCTAssertThrowsError(try reduce(state, event)) { error in
+            XCTAssertEqual(error as? ReducerError, .hashChainBroken)
+        }
+    }
+
+    // Reducer must accept first event (nil prev hash matches empty state).
+    func testReducerAcceptsFirstEvent() throws {
+        let state = AppState()
+        let event = makeSyntheticEvent(seed: 1)   // hash_prev_event: nil
+        let next = try reduce(state, event)
+        XCTAssertEqual(next.frame_index, 1)
+        XCTAssertEqual(next.last_event_hash, event.hash_this_event)
+    }
+
+    // Consecutive events must chain correctly.
+    func testReducerEventChain() throws {
+        var state = AppState()
+        let e1 = makeSyntheticEvent(seed: 1)           // prev = nil
+        state = try reduce(state, e1)
+        let e2 = makeSyntheticEvent(seed: 2, prevHash: e1.hash_this_event)
+        state = try reduce(state, e2)
+        XCTAssertEqual(state.frame_index, 2)
+        XCTAssertEqual(state.last_event_hash, e2.hash_this_event)
+    }
+
     // MARK: - Helpers
 
-    private func makeSyntheticEvent(seed: Int) -> OracleEventEnvelope<GazeSamplePayload> {
+    private func makeSyntheticEvent(
+        seed: Int,
+        prevHash: Hash32? = nil
+    ) -> OracleEventEnvelope<GazeSamplePayload> {
         let f = Float(seed)
         let payload = GazeSamplePayload(
             origin_m: Vec3(x: f, y: f, z: f),
             direction_unit: Vec3(x: 0, y: 0, z: 1),
             hit_point_m: Vec3(x: f * 2, y: f * 2, z: f * 2),
-            tracking_state: .tracked,
+            tracking_state: .normal,
             calibration_context_hash: "ctx-\(seed)",
             provenance: "test-\(seed)"
         )
-        return OracleEventEnvelope(
+        // Build a pending envelope (placeholder hash) to derive the real hash
+        let pending = OracleEventEnvelope(
             event_id: uuidForSeed(seed),
-            event_type: .gazeSample,
+            event_type: .oracleGazeSample,
             timestamp_device_ns: UInt64(seed) * 1_000,
             timestamp_log_ns: UInt64(seed) * 1_001,
-            source: .device,
+            source: .gaze,
             confidence: 1.0,
             frame_index: UInt64(seed),
             payload: payload,
-            hash_prev_event: nil,
-            hash_this_event: nil
+            hash_prev_event: prevHash,
+            hash_this_event: Hash32(bytes: Data(count: 32))
+        )
+        let realHash = ProjectionHasher.eventHash(pending)
+        return OracleEventEnvelope(
+            event_id: pending.event_id,
+            event_type: pending.event_type,
+            timestamp_device_ns: pending.timestamp_device_ns,
+            timestamp_log_ns: pending.timestamp_log_ns,
+            source: pending.source,
+            confidence: pending.confidence,
+            frame_index: pending.frame_index,
+            payload: pending.payload,
+            hash_prev_event: pending.hash_prev_event,
+            hash_this_event: realHash
         )
     }
 
@@ -63,6 +109,12 @@ final class CanonicalHashingTests: XCTestCase {
             last_hit_point_m: Vec3(x: f * 2, y: f * 2, z: f * 2),
             trail: [Vec3(x: f, y: f, z: 0)]
         )
+    }
+
+    // An event whose hash_prev_event doesn't match empty state (nil ≠ someHash).
+    private func makeChainBrokenEvent() -> OracleEventEnvelope<GazeSamplePayload> {
+        let fakeHash = Hash32(bytes: Data(repeating: 0xFF, count: 32))
+        return makeSyntheticEvent(seed: 99, prevHash: fakeHash)
     }
 
     private func uuidForSeed(_ seed: Int) -> UUID {
