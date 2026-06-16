@@ -1,0 +1,18 @@
+{
+  "version": "op_registry.v1",
+  "ops": {
+    "NETWORK_IO": {
+      "args": {
+        "api": "Identifier"
+      }
+    },
+    "STATE_INIT": {
+      "args": {
+        "type": "Identifier"
+      }
+    },
+    "TIME_READ": {
+      "args": {}
+    }
+  }
+}
