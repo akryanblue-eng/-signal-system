@@ -1,0 +1,7 @@
+{
+  "scenario_id": "non_mergeable_001",
+  "oracle_output_type": "ForkCertificate",
+  "merkle_root": "f47632515f412aec93dd294f9f75b45be312e4a83738857392a370b4ab93f30c",
+  "cer_count": 2,
+  "generated_at": "2026-06-16"
+}

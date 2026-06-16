@@ -1,0 +1,7 @@
+{
+  "scenario_id": "equivocation_001",
+  "oracle_output_type": "ForkCertificate",
+  "merkle_root": "d760bb4b4100059c8c63f28801530a01424423a824b4ca7a51f75742994a5d6b",
+  "cer_count": 2,
+  "generated_at": "2026-06-16"
+}

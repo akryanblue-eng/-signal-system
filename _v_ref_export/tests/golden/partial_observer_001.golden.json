@@ -1,0 +1,7 @@
+{
+  "scenario_id": "partial_observer_001",
+  "oracle_output_type": "CannotExpress",
+  "merkle_root": "95483f6d5c0450fe05beb8f7a0f7edb7946debad4b6f63c68d0950de7987cb80",
+  "cer_count": 2,
+  "generated_at": "2026-06-16"
+}

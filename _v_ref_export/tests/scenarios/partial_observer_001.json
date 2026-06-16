@@ -1,0 +1,26 @@
+{
+  "scenario_id": "partial_observer_001",
+  "description": "Observer O has visibility only into N1 writes. N2 write is hidden due to network partition.",
+  "events": [
+    {
+      "event_id": "e1",
+      "type": "write",
+      "key": "y",
+      "value": "P",
+      "node": "N1",
+      "clock": {"N1": 1}
+    },
+    {
+      "event_id": "e2",
+      "type": "write",
+      "key": "y",
+      "value": "Q",
+      "node": "N2",
+      "clock": {"N2": 1},
+      "visible_to": ["N2"]
+    }
+  ],
+  "observer": "O",
+  "observer_visibility": ["N1"],
+  "expected_output_type": "CannotExpress"
+}

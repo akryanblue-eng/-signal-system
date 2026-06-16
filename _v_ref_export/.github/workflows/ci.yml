@@ -1,0 +1,50 @@
+name: V_ref Compliance Suite
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  type-closure:
+    name: "vref.type_closure.validate"
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test runner
+        run: pip install pytest
+        shell: bash
+
+      - name: Assert CER dispatch is exhaustive
+        run: |
+          python -c "
+          from src.cer import VALID_CER_TYPES
+          assert VALID_CER_TYPES == frozenset({'write', 'read', 'delete'}), (
+              f'CER_DISPATCH_SET_CHANGED: {VALID_CER_TYPES}'
+          )
+          print('CER dispatch exhaustiveness: OK -', sorted(VALID_CER_TYPES))
+          "
+        shell: bash
+
+      - name: Run compliance suite (type closure + schema lock)
+        run: python -m pytest tests/ -v
+        shell: bash
+
+      - name: Emit compliance summary
+        if: always()
+        run: |
+          echo "### V_ref Compliance Suite" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          python -m pytest tests/ -v --tb=short 2>&1 | tail -40 >> "$GITHUB_STEP_SUMMARY" || true
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+        shell: bash

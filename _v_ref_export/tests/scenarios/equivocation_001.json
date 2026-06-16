@@ -1,0 +1,23 @@
+{
+  "scenario_id": "equivocation_001",
+  "description": "Two concurrent writes to the same key with different values and no happens-before relation.",
+  "events": [
+    {
+      "event_id": "e1",
+      "type": "write",
+      "key": "x",
+      "value": "A",
+      "node": "N1",
+      "clock": {"N1": 1, "N2": 0}
+    },
+    {
+      "event_id": "e2",
+      "type": "write",
+      "key": "x",
+      "value": "B",
+      "node": "N2",
+      "clock": {"N1": 0, "N2": 1}
+    }
+  ],
+  "expected_output_type": "ForkCertificate"
+}

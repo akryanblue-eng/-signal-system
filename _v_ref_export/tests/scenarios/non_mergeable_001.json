@@ -1,0 +1,24 @@
+{
+  "scenario_id": "non_mergeable_001",
+  "description": "Concurrent delete vs update on the same key. No deterministic merge function exists.",
+  "events": [
+    {
+      "event_id": "e1",
+      "type": "write",
+      "key": "z",
+      "value": {"op": "delete"},
+      "node": "N1",
+      "clock": {"N1": 1, "N2": 0}
+    },
+    {
+      "event_id": "e2",
+      "type": "write",
+      "key": "z",
+      "value": {"op": "update", "data": "new_value"},
+      "node": "N2",
+      "clock": {"N1": 0, "N2": 1}
+    }
+  ],
+  "merge_function": null,
+  "expected_output_type": "ForkCertificate"
+}
