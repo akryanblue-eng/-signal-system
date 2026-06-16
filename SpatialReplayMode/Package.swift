@@ -9,31 +9,43 @@ let package = Package(
         .visionOS(.v1)
     ],
     products: [
-        .library(name: "SpatialReplayCore",     targets: ["SpatialReplayCore"]),
-        .library(name: "SpatialReplayVision",   targets: ["SpatialReplayVision"]),
-        .library(name: "SpatialReplayDebugger", targets: ["SpatialReplayDebugger"]),
-        .library(name: "SpatialReplayDiff",     targets: ["SpatialReplayDiff"])
+        .library(name: "SpatialReplayCore",          targets: ["SpatialReplayCore"]),
+        .library(name: "SpatialReplayVision",        targets: ["SpatialReplayVision"]),
+        .library(name: "SpatialReplayDebugger",      targets: ["SpatialReplayDebugger"]),
+        .library(name: "SpatialReplayDiff",          targets: ["SpatialReplayDiff"]),
+        .library(name: "SpatialReplayDebuggerXR",    targets: ["SpatialReplayDebuggerXR"])
     ],
-    // No external dependencies — CryptoKit is bundled on iOS 13+ / visionOS 1+
+    // No external dependencies — CryptoKit is bundled on all target platforms.
     targets: [
-        // Truth engine — no IO, no UI, no platform APIs beyond CryptoKit
+        // ─── Truth engine (no IO, no UI, no platform APIs beyond CryptoKit) ────
         .target(name: "SpatialReplayCore"),
-        // Adapter boundary — VisionPro gaze → Core event stream
+
+        // ─── Adapter boundary ────────────────────────────────────────────────────
         .target(
             name: "SpatialReplayVision",
             dependencies: ["SpatialReplayCore"]
         ),
-        // 4-panel causality console
+
+        // ─── 2D causality console ────────────────────────────────────────────────
         .target(
             name: "SpatialReplayDebugger",
             dependencies: ["SpatialReplayCore"]
         ),
-        // Causal comparison engine + diff UI
+
+        // ─── Causal comparison engine + diff UI ──────────────────────────────────
         .target(
             name: "SpatialReplayDiff",
             dependencies: ["SpatialReplayDebugger"]
         ),
-        // Golden truth tests — Core only, no UI or Vision deps
+
+        // ─── Spatial/XR instrument (visionOS/iOS RealityKit) ─────────────────────
+        // Depends on SpatialReplayDiff (which transitively includes Debugger + Core).
+        .target(
+            name: "SpatialReplayDebuggerXR",
+            dependencies: ["SpatialReplayDiff"]
+        ),
+
+        // ─── CI test targets ─────────────────────────────────────────────────────
         .testTarget(
             name: "SpatialReplayCoreTests",
             dependencies: ["SpatialReplayCore"]
