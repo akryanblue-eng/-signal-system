@@ -56,6 +56,20 @@ public enum CanonicalEncoder {
         return d
     }
 
+    // MARK: - AppState
+
+    public static func encodeState(_ s: AppState) -> Data {
+        var d = Data()
+        d.append(u64(s.frame_index))
+        if let o = s.gaze_origin_m        { d.append(UInt8(1)); d.append(encode(o)) } else { d.append(UInt8(0)) }
+        if let g = s.gaze_direction_unit  { d.append(UInt8(1)); d.append(encode(g)) } else { d.append(UInt8(0)) }
+        if let h = s.last_hit_point_m     { d.append(UInt8(1)); d.append(encode(h)) } else { d.append(UInt8(0)) }
+        d.append(u64(UInt64(s.trail.count)))
+        for v in s.trail { d.append(encode(v)) }
+        if let hash = s.last_event_hash { d.append(hash.bytes) } else { d.append(Data(count: 32)) }
+        return d
+    }
+
     // MARK: - ProjectionFrame
 
     public static func encode(_ p: ProjectionFrame) -> Data {
