@@ -63,6 +63,19 @@
       "depends_on": [
         4
       ]
+    },
+    {
+      "id": 6,
+      "name": "token-extractor-shadow",
+      "description": "NON-BLOCKING: bisimulation baseline between grep sensor and f0.5 token extractor. Runs in shadow mode \u2014 never gates CI. Output is telemetry only. When shadow passes 100% across N commits, Phase 1 may be upgraded to AST-based enforcement.",
+      "command": "pytest tests/audit_equivalence/ -v --tb=short",
+      "gating": false,
+      "on_fail": "emit drift report; continue",
+      "depends_on": [
+        1
+      ],
+      "extractor_version": "f0.5-token-aware",
+      "migration_gate": "flip gating=True only after: (a) 100% equivalence over spatial_vm_fixtures corpus, (b) toolchain version pinned in CI, (c) ROLE_REGISTRY.extractor_version bumped"
     }
   ],
   "failure_propagation": {
@@ -70,7 +83,8 @@
     "phase_2_fail": "compilation error \u2014 fix before behavioral testing",
     "phase_3_fail": "behavioral divergence \u2014 ReplayHarnessDiff shows first-failing event",
     "phase_4_fail": "cross-language divergence \u2014 Python oracle and Swift diverged",
-    "phase_5_fail": "fixture staleness \u2014 regenerate oracle and commit"
+    "phase_5_fail": "fixture staleness \u2014 regenerate oracle and commit",
+    "phase_6_shadow": "non-blocking drift telemetry \u2014 see artifacts/op_shadow_report"
   },
   "deterministic_log_format": {
     "phase_pass": "\u2705 [phase-name] PASS",

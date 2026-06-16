@@ -841,6 +841,25 @@ def generate_ci_pipeline_spec(results: dict[str, RunResult], freeze: dict) -> di
                 "on_fail": "exit 1 with diff output; fix: python -m src.oracle_generator && commit",
                 "depends_on": [4],
             },
+            {
+                "id": 6,
+                "name": "token-extractor-shadow",
+                "description": (
+                    "NON-BLOCKING: bisimulation baseline between grep sensor and f0.5 "
+                    "token extractor. Runs in shadow mode — never gates CI. "
+                    "Output is telemetry only. When shadow passes 100% across N commits, "
+                    "Phase 1 may be upgraded to AST-based enforcement."
+                ),
+                "command": "pytest tests/audit_equivalence/ -v --tb=short",
+                "gating": False,
+                "on_fail": "emit drift report; continue",
+                "depends_on": [1],
+                "extractor_version": "f0.5-token-aware",
+                "migration_gate": (
+                    "flip gating=True only after: (a) 100% equivalence over spatial_vm_fixtures "
+                    "corpus, (b) toolchain version pinned in CI, (c) ROLE_REGISTRY.extractor_version bumped"
+                ),
+            },
         ],
         "failure_propagation": {
             "phase_1_fail": "structural impossibility — fix before any execution",
@@ -848,6 +867,7 @@ def generate_ci_pipeline_spec(results: dict[str, RunResult], freeze: dict) -> di
             "phase_3_fail": "behavioral divergence — ReplayHarnessDiff shows first-failing event",
             "phase_4_fail": "cross-language divergence — Python oracle and Swift diverged",
             "phase_5_fail": "fixture staleness — regenerate oracle and commit",
+            "phase_6_shadow": "non-blocking drift telemetry — see artifacts/op_shadow_report",
         },
         "deterministic_log_format": {
             "phase_pass": "✅ [phase-name] PASS",
