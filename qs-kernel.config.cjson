@@ -1,0 +1,16 @@
+{
+  "canonicalVersion": "1.0",
+  "gateSpecPath": "invariants",
+  "intentFixturesPath": "e12_fixtures",
+  "mutationSpecPath": "invariants/04_gate_failure_map.json",
+  "repoMapping": {
+    "commitExecutor": "src/pcp_kernel.py",
+    "compilerModules": [
+      "src/pcp_kernel.py"
+    ],
+    "projectionModules": [
+      "src/pcp_rewrite.py",
+      "src/pcp_term.py"
+    ]
+  }
+}
