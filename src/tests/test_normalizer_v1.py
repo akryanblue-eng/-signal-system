@@ -3,13 +3,13 @@ Tests for Normalizer v1 authority boundary.
 
 Covers:
   - Registry validation
-  - Forbidden field rejection
+  - Forbidden field rejection (including file_path, source_order_index)
   - Op registry enforcement (unknown ops, missing/extra args)
   - Type canonicalization (String NFC, Integer, Boolean, Identifier, Enum, Array, Object)
   - Float/NaN rejection at every nesting level
-  - Ordering algebra: (file_path, source_order_index)
+  - Ordering algebra (NIC-ORDER-2): content-hash ordering, input-order independence
   - Trace hash determinism and content-sensitivity
-  - Scope field handling
+  - Scope field handling (optional; excluded from hash)
   - Empty trace
 """
 import hashlib
@@ -90,22 +90,17 @@ class TestRegistryLoading:
 # ------------------------------------------------------------------ #
 
 class TestForbiddenFields:
-    FORBIDDEN = ["line", "column", "offset", "parser", "nid", "tid", "ast_kind"]
+    FORBIDDEN = [
+        "line", "column", "offset", "parser", "nid", "tid", "ast_kind",
+        # extraction-position artifacts — now also forbidden
+        "file_path", "source_order_index",
+    ]
 
     @pytest.mark.parametrize("field", FORBIDDEN)
     def test_forbidden_field_rejected(self, field):
         raw = {**state_init_event(), field: 42}
         with pytest.raises(NormalizerError, match="forbidden representation fields"):
             normalizer().normalize([raw])
-
-    def test_ordering_fields_not_forbidden(self):
-        raw = {
-            **state_init_event(),
-            "file_path": "src/foo.py",
-            "source_order_index": 0,
-        }
-        trace = normalizer().normalize([raw])
-        assert len(trace.events) == 1
 
     def test_unknown_field_rejected(self):
         raw = {**state_init_event(), "extra_mystery": "value"}
@@ -193,10 +188,9 @@ class TestStringCanonicalization:
         assert trace.events[0].args["text"] == "hello"
 
     def test_nfc_normalization_applied(self):
-        # "é" as NFD (e + combining acute) → NFC (single codepoint)
-        nfd = "é"
+        nfd = "é"  # e + combining acute accent (NFD two-codepoint form)
         nfc = unicodedata.normalize("NFC", nfd)
-        assert nfd != nfc
+        assert nfd != nfc   # sanity: really is different
         raw = {"op": "LOG_MSG", "args": {"text": nfd}}
         trace = normalizer().normalize([raw])
         assert trace.events[0].args["text"] == nfc
@@ -261,7 +255,7 @@ class TestIdentifierCanonicalization:
         }
 
     def test_identifier_nfc_applied(self):
-        nfd = "é"
+        nfd = "é"
         raw = {
             "op": "STATE_INIT",
             "args": {"type": {"type": "Identifier", "value": nfd}},
@@ -357,7 +351,7 @@ class TestArrayCanonicalization:
 
 
 # ------------------------------------------------------------------ #
-# Float rejection at top level                                          #
+# Float rejection at every level                                        #
 # ------------------------------------------------------------------ #
 
 class TestFloatRejection:
@@ -399,76 +393,92 @@ class TestScopeField:
 
 
 # ------------------------------------------------------------------ #
-# Ordering algebra                                                       #
+# Ordering algebra — NIC-ORDER-2                                        #
 # ------------------------------------------------------------------ #
 
 class TestOrderingAlgebra:
-    def _make_event(self, file_path, source_order_index, op="TIME_READ"):
-        return {
-            "op": op,
-            "args": {},
-            "file_path": file_path,
-            "source_order_index": source_order_index,
-        }
+    """
+    NIC-ORDER-2: ordering is determined solely by canonical event bytes.
+    Input submission order must not influence the CanonicalOpTrace.
+    Extractor-local metadata (file_path, source_order_index) is forbidden.
+    """
 
-    def test_ordering_by_file_then_index(self):
-        events = [
-            self._make_event("b.py", 0),
-            self._make_event("a.py", 1),
-            self._make_event("a.py", 0),
-        ]
-        trace = normalizer().normalize(events)
-        # All are TIME_READ so we verify the trace hash is stable across orderings
-        # that share the same semantic content; here all three are identical ops,
-        # but we verify the ordering produces a deterministic result.
-        assert len(trace.events) == 3
+    def _two_op_registry(self):
+        return NormalizerV1({
+            "version": "op_registry.v1",
+            "ops": {
+                "OP_X": {"args": {}},
+                "OP_Y": {"args": {}},
+            },
+        })
 
-    def test_file_path_sort_is_lexicographic(self):
-        events = [
-            self._make_event("z.py", 0),
-            self._make_event("a.py", 0),
-            self._make_event("m.py", 0),
-        ]
-        # We inject unique ops to distinguish position
-        registry = {
+    def test_input_order_does_not_affect_trace(self):
+        n = self._two_op_registry()
+        forward = n.normalize([
+            {"op": "OP_X", "args": {}},
+            {"op": "OP_Y", "args": {}},
+        ])
+        reverse = n.normalize([
+            {"op": "OP_Y", "args": {}},
+            {"op": "OP_X", "args": {}},
+        ])
+        assert forward.trace_hash == reverse.trace_hash
+
+    def test_event_set_order_is_canonical(self):
+        n = self._two_op_registry()
+        forward = n.normalize([
+            {"op": "OP_X", "args": {}},
+            {"op": "OP_Y", "args": {}},
+        ])
+        reverse = n.normalize([
+            {"op": "OP_Y", "args": {}},
+            {"op": "OP_X", "args": {}},
+        ])
+        assert list(e.op for e in forward.events) == list(e.op for e in reverse.events)
+
+    def test_duplicate_events_counted_correctly(self):
+        n = self._two_op_registry()
+        one = n.normalize([{"op": "OP_X", "args": {}}])
+        two = n.normalize([{"op": "OP_X", "args": {}}, {"op": "OP_X", "args": {}}])
+        assert one.trace_hash != two.trace_hash
+
+    def test_ordering_is_by_event_hash(self):
+        # Verify events are placed in event-hash order, not submission order.
+        # We need ops whose hashes are predictably ordered.
+        n = NormalizerV1({
             "version": "op_registry.v1",
             "ops": {
                 "OP_A": {"args": {}},
                 "OP_B": {"args": {}},
                 "OP_C": {"args": {}},
             },
-        }
-        n = NormalizerV1(registry)
+        })
+        import hashlib, json
+        def event_hash(op):
+            b = json.dumps({"args": {}, "op": op}, sort_keys=True, separators=(",", ":"))
+            return hashlib.sha256(b.encode("utf-8")).digest()
+
+        # Submit in reverse of expected canonical order; normalizer should sort them
         raw = [
-            {"op": "OP_C", "args": {}, "file_path": "z.py", "source_order_index": 0},
-            {"op": "OP_A", "args": {}, "file_path": "a.py", "source_order_index": 0},
-            {"op": "OP_B", "args": {}, "file_path": "m.py", "source_order_index": 0},
+            {"op": "OP_C", "args": {}},
+            {"op": "OP_A", "args": {}},
+            {"op": "OP_B", "args": {}},
         ]
         trace = n.normalize(raw)
-        ops = [e.op for e in trace.events]
-        assert ops == ["OP_A", "OP_B", "OP_C"]
+        hashes_in_trace = [event_hash(e.op) for e in trace.events]
+        assert hashes_in_trace == sorted(hashes_in_trace)
 
-    def test_ordering_fields_stripped_from_canonical_event(self):
-        raw = {**state_init_event(), "file_path": "x.py", "source_order_index": 5}
-        trace = normalizer().normalize([raw])
+    def test_extraction_artifacts_not_accepted(self):
+        for field in ("file_path", "source_order_index"):
+            raw = {**state_init_event(), field: "anything"}
+            with pytest.raises(NormalizerError, match="forbidden representation fields"):
+                normalizer().normalize([raw])
+
+    def test_canonical_event_has_no_position_fields(self):
+        trace = normalizer().normalize([state_init_event()])
         event = trace.events[0]
-        # CanonicalEvent has op, args, scope only
         assert not hasattr(event, "file_path")
         assert not hasattr(event, "source_order_index")
-
-    def test_events_without_ordering_metadata_accepted(self):
-        trace = normalizer().normalize([state_init_event()])
-        assert len(trace.events) == 1
-
-    def test_invalid_source_order_index_type_rejected(self):
-        raw = {**state_init_event(), "file_path": "f.py", "source_order_index": "0"}
-        with pytest.raises(NormalizerError, match="source_order_index must be an integer"):
-            normalizer().normalize([raw])
-
-    def test_invalid_file_path_type_rejected(self):
-        raw = {**state_init_event(), "file_path": 99, "source_order_index": 0}
-        with pytest.raises(NormalizerError, match="file_path must be a string"):
-            normalizer().normalize([raw])
 
 
 # ------------------------------------------------------------------ #
@@ -501,24 +511,7 @@ class TestTraceHash:
         ])
         assert t1.trace_hash != t2.trace_hash
 
-    def test_event_order_affects_trace_hash(self):
-        registry = {
-            "version": "op_registry.v1",
-            "ops": {
-                "OP_X": {"args": {}},
-                "OP_Y": {"args": {}},
-            },
-        }
-        n = NormalizerV1(registry)
-        # Without ordering metadata the order is input-order (stable sort)
-        t1 = n.normalize([{"op": "OP_X", "args": {}}, {"op": "OP_Y", "args": {}}])
-        t2 = n.normalize([{"op": "OP_Y", "args": {}}, {"op": "OP_X", "args": {}}])
-        # Different input orders without file_path/source_order_index → stable sort
-        # preserves submission order, so hashes differ
-        assert t1.trace_hash != t2.trace_hash
-
     def test_scope_excluded_from_hash(self):
-        """Scope is metadata — two traces differing only in scope share event hashes."""
         t1 = normalizer().normalize([state_init_event()])
         t2 = normalizer().normalize([{**state_init_event(), "scope": "some.scope"}])
         assert t1.trace_hash == t2.trace_hash
@@ -529,12 +522,24 @@ class TestTraceHash:
         int(trace.trace_hash, 16)  # must be valid hex
 
     def test_nfc_normalization_affects_hash_consistently(self):
-        nfd = "é"
+        nfd = "é"
         nfc = unicodedata.normalize("NFC", nfd)
         t_nfd = normalizer().normalize([{"op": "LOG_MSG", "args": {"text": nfd}}])
         t_nfc = normalizer().normalize([{"op": "LOG_MSG", "args": {"text": nfc}}])
-        # Both normalize to NFC before hashing → same hash
         assert t_nfd.trace_hash == t_nfc.trace_hash
+
+    def test_input_order_invariance(self):
+        """Two extractions of the same events in different order must produce the same trace."""
+        n = NormalizerV1({
+            "version": "op_registry.v1",
+            "ops": {
+                "OP_X": {"args": {}},
+                "OP_Y": {"args": {}},
+            },
+        })
+        t1 = n.normalize([{"op": "OP_X", "args": {}}, {"op": "OP_Y", "args": {}}])
+        t2 = n.normalize([{"op": "OP_Y", "args": {}}, {"op": "OP_X", "args": {}}])
+        assert t1.trace_hash == t2.trace_hash
 
 
 # ------------------------------------------------------------------ #

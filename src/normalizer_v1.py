@@ -19,15 +19,19 @@ Explicitly forbidden value kinds:
   token positions / source locations
 
 Forbidden event-level fields (representation artifacts):
-  line, column, offset, parser, nid, tid, ast_kind
+  line, column, offset, parser, nid, tid, ast_kind,
+  file_path, source_order_index
 
-Ordering algebra (v1):
-  CanonicalOrder(event) = (file_path, source_order_index)
-  Supplied by extractor; consumed and discarded by normalizer.
+Ordering algebra (NIC-ORDER-2):
+  CanonicalOrder(event) = event_hash (SHA256 of canonical event bytes)
+  Ordering depends only on canonical content — never on extraction position.
+  This guarantees cross-extractor convergence: token, AST, and future semantic
+  extractors all produce identical CanonicalOpTrace for equivalent programs.
 
 Trace hash definition:
   event_hash  = SHA256(canon_json({"op": op, "args": args}))
   trace_hash  = SHA256(event_hash_1 || event_hash_2 || ...)
+  where events are sorted by event_hash before concatenation.
 """
 import hashlib
 import json
@@ -39,14 +43,11 @@ from typing import Any, Optional
 
 _FORBIDDEN_EVENT_FIELDS = frozenset({
     "line", "column", "offset", "parser", "nid", "tid", "ast_kind",
+    # extraction-position artifacts — ordering must not depend on these
+    "file_path", "source_order_index",
 })
 
 _REQUIRED_EVENT_FIELDS = frozenset({"op", "args"})
-
-# Ordering metadata consumed by normalizer and stripped before hashing.
-_ORDERING_FIELDS = frozenset({"file_path", "source_order_index"})
-
-_PERMITTED_EVENT_FIELDS = _REQUIRED_EVENT_FIELDS | {"scope"} | _ORDERING_FIELDS
 
 
 class NormalizerError(Exception):
@@ -93,12 +94,13 @@ class NormalizerV1:
         """
         Normalize raw extractor events into a CanonicalOpTrace.
 
-        Each raw event dict may include ordering metadata (file_path,
-        source_order_index) which the normalizer uses for sequencing then
-        discards. The resulting CanonicalOpTrace contains no provenance.
+        Ordering is determined solely by canonical event bytes (NIC-ORDER-2).
+        No extraction-local metadata (file position, source index) is accepted
+        or used. The resulting CanonicalOpTrace is identical for any extractor
+        that observes the same semantic operations.
         """
-        ordered = _order_events(raw_events)
-        events = [self._normalize_event(raw) for raw in ordered]
+        events = [self._normalize_event(raw) for raw in raw_events]
+        events.sort(key=self._compute_event_hash)
         trace_hash = self._compute_trace_hash(events)
         return CanonicalOpTrace(events=tuple(events), trace_hash=trace_hash)
 
@@ -107,7 +109,7 @@ class NormalizerV1:
     # ------------------------------------------------------------------ #
 
     def _normalize_event(self, raw: dict) -> CanonicalEvent:
-        payload_keys = set(raw.keys()) - _ORDERING_FIELDS
+        payload_keys = set(raw.keys())
 
         missing = _REQUIRED_EVENT_FIELDS - payload_keys
         if missing:
@@ -187,27 +189,6 @@ class NormalizerV1:
 # ------------------------------------------------------------------ #
 # Module-level helpers                                                  #
 # ------------------------------------------------------------------ #
-
-def _order_events(raw_events: list[dict]) -> list[dict]:
-    """
-    Order raw events by (file_path, source_order_index).
-    Events missing ordering metadata default to ("", 0).
-    """
-    def sort_key(e: dict) -> tuple:
-        fp = e.get("file_path", "")
-        idx = e.get("source_order_index", 0)
-        if not isinstance(fp, str):
-            raise NormalizerError(
-                f"file_path must be a string, got {type(fp).__name__!r}"
-            )
-        if not isinstance(idx, int) or isinstance(idx, bool):
-            raise NormalizerError(
-                f"source_order_index must be an integer, got {type(idx).__name__!r}"
-            )
-        return (fp, idx)
-
-    return sorted(raw_events, key=sort_key)
-
 
 def _canonicalize_value(value: Any, expected_type: str, path: str) -> Any:
     """
