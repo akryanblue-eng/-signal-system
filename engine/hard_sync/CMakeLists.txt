@@ -22,3 +22,4 @@ endfunction()
 
 chilli_add_test(chilli_tests tests/hard_sync_test.cpp)
 chilli_add_test(resampler_tests tests/resampler_test.cpp)
+chilli_add_test(asset_manager_tests tests/asset_manager_test.cpp)
