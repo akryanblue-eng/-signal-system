@@ -1,0 +1,41 @@
+name: Chilli Engine CI
+
+on:
+  push:
+    paths:
+      - "engine/hard_sync/**"
+      - ".github/workflows/engine-ci.yml"
+  pull_request:
+    paths:
+      - "engine/hard_sync/**"
+      - ".github/workflows/engine-ci.yml"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S engine/hard_sync -B engine/hard_sync/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build engine/hard_sync/build --config Release
+
+      - name: Run Hard-Sync Test
+        run: ctest --test-dir engine/hard_sync/build -C Release --output-on-failure
+
+      - name: Upload test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ matrix.os }}-hard-sync-test-output"
+          path: engine/hard_sync/build/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
