@@ -7,14 +7,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(chilli_engine INTERFACE)
 target_include_directories(chilli_engine INTERFACE include)
 
-add_executable(chilli_tests tests/hard_sync_test.cpp)
-target_link_libraries(chilli_tests PRIVATE chilli_engine)
-
-if (MSVC)
-    target_compile_options(chilli_tests PRIVATE /permissive- /W4)
-else()
-    target_compile_options(chilli_tests PRIVATE -Wall -Wextra)
-endif()
-
 enable_testing()
-add_test(NAME chilli_tests COMMAND chilli_tests)
+
+function(chilli_add_test name source)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} PRIVATE chilli_engine)
+    if (MSVC)
+        target_compile_options(${name} PRIVATE /permissive- /W4)
+    else()
+        target_compile_options(${name} PRIVATE -Wall -Wextra)
+    endif()
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+chilli_add_test(chilli_tests tests/hard_sync_test.cpp)
+chilli_add_test(resampler_tests tests/resampler_test.cpp)
