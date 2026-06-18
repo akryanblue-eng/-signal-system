@@ -72,18 +72,32 @@ public:
         const double beatStart = currentBeat_;
         const double beatEnd = currentBeat_ + static_cast<double>(numFrames) / samplesPerBeat;
 
-        const auto firstLoop = static_cast<int64_t>(std::floor(beatStart / lengthBeats_));
-        const auto lastLoop = static_cast<int64_t>(std::floor(beatEnd / lengthBeats_));
+        // +/-1 loop of margin around the floor()-derived range: beatStart or
+        // beatEnd landing within float epsilon of an exact loop boundary can
+        // push floor() to the wrong side, and the per-step rounded-frame
+        // check below is what actually decides membership, so a little
+        // extra search range here costs nothing but safety.
+        const auto firstLoop = static_cast<int64_t>(std::floor(beatStart / lengthBeats_)) - 1;
+        const auto lastLoop = static_cast<int64_t>(std::floor(beatEnd / lengthBeats_)) + 1;
 
         const std::size_t firstNewEvent = outEvents.size();
         for (int64_t loop = firstLoop; loop <= lastLoop; ++loop) {
             for (const auto& step : pattern_) {
                 const double stepBeat = static_cast<double>(loop) * lengthBeats_ + step.beat;
-                if (stepBeat < beatStart || stepBeat >= beatEnd) continue;
+
+                // Decide membership from the same rounded sample offset used
+                // for the timestamp, rather than a separate raw-beat
+                // comparison against beatStart/beatEnd: those two checks can
+                // disagree by one sample right at a block boundary once
+                // currentBeat_'s accumulated float error happens to land a
+                // step exactly on it, silently dropping the event. Tying
+                // both decisions to one rounded value makes that impossible.
+                const double framesFromBlockStart = (stepBeat - beatStart) * samplesPerBeat;
+                const int64_t roundedFrame = std::llround(framesFromBlockStart);
+                if (roundedFrame < 0 || roundedFrame >= static_cast<int64_t>(numFrames)) continue;
 
                 TriggerEvent ev = step.trigger;
-                const double framesFromBlockStart = (stepBeat - beatStart) * samplesPerBeat;
-                ev.timestamp = globalFrame_ + static_cast<uint64_t>(std::llround(framesFromBlockStart));
+                ev.timestamp = globalFrame_ + static_cast<uint64_t>(roundedFrame);
                 outEvents.push_back(ev);
             }
         }
