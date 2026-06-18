@@ -27,6 +27,19 @@
 //      captured state and re-rendering the same trigger reproduces the
 //      original output exactly. A blob with a corrupted magic/version is
 //      rejected (no-op) rather than partially applied.
+//   5. Boundary conditions - the same staged schedule rendered through
+//      1-frame-at-a-time host calls (maximum quantum pressure: the overflow
+//      buffer drains one sample per call for up to 63 calls between
+//      internal renders) and through a single offline-style call covering
+//      the entire span both match the 64-frame (quantum-aligned) reference
+//      bit-for-bit.
+//   6. Lifecycle stability - five back-to-back prepare()-then-render cycles
+//      with the same trigger produce bit-identical output every time (no
+//      state leaking from one cycle into the next), and a stale trigger
+//      staged immediately before a second, redundant prepare() call (no
+//      process() in between, as a host renegotiating sample rate before
+//      ever pulling audio might do) never fires -- prepare() must discard
+//      staged-but-undispatched events, not just playback state.
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -51,6 +64,28 @@ struct ScheduledTrigger {
     TriggerEvent ev;
 };
 
+// Stages the whole schedule before the first process() call -- at that
+// point internalFrame_ and overflowCount_ are both still zero, so every
+// offset maps to its absolute frame exactly, with no risk of landing in an
+// already-rendered overflow window (see pushTrigger()'s doc comment) -- then
+// renders totalFrames in blockSize-sized host calls (the last one truncated
+// if blockSize doesn't divide totalFrames evenly).
+std::vector<float> renderSchedule(const std::vector<ScheduledTrigger>& schedule, std::size_t blockSize,
+                                   std::size_t totalFrames) {
+    chilli::ChilliPluginWrapper<8, 2> wrapper;
+    wrapper.prepare(SAMPLE_RATE, blockSize);
+    for (const auto& s : schedule) wrapper.pushTrigger(s.ev, static_cast<std::size_t>(s.frame));
+
+    std::vector<float> output(totalFrames, -999.0f);
+    std::size_t rendered = 0;
+    while (rendered < totalFrames) {
+        const std::size_t n = std::min(blockSize, totalFrames - rendered);
+        wrapper.process(output.data() + rendered, n);
+        rendered += n;
+    }
+    return output;
+}
+
 } // namespace
 
 bool runPluginWrapperTest() {
@@ -74,29 +109,9 @@ bool runPluginWrapperTest() {
         }
         constexpr std::size_t TOTAL_FRAMES = 2048;
 
-        auto renderWithBlockSize = [&](std::size_t blockSize) {
-            chilli::ChilliPluginWrapper<8, 2> wrapper;
-            wrapper.prepare(SAMPLE_RATE, blockSize);
-            // Stage the whole schedule before the first process() call --
-            // at this point internalFrame_ and overflowCount_ are both
-            // still zero, so every offset maps to its absolute frame
-            // exactly, with no risk of landing in an already-rendered
-            // overflow window (see pushTrigger()'s doc comment).
-            for (const auto& s : schedule) wrapper.pushTrigger(s.ev, static_cast<std::size_t>(s.frame));
-
-            std::vector<float> output(TOTAL_FRAMES, -999.0f);
-            std::size_t rendered = 0;
-            while (rendered < TOTAL_FRAMES) {
-                const std::size_t n = std::min(blockSize, TOTAL_FRAMES - rendered);
-                wrapper.process(output.data() + rendered, n);
-                rendered += n;
-            }
-            return output;
-        };
-
-        const auto out17 = renderWithBlockSize(17);
-        const auto out64 = renderWithBlockSize(64);
-        const auto out333 = renderWithBlockSize(333);
+        const auto out17 = renderSchedule(schedule, 17, TOTAL_FRAMES);
+        const auto out64 = renderSchedule(schedule, 64, TOTAL_FRAMES);
+        const auto out333 = renderSchedule(schedule, 333, TOTAL_FRAMES);
 
         bool ok = false;
         for (float v : out17) {
@@ -225,6 +240,86 @@ bool runPluginWrapperTest() {
 
         const bool ok = roundTripOk && rejectOk;
         std::cout << "  getState()/setState() round-trip, rejects corrupted blob: " << (ok ? "PASS" : "FAIL") << "\n";
+        allPass &= ok;
+    }
+
+    // 5. Boundary conditions: 1-frame-at-a-time callbacks (maximum quantum
+    // pressure) and a single whole-span offline call both match the
+    // 64-frame reference bit-for-bit.
+    {
+        std::vector<ScheduledTrigger> schedule;
+        const uint64_t frames[] = {0, 63, 64, 65, 500, 2000};
+        for (std::size_t i = 0; i < 6; ++i) {
+            TriggerEvent ev;
+            ev.padIndex = static_cast<int>(i % 8);
+            ev.busId = static_cast<uint8_t>(i % 2);
+            ev.velocity = 1.0f;
+            ev.attackSec = 0.0f;
+            ev.sampleData = ramp.data();
+            ev.sampleLength = static_cast<uint32_t>(ramp.size());
+            schedule.push_back(ScheduledTrigger{frames[i], ev});
+        }
+        constexpr std::size_t TOTAL_FRAMES = 2560;
+
+        const auto reference = renderSchedule(schedule, 64, TOTAL_FRAMES);
+        const auto oneFrameAtATime = renderSchedule(schedule, 1, TOTAL_FRAMES);
+        const auto wholeSpanInOneCall = renderSchedule(schedule, TOTAL_FRAMES, TOTAL_FRAMES);
+
+        bool hasSignal = false;
+        for (float v : reference) {
+            if (v != 0.0f) { hasSignal = true; break; }
+        }
+        bool ok = hasSignal;
+        for (std::size_t i = 0; i < TOTAL_FRAMES; ++i) {
+            if (reference[i] != oneFrameAtATime[i] || reference[i] != wholeSpanInOneCall[i]) ok = false;
+        }
+        std::cout << "  Boundary conditions (1-frame and whole-span calls match reference): " << (ok ? "PASS" : "FAIL")
+                   << "\n";
+        allPass &= ok;
+    }
+
+    // 6. Lifecycle stability: repeated prepare()-then-render cycles are
+    // bit-identical, and a stale trigger staged before a redundant
+    // re-prepare() (no process() in between) never fires.
+    {
+        using Wrapper = chilli::ChilliPluginWrapper<8, 2>;
+        TriggerEvent ev;
+        ev.padIndex = 0;
+        ev.busId = 0;
+        ev.velocity = 1.0f;
+        ev.attackSec = 0.0f;
+        ev.sampleData = ramp.data();
+        ev.sampleLength = static_cast<uint32_t>(ramp.size());
+
+        Wrapper wrapper;
+        std::vector<float> first;
+        bool repeatedCyclesOk = true;
+        for (int cycle = 0; cycle < 5; ++cycle) {
+            wrapper.prepare(SAMPLE_RATE, 64);
+            wrapper.pushTrigger(ev, 10);
+            std::vector<float> out(128, -999.0f);
+            wrapper.process(out.data(), 128);
+            if (cycle == 0) {
+                first = out;
+            } else if (out != first) {
+                repeatedCyclesOk = false;
+            }
+        }
+
+        TriggerEvent staleEv = ev;
+        staleEv.padIndex = 1;
+        staleEv.busId = 1;
+        wrapper.prepare(SAMPLE_RATE, 64);
+        wrapper.pushTrigger(staleEv, 5);   // staged, then immediately invalidated below
+        wrapper.prepare(SAMPLE_RATE, 64);  // redundant re-prepare, no process() in between
+        wrapper.pushTrigger(ev, 10);       // only this one should ever fire
+        std::vector<float> afterRedundantPrepare(128, -999.0f);
+        wrapper.process(afterRedundantPrepare.data(), 128);
+        const bool staleTriggerDiscarded = afterRedundantPrepare == first;
+
+        const bool ok = repeatedCyclesOk && staleTriggerDiscarded;
+        std::cout << "  Lifecycle stability (repeated cycles identical, stale trigger discarded): "
+                   << (ok ? "PASS" : "FAIL") << "\n";
         allPass &= ok;
     }
 
