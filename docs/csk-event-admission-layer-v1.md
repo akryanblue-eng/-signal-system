@@ -163,6 +163,37 @@ the disambiguation was processed.
 
 ---
 
+## Witness DSL (`csk_admission/anchor_rules.py`)
+
+`witness_loop_closed` and `witness_decision_superseded` — the only two
+event types that can ever be quarantined as `AMBIGUOUS` — turned out to be
+the same shape: resolve via an explicit anchor if one is given (anchor
+unknown → `INSUFFICIENT_CONTEXT`; wrong topic or invalid target →
+`CONTRADICTION`; else `VALID`), or fall back to history if and only if
+exactly one viable candidate exists there (zero candidates → a
+per-type-declared result; 2+ → `AMBIGUOUS`; exactly one → `VALID` unless
+that candidate itself fails the validity check).
+
+`AnchorRule` makes that shape a declared value instead of two
+near-duplicate hand-written functions: `anchor_field`, how to look up a
+candidate by id, how to list candidates for a topic, what makes a
+candidate a *valid* repair target, and what zero candidates means for that
+event type (`CONTRADICTION` for `loop.closed` — "no open loops" is itself a
+violation; `INSUFFICIENT_CONTEXT` for `decision.superseded` — no history at
+all is a schema-level gap, not a violation). `evaluate_anchor_rule` is the
+one generic interpreter; `witness_loop_closed`/`witness_decision_superseded`
+are now one-line calls into it, and `divergence.find_hotspots` reuses the
+same rules for candidate enumeration instead of re-deriving "how to list
+candidates for this event type" a second time.
+
+This is deliberately *not* a textual/parsed grammar — there are exactly two
+instances of this shape today, and a string format with no second consumer
+would be speculative generality rather than a DSL doing real work. The
+extraction changed zero behavior: `test_witness_contracts.py` and
+`test_disambiguation.py` pass unmodified against it.
+
+---
+
 ## Replay Divergence Engine (`csk_admission/divergence.py`)
 
 A diagnostic, read-only static analysis over the quarantine store and

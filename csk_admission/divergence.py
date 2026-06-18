@@ -21,10 +21,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .ledger import Ledger, LedgerState
+from .anchor_rules import ANCHOR_RULES
+from .ledger import Ledger
 from .topics import extract_topic, normalize_topic
 from .types import WitnessResult
-from .witness_contracts import ANCHOR_FIELD, WITNESS_CONTRACTS, evaluate
+from .witness_contracts import WITNESS_CONTRACTS, evaluate
 
 
 @dataclass
@@ -55,15 +56,6 @@ class DivergenceReport:
         """event_id -> anchors that would resolve it to VALID, for hotspots that have one."""
         return {h.event_id: h.collapse_anchors for h in self.hotspots if h.collapse_anchors}
 
-
-def _raw_candidates(event_type: str, topic_key: str, state: LedgerState) -> list[str]:
-    if event_type == "loop.closed":
-        return [loop.loop_id for loop in state.open_loops_for_topic(topic_key)]
-    if event_type == "decision.superseded":
-        return [decision.event_id for decision in state.decisions_for_topic(topic_key)]
-    return []
-
-
 def find_hotspots(ledger: Ledger) -> list[AmbiguityHotspot]:
     """
     Re-evaluate every quarantined event against the current ledger and keep
@@ -81,18 +73,21 @@ def find_hotspots(ledger: Ledger) -> list[AmbiguityHotspot]:
         if outcome.result != WitnessResult.AMBIGUOUS:
             continue
 
-        anchor_field = ANCHOR_FIELD[event["type"]]
+        rule = ANCHOR_RULES[event["type"]]
         contract = WITNESS_CONTRACTS[event["type"]]
+        raw_candidates = [
+            rule.record_id(record) for record in rule.candidates_for_topic(ledger.state, topic_key)
+        ]
         candidates = [
             AnchorCandidate(
                 anchor_id=candidate_id,
                 would_resolve=contract(
-                    {**event, "payload": {**event["payload"], anchor_field: candidate_id}},
+                    {**event, "payload": {**event["payload"], rule.anchor_field: candidate_id}},
                     topic_key,
                     ledger,
                 ).result,
             )
-            for candidate_id in _raw_candidates(event["type"], topic_key, ledger.state)
+            for candidate_id in raw_candidates
         ]
         hotspots.append(
             AmbiguityHotspot(event_id=event_id, event_type=event["type"], topic_key=topic_key, candidates=candidates)

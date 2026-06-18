@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from .anchor_rules import ANCHOR_RULES, evaluate_anchor_rule
 from .ledger import Ledger
 from .types import WitnessOutcome, WitnessResult
 
@@ -33,10 +34,9 @@ WitnessContract = Callable[[dict, str, Ledger], WitnessOutcome]
 
 # Maps an event type to the payload field that names its disambiguating
 # anchor. Only types that can be quarantined as AMBIGUOUS need an entry here.
-ANCHOR_FIELD: dict[str, str] = {
-    "decision.superseded": "supersedes",
-    "loop.closed": "loop_id",
-}
+# Derived from ANCHOR_RULES (csk_admission/anchor_rules.py) so the anchor
+# field is declared in exactly one place.
+ANCHOR_FIELD: dict[str, str] = {event_type: rule.anchor_field for event_type, rule in ANCHOR_RULES.items()}
 
 
 def witness_decision_made(event: dict, topic_key: str, ledger: Ledger) -> WitnessOutcome:
@@ -65,67 +65,7 @@ def witness_decision_made(event: dict, topic_key: str, ledger: Ledger) -> Witnes
 
 
 def witness_decision_superseded(event: dict, topic_key: str, ledger: Ledger) -> WitnessOutcome:
-    state = ledger.state
-    target_id = event["payload"].get("supersedes")
-
-    if target_id:
-        target = state.decision_by_id(target_id)
-        if target is None:
-            return WitnessOutcome(
-                result=WitnessResult.INSUFFICIENT_CONTEXT,
-                reasons=[f"referenced decision {target_id!r} does not exist"],
-                affected_topics=[topic_key],
-            )
-        if target.topic_key != topic_key:
-            return WitnessOutcome(
-                result=WitnessResult.CONTRADICTION,
-                reasons=[
-                    f"supersede topic mismatch: event topic {topic_key!r} "
-                    f"!= target topic {target.topic_key!r}"
-                ],
-                affected_topics=[topic_key, target.topic_key],
-            )
-        if not target.active:
-            return WitnessOutcome(
-                result=WitnessResult.CONTRADICTION,
-                reasons=[f"referenced decision {target_id!r} is not active"],
-                affected_topics=[topic_key],
-            )
-        return WitnessOutcome(
-            result=WitnessResult.VALID,
-            reasons=[f"clean resolution of {target_id!r}"],
-            affected_topics=[topic_key],
-        )
-
-    # No anchor given: resolve from history if and only if it's unambiguous.
-    candidates = state.decisions_for_topic(topic_key)
-    if not candidates:
-        return WitnessOutcome(
-            result=WitnessResult.INSUFFICIENT_CONTEXT,
-            reasons=[f"no decision history exists for topic {topic_key!r}; nothing to supersede"],
-            affected_topics=[topic_key],
-        )
-    if len(candidates) > 1:
-        return WitnessOutcome(
-            result=WitnessResult.AMBIGUOUS,
-            reasons=[
-                f"{len(candidates)} historical decisions exist for topic {topic_key!r}; "
-                "explicit 'supersedes' anchor required"
-            ],
-            affected_topics=[topic_key],
-        )
-    only = candidates[0]
-    if not only.active:
-        return WitnessOutcome(
-            result=WitnessResult.CONTRADICTION,
-            reasons=[f"the only decision on topic {topic_key!r} ({only.event_id}) is already inactive"],
-            affected_topics=[topic_key],
-        )
-    return WitnessOutcome(
-        result=WitnessResult.VALID,
-        reasons=[f"clean resolution of {only.event_id!r} (implicit, single candidate)"],
-        affected_topics=[topic_key],
-    )
+    return evaluate_anchor_rule(ANCHOR_RULES["decision.superseded"], event, topic_key, ledger)
 
 
 def witness_loop_opened(event: dict, topic_key: str, ledger: Ledger) -> WitnessOutcome:
@@ -142,57 +82,7 @@ def witness_loop_opened(event: dict, topic_key: str, ledger: Ledger) -> WitnessO
 
 
 def witness_loop_closed(event: dict, topic_key: str, ledger: Ledger) -> WitnessOutcome:
-    state = ledger.state
-    anchor = event["payload"].get("loop_id")
-
-    if anchor:
-        target = state.loop(anchor)
-        if target is None:
-            return WitnessOutcome(
-                result=WitnessResult.INSUFFICIENT_CONTEXT,
-                reasons=[f"referenced loop {anchor!r} does not exist"],
-                affected_topics=[topic_key],
-            )
-        if target.topic_key != topic_key:
-            return WitnessOutcome(
-                result=WitnessResult.CONTRADICTION,
-                reasons=[f"loop {anchor!r} belongs to topic {target.topic_key!r}, not {topic_key!r}"],
-                affected_topics=[topic_key, target.topic_key],
-            )
-        if target.status != "OPEN":
-            return WitnessOutcome(
-                result=WitnessResult.CONTRADICTION,
-                reasons=[f"cannot close non-open loop {anchor!r}"],
-                affected_topics=[topic_key],
-            )
-        return WitnessOutcome(
-            result=WitnessResult.VALID,
-            reasons=[f"loop {anchor!r} closed"],
-            affected_topics=[topic_key],
-        )
-
-    # No anchor given: resolve from open loops on this topic if unambiguous.
-    open_loops = state.open_loops_for_topic(topic_key)
-    if not open_loops:
-        return WitnessOutcome(
-            result=WitnessResult.CONTRADICTION,
-            reasons=[f"cannot close non-open loop: no open loops for topic {topic_key!r}"],
-            affected_topics=[topic_key],
-        )
-    if len(open_loops) > 1:
-        return WitnessOutcome(
-            result=WitnessResult.AMBIGUOUS,
-            reasons=[
-                f"{len(open_loops)} open loops exist for topic {topic_key!r}; "
-                "explicit 'loop_id' anchor required"
-            ],
-            affected_topics=[topic_key],
-        )
-    return WitnessOutcome(
-        result=WitnessResult.VALID,
-        reasons=[f"loop {open_loops[0].loop_id!r} closed (implicit, single candidate)"],
-        affected_topics=[topic_key],
-    )
+    return evaluate_anchor_rule(ANCHOR_RULES["loop.closed"], event, topic_key, ledger)
 
 
 def witness_event_disambiguated(event: dict, topic_key: str, ledger: Ledger) -> WitnessOutcome:
