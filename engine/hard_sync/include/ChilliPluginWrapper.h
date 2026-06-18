@@ -8,6 +8,7 @@
 
 #include "Engine.h"
 #include "MasterBus.h"
+#include "ParameterBridge.h"
 #include "TriggerEvent.h"
 
 namespace chilli {
@@ -105,7 +106,11 @@ public:
         std::array<float, NumBuses> busGain{};
     };
 
-    ChilliPluginWrapper() { state_.busGain.fill(1.0f); }
+    ChilliPluginWrapper() {
+        State init;
+        init.busGain.fill(1.0f);
+        bridge_.publish(init);
+    }
 
     // Allocates and resets every piece of internal state -- the only place
     // in this class that allocates, matching the "allocate at
@@ -190,31 +195,52 @@ public:
     }
 
     void setParameter(uint32_t id, float value) {
+        State next = getState();
         if (id == static_cast<uint32_t>(ParameterId::kDrive)) {
-            state_.drive = value;
+            next.drive = value;
         } else if (id == static_cast<uint32_t>(ParameterId::kCeiling)) {
-            state_.ceiling = value;
+            next.ceiling = value;
         } else {
             const uint32_t busIndex = id - static_cast<uint32_t>(ParameterId::kBusGainBase);
             if (busIndex >= NumBuses) return;
-            state_.busGain[busIndex] = value;
+            next.busGain[busIndex] = value;
         }
+        bridge_.publish(next);
         applyStateToEngine();
     }
 
-    // Plain reads/writes, not atomics -- this sketch assumes the host
-    // serializes setParameter() with process() calls itself (e.g. both on
-    // the audio thread, or via the host's own lock-free automation queue
-    // feeding calls made from that thread). A real cross-thread automation
-    // path (atomics, or a double-buffered parameter set applied at the top
-    // of process()) is additional work a concrete VST3/AU adapter would add
-    // on top; it's not needed to prove the lifecycle/buffering logic this
-    // class exists for.
-    State getState() const { return state_; }
+    // Lock-free reader side of the publish/snapshot mechanism ParameterBridge
+    // implements: safe to call from a thread other than whichever one calls
+    // setParameter()/setState() (e.g. a UI thread polling current parameter
+    // values for display) without a mutex. engine_/masterBus_ mutation
+    // itself (applyStateToEngine()) is unchanged from before and still
+    // assumes a single writer thread -- only the State storage this class
+    // hands out via getState() is now safe under concurrent readers.
+    State getState() const { return bridge_.acquire().state; }
+
+    // Pairs the State blob with the diagnostic/auditability generation
+    // counter from the underlying ParameterBridge (see ParameterBridge.h),
+    // both from the *same* acquire() call. Calling getState() and a
+    // separate generation accessor back-to-back would each be its own
+    // independent atomic read -- safe individually, but the two values
+    // could describe different publications if one happened in between.
+    // Use this instead whenever a caller needs the pairing to be
+    // trustworthy (e.g. this suite's snapshot-consistency stress test).
+    // generation is not part of the State blob itself: it's a property of
+    // the publication event, not of the preset, so a restored setState()
+    // blob's own history is never conflated with it.
+    struct StateSnapshot {
+        State state;
+        uint64_t generation;
+    };
+    StateSnapshot getStateSnapshot() const {
+        const auto snap = bridge_.acquire();
+        return StateSnapshot{snap.state, snap.generation};
+    }
 
     void setState(const State& state) {
         if (state.magic != kStateMagic || state.version != kStateVersion) return;
-        state_ = state;
+        bridge_.publish(state);
         applyStateToEngine();
     }
 
@@ -231,9 +257,10 @@ private:
     };
 
     void applyStateToEngine() {
-        masterBus_.setDrive(state_.drive);
-        masterBus_.setCeiling(state_.ceiling);
-        for (std::size_t i = 0; i < NumBuses; ++i) engine_->bus(i).gain = state_.busGain[i];
+        const State current = getState();
+        masterBus_.setDrive(current.drive);
+        masterBus_.setCeiling(current.ceiling);
+        for (std::size_t i = 0; i < NumBuses; ++i) engine_->bus(i).gain = current.busGain[i];
     }
 
     // Forwards every staged event due in [windowStart, windowStart +
@@ -257,7 +284,7 @@ private:
 
     std::optional<EngineType> engine_;
     MasterBus masterBus_;
-    State state_;
+    ParameterBridge<State> bridge_;
 
     std::array<float, kQuantumFrames> overflow_{};
     std::size_t overflowCount_ = 0;

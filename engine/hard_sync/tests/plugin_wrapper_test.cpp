@@ -40,6 +40,19 @@
 //      process() in between, as a host renegotiating sample rate before
 //      ever pulling audio might do) never fires -- prepare() must discard
 //      staged-but-undispatched events, not just playback state.
+//   7. Triple-buffer (ParameterBridge) snapshot consistency - heavy
+//      setParameter() churn (1-2 calls between each query, this sketch's
+//      writer/reader still being same-thread by contract, so this cannot
+//      exercise an actual data race) interleaved with oversized
+//      offline-style process() calls, queried via getStateSnapshot() (state
+//      + generation from a single acquire(), not two independent reads
+//      that could straddle a publish), never yields a bad magic/version, a
+//      generation that goes backwards, or a busGain/drive value that
+//      disagrees with what was just set -- i.e. the publish path never
+//      hands back a half-written State. Proving the same under real
+//      concurrent readers and writers needs a thread-sanitizer build, the
+//      same boundary this suite already respected when scoping out
+//      "concurrency stress" earlier.
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -319,6 +332,62 @@ bool runPluginWrapperTest() {
 
         const bool ok = repeatedCyclesOk && staleTriggerDiscarded;
         std::cout << "  Lifecycle stability (repeated cycles identical, stale trigger discarded): "
+                   << (ok ? "PASS" : "FAIL") << "\n";
+        allPass &= ok;
+    }
+
+    // 7. Triple-buffer (ParameterBridge) snapshot consistency under heavy
+    // setParameter() churn interleaved with oversized offline-style
+    // process() calls. Single-threaded, so this cannot exercise an actual
+    // data race (see class doc comment); what it does prove deterministically
+    // is that every getState()/parameterGeneration() observed mid-churn is a
+    // complete, valid snapshot -- never a torn or stale-looking State -- and
+    // that generation only ever moves forward.
+    {
+        using Wrapper = chilli::ChilliPluginWrapper<8, 2>;
+        Wrapper wrapper;
+        wrapper.prepare(SAMPLE_RATE, 64);
+
+        TriggerEvent ev;
+        ev.padIndex = 0;
+        ev.busId = 0;
+        ev.velocity = 1.0f;
+        ev.attackSec = 0.0f;
+        ev.sampleData = ramp.data();
+        ev.sampleLength = static_cast<uint32_t>(ramp.size());
+        wrapper.pushTrigger(ev, 0);
+
+        bool ok = true;
+        uint64_t lastGeneration = 0;
+        std::vector<float> hugeOut(5000, -999.0f);
+
+        uint32_t rngState = 12345;
+        auto nextRand = [&]() {
+            rngState = rngState * 1664525u + 1013904223u;
+            return rngState;
+        };
+
+        for (int i = 0; i < 2000; ++i) {
+            const float driveVal = 1.0f + static_cast<float>(nextRand() % 800) / 100.0f;
+            const float gainVal = static_cast<float>(nextRand() % 100) / 100.0f;
+            wrapper.setParameter(static_cast<uint32_t>(Wrapper::ParameterId::kDrive), driveVal);
+            wrapper.setParameter(Wrapper::kBusGainParam(0), gainVal);
+
+            const auto snapshot = wrapper.getStateSnapshot(); // state + generation from one acquire()
+            const auto& state = snapshot.state;
+            if (state.magic != Wrapper::kStateMagic || state.version != Wrapper::kStateVersion) ok = false;
+            if (snapshot.generation < lastGeneration) ok = false; // must never go backwards
+            lastGeneration = snapshot.generation;
+            if (state.drive != driveVal || state.busGain[0] != gainVal) ok = false;
+            if (wrapper.bus(0).gain != gainVal) ok = false;
+
+            if (i % 200 == 0) {
+                wrapper.process(hugeOut.data(), hugeOut.size()); // oversized offline-style render mid-churn
+            }
+        }
+
+        std::cout << "  Snapshot consistency under heavy parameter churn (valid magic/version, "
+                      "monotonic generation, bus state agrees): "
                    << (ok ? "PASS" : "FAIL") << "\n";
         allPass &= ok;
     }
