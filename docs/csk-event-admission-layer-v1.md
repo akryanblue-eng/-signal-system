@@ -216,3 +216,29 @@ event id to that subset. A candidate that exists in history but would
 itself resolve to `CONTRADICTION` (e.g. an inactive decision) is reported
 but excluded from `collapse_anchors` — see
 `csk_admission/tests/test_divergence.py`.
+
+---
+
+## Adversarial / fuzz testing (`csk_admission/tests/test_fuzz_invariants.py`)
+
+A randomized stress test over the full pipeline, run across 150 seeds x 40
+events each. It generates event sequences over a small, deliberately
+collision-prone topic pool, with anchors (`supersedes`, `loop_id`,
+disambiguation targets) drawn from a mix of real prior ids, garbage ids, and
+omitted values — pushing the witness layer back and forth across the
+VALID/CONTRADICTION/AMBIGUOUS/INSUFFICIENT_CONTEXT boundaries instead of
+mostly missing them.
+
+It does not introduce new semantics; it only checks invariants the spec
+already claims, mechanically, on inputs no hand-written test enumerates:
+admission/witness evaluation never raises; disposition/result pairs always
+match the Stage 3 commit table above; `CONTRADICTION` and quarantine never
+mutate `LedgerState`; committed and quarantined ids stay disjoint;
+`replay()` of a fixed committed-event set converges to the same state
+regardless of replay order; `divergence.analyze` / `ambiguity_debt.compute_debt`
+never raise and stay consistent with the quarantine store; and witness
+contracts are pure (evaluating the same quarantined event twice against the
+same ledger gives an identical result both times). Verified to actually
+have teeth, not just pass vacuously, by temporarily removing the canonical
+sort in `replay()` and confirming this test fails alongside
+`test_replay_determinism.py`.
