@@ -15,4 +15,15 @@ struct TriggerEvent {
 
     uint32_t transientBypassSamples = 0; // direct-access window before falling back to interpolation
     uint32_t sampleLength = 4096;
+
+    // Non-owning pointer into an already-decoded, already-resampled sample
+    // (e.g. AssetManager::getOrResample(...).samples.data()); the caller
+    // owns the lifetime, which must outlive every voice playing it.
+    const float* sampleData = nullptr;
+
+    // Destination bus, decided here at trigger time. VoiceManager latches
+    // this into the voice slot once at init() and never re-evaluates it for
+    // the life of that voice -- routing a sustained voice elsewhere means a
+    // new trigger on a new bus, not a mutation of this one.
+    uint8_t busId = 0;
 };

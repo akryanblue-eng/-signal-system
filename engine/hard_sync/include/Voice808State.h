@@ -30,6 +30,11 @@ struct Voice808State {
     // truncated to zero on every sample.
     float sampleOffset = 0.0f;
     uint32_t sampleLength = 0;
+    const float* sampleData = nullptr;
+
+    // Destination bus, latched once in init() from TriggerEvent::busId and
+    // never changed afterward -- see TriggerEvent.h for why.
+    uint8_t busId = 0;
 
     // Amplitude envelope (attack ramp only; this is a minimal harness, not the full engine)
     float aLevel = 0.0f;
@@ -54,6 +59,8 @@ struct Voice808State {
 
         sampleOffset = 0.0f; // hard reset: no tail from a previous hit on this slot
         sampleLength = ev.sampleLength;
+        sampleData = ev.sampleData;
+        busId = ev.busId;
 
         aLevel = 0.0f;
         attackSamples = std::max<uint32_t>(1, static_cast<uint32_t>(ev.attackSec * sampleRate));

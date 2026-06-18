@@ -21,10 +21,15 @@ struct Bus {
     // callbacks, callers must trigger voices in a fixed order every time
     // (e.g. the voice pool's natural index order) -- this function does not
     // itself impose an order across multiple calls, it just appends in time.
-    void accumulate(const float* source, std::size_t numFrames) {
-        const std::size_t n = std::min(numFrames, buffer.size());
+    //
+    // offset lets a caller write a sub-range of the block (e.g. one segment
+    // between two mid-block triggers) without smearing it across the whole
+    // buffer; it defaults to 0 so every whole-block caller is unaffected.
+    void accumulate(const float* source, std::size_t numFrames, std::size_t offset = 0) {
+        if (offset >= buffer.size()) return;
+        const std::size_t n = std::min(numFrames, buffer.size() - offset);
         for (std::size_t i = 0; i < n; ++i) {
-            buffer[i] += source[i];
+            buffer[offset + i] += source[i];
         }
     }
 };
