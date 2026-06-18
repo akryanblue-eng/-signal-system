@@ -42,7 +42,7 @@ class EventAdmissionPipeline:
         assert topic_key is not None  # admission_gate guarantees this for ADMITTED status
 
         witness_chain.append(f"witness_contract:{event['type']}:v1")
-        outcome: WitnessOutcome = witness_contracts.evaluate(event, topic_key, self.ledger.state)
+        outcome: WitnessOutcome = witness_contracts.evaluate(event, topic_key, self.ledger)
 
         disposition, drift_event = self.ledger.commit_or_quarantine(event, topic_key, outcome)
         witness_chain.append(
@@ -70,5 +70,5 @@ class EventAdmissionPipeline:
                 f.write(json.dumps(event, sort_keys=True) + "\n")
 
         with (quarantine_dir / "events.jsonl").open("w") as f:
-            for event in self.ledger.quarantine:
+            for event in self.ledger.quarantine.values():
                 f.write(json.dumps(event, sort_keys=True) + "\n")

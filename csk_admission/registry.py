@@ -11,6 +11,7 @@ EVENT_TYPE_REGISTRY: frozenset[str] = frozenset({
     "decision.superseded",
     "loop.opened",
     "loop.closed",
+    "event.disambiguated",
 })
 
 
