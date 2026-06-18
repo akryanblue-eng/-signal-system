@@ -76,13 +76,15 @@ public:
     // makes it visible with a release store -- paired with the acquire load
     // in acquire() below, this guarantees a reader never observes a
     // partially-written Snapshot, no matter when it reads relative to this
-    // write.
-    void publish(T value) {
+    // write. Returns the generation just stamped, so the writer can record
+    // exactly which generation it published without a redundant acquire().
+    uint64_t publish(T value) {
         const uint32_t cur = published_.load(std::memory_order_relaxed);
         const uint32_t slot = (cur + 1) % kSlots;
         snapshots_[slot].state = std::move(value);
         snapshots_[slot].generation = ++generationCounter_;
         published_.store(slot, std::memory_order_release);
+        return snapshots_[slot].generation;
     }
 
     // Reader side: the acquire load paired with publish()'s release store

@@ -53,6 +53,13 @@
 //      concurrent readers and writers needs a thread-sanitizer build, the
 //      same boundary this suite already respected when scoping out
 //      "concurrency stress" earlier.
+//   8. ParameterTrace forensic log - a standalone observer of every
+//      ParameterBridge publish (see ParameterTrace.h), not just the latest
+//      snapshot: totalRecorded() counts every publish ever made including
+//      the constructor's own initial one, size() caps at the trace's fixed
+//      capacity with the oldest entries silently evicted once exceeded, the
+//      newest held entry always matches whatever was most recently set, and
+//      every entry still held carries a strictly increasing generation.
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -388,6 +395,41 @@ bool runPluginWrapperTest() {
 
         std::cout << "  Snapshot consistency under heavy parameter churn (valid magic/version, "
                       "monotonic generation, bus state agrees): "
+                   << (ok ? "PASS" : "FAIL") << "\n";
+        allPass &= ok;
+    }
+
+    // 8. ParameterTrace forensic log: total count includes the constructor's
+    // initial publish, size() caps at capacity with oldest-entry eviction,
+    // the newest entry matches the most recently set value, and generation
+    // strictly increases across every entry still held.
+    {
+        using Wrapper = chilli::ChilliPluginWrapper<8, 2>;
+        Wrapper wrapper;
+        wrapper.prepare(SAMPLE_RATE, 64);
+
+        constexpr int kCapacity = 1024;
+        constexpr int kSetCalls = 1500; // > capacity, forces eviction
+        float lastDrive = 0.0f;
+        for (int i = 0; i < kSetCalls; ++i) {
+            lastDrive = 1.0f + static_cast<float>(i % 100) * 0.01f;
+            wrapper.setParameter(static_cast<uint32_t>(Wrapper::ParameterId::kDrive), lastDrive);
+        }
+
+        const auto& trace = wrapper.parameterTrace();
+        const std::size_t expectedTotal = 1 + static_cast<std::size_t>(kSetCalls); // +1 for ctor's initial publish
+        bool ok = trace.totalRecorded() == expectedTotal;
+        ok = ok && trace.size() == static_cast<std::size_t>(kCapacity);
+
+        const auto& newest = trace.at(trace.size() - 1);
+        ok = ok && newest.state.drive == lastDrive;
+
+        for (std::size_t i = 0; i + 1 < trace.size(); ++i) {
+            if (trace.at(i).generation >= trace.at(i + 1).generation) ok = false;
+        }
+
+        std::cout << "  ParameterTrace forensic log (total count, capacity cap, newest entry, "
+                      "monotonic generation): "
                    << (ok ? "PASS" : "FAIL") << "\n";
         allPass &= ok;
     }

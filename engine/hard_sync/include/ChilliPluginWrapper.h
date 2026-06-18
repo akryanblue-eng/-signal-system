@@ -9,6 +9,7 @@
 #include "Engine.h"
 #include "MasterBus.h"
 #include "ParameterBridge.h"
+#include "ParameterTrace.h"
 #include "TriggerEvent.h"
 
 namespace chilli {
@@ -109,7 +110,8 @@ public:
     ChilliPluginWrapper() {
         State init;
         init.busGain.fill(1.0f);
-        bridge_.publish(init);
+        const uint64_t generation = bridge_.publish(init);
+        trace_.record(TraceEntry{generation, internalFrame_, init});
     }
 
     // Allocates and resets every piece of internal state -- the only place
@@ -205,7 +207,8 @@ public:
             if (busIndex >= NumBuses) return;
             next.busGain[busIndex] = value;
         }
-        bridge_.publish(next);
+        const uint64_t generation = bridge_.publish(next);
+        trace_.record(TraceEntry{generation, internalFrame_, next});
         applyStateToEngine();
     }
 
@@ -240,7 +243,8 @@ public:
 
     void setState(const State& state) {
         if (state.magic != kStateMagic || state.version != kStateVersion) return;
-        bridge_.publish(state);
+        const uint64_t generation = bridge_.publish(state);
+        trace_.record(TraceEntry{generation, internalFrame_, state});
         applyStateToEngine();
     }
 
@@ -249,6 +253,18 @@ public:
 
     double sampleRate() const { return engine_->sampleRate(); }
     std::size_t maxBlockSize() const { return maxBlockSize_; }
+
+    // Forensic log of every published State, in publish order, regardless
+    // of whether process() ever read it back -- a record of what was
+    // asked of this wrapper, not of what played. internalFrame_ is
+    // recorded at the time of the call, the same "frames rendered so far"
+    // clock pushTrigger() uses to schedule events.
+    struct TraceEntry {
+        uint64_t generation = 0;
+        uint64_t internalFrame = 0;
+        State state{};
+    };
+    const ParameterTrace<TraceEntry>& parameterTrace() const { return trace_; }
 
 private:
     struct PendingEvent {
@@ -285,6 +301,7 @@ private:
     std::optional<EngineType> engine_;
     MasterBus masterBus_;
     ParameterBridge<State> bridge_;
+    ParameterTrace<TraceEntry> trace_;
 
     std::array<float, kQuantumFrames> overflow_{};
     std::size_t overflowCount_ = 0;
