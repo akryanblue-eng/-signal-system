@@ -9,6 +9,7 @@
 
 #include "SampleBuffer.h"
 #include "Sha256.h"
+#include "WavDecoder.h"
 
 namespace chilli {
 
@@ -42,6 +43,20 @@ public:
         writeCache(path, buf);
         if (outWasCacheHit) *outWasCacheHit = false;
         return buf;
+    }
+
+    // Thin wrapper: decode the file, then defer to the buffer-based overload
+    // above for the actual cache lookup/resample. No separate path-keyed
+    // cache entry exists -- the key is still a hash of the decoded PCM, so a
+    // file decoded by path and the same bytes passed directly as a vector
+    // land in the same cache entry. Returns std::nullopt if decodeWavFile
+    // fails (missing file, bad RIFF magic, unsupported format), preserving
+    // the decoder's error signal rather than substituting an empty buffer.
+    std::optional<SampleBuffer> getOrResample(const std::filesystem::path& filePath,
+                                               double engineSampleRate, bool* outWasCacheHit = nullptr) {
+        const auto decoded = decodeWavFile(filePath);
+        if (!decoded) return std::nullopt;
+        return getOrResample(decoded->samples, decoded->sampleRate, engineSampleRate, outWasCacheHit);
     }
 
     std::filesystem::path cachePath(const std::vector<float>& decoded, double sourceRate,
