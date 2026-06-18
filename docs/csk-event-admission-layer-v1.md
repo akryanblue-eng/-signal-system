@@ -160,3 +160,28 @@ administrative audit trail, and their effect on state is already captured
 by the resolved copy of the originally-quarantined event that
 `Ledger._promote_disambiguated` appends to the committed log at the time
 the disambiguation was processed.
+
+---
+
+## Replay Divergence Engine (`csk_admission/divergence.py`)
+
+A diagnostic, read-only static analysis over the quarantine store and
+`LedgerState` — it is not part of admission, witness evaluation, commit, or
+replay, and never mutates the ledger.
+
+CSK never forks ledger state: an `AMBIGUOUS` event is held in quarantine,
+never branched into multiple parallel interpretations (forked-history
+ambiguity / Case C is explicitly out of scope — see above). So there is no
+combinatorial set of possible ledger states to enumerate. The real
+divergence surface in this model is per-event: `analyze(ledger)` re-evaluates
+every quarantined event, keeps the ones currently classified `AMBIGUOUS`,
+and for each one (an `AmbiguityHotspot`) enumerates the anchor candidates
+already visible in history and classifies what witness result choosing each
+one would actually produce — by reusing the same anchor-injection +
+witness-contract mechanism `event.disambiguated` itself uses, not a new
+resolution primitive. `hotspot.collapse_anchors` is the subset of candidates
+that would resolve to `VALID`; `report.collapse_paths` maps each hotspot's
+event id to that subset. A candidate that exists in history but would
+itself resolve to `CONTRADICTION` (e.g. an inactive decision) is reported
+but excluded from `collapse_anchors` — see
+`csk_admission/tests/test_divergence.py`.
