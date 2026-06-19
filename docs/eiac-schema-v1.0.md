@@ -52,13 +52,121 @@ Rules:
 - Strings are UTF-8.
 - Every top-level artifact includes a `schema_tag` string.
 
+The exact determinism rules behind this (key ordering, null handling,
+forbidden encodings, etc.) are locked in §1.4.1, not restated here.
+
 ### 1.3 Content address
 
 For any canon-encoded object:
 
 ```
-H(x) = SHA256(canon(x))
+H(x) = SHA-256("EIAC/v1.0|" || schema_tag(x) || 0x00 || canon(x))
 ```
+
+This supersedes a plain `SHA256(canon(x))`: the hash is domain-separated by
+`schema_tag` so that no two schema domains can collide in hash space by
+construction. See §1.4.2 for the full rule set.
+
+### 1.4 Encoding & Identity Addendum (locked)
+
+This addendum adds no new structure — it only removes remaining degrees of
+freedom in `canon()` and `H(x)` so independent implementations produce
+identical bytes for the same abstract object. It is a tightening of §1.2/§1.3,
+not a new schema version.
+
+#### 1.4.1 Canonical encoding determinism
+
+Map / object encoding:
+
+- Map keys MUST be encoded in bytewise lexicographic order of UTF-8 key
+  bytes.
+- Duplicate keys are INVALID (fail-closed).
+- Missing fields MUST NOT be omitted from canonical form; encode an explicit
+  null token instead.
+
+Numeric domain:
+
+- Only integer numbers are permitted.
+- Floating point values are FORBIDDEN.
+- `NaN` / `±Infinity` are FORBIDDEN.
+
+String encoding:
+
+- Raw UTF-8 bytes only.
+- No normalization (no NFC / NFKC / NFD).
+- No trimming, escaping, or case folding.
+
+Array encoding:
+
+- Declared order is preserved exactly.
+- An explicit length prefix is required.
+- Indefinite-length encodings are FORBIDDEN.
+
+Binary / text distinction:
+
+- Binary data MUST be raw bytes in the encoding.
+- Base64 is not equivalent and MUST NOT be treated as canonical.
+
+CBOR / format tags (if CBOR is used as the concrete encoding):
+
+- Tagged encodings are FORBIDDEN unless explicitly enumerated in this
+  schema.
+- Unknown tags are INVALID.
+
+#### 1.4.2 Domain-separated identity hashing
+
+```
+H(x) = SHA-256("EIAC/v1.0|" || schema_tag(x) || 0x00 || canon(x))
+```
+
+- `schema_tag(x)` is REQUIRED and MUST be first-class in every object (see
+  §1.2).
+- Hash identity is type-separated by construction — no two schema domains
+  share hash-space interpretation.
+
+#### 1.4.3 Schema evolution rules
+
+- Any incompatible schema change MUST increment the `schema_tag` version
+  (e.g. `EIAC/PROOF/v1` → `EIAC/PROOF/v2`).
+- Adding optional fields changes `canon(x)`, therefore changes `H(x)`,
+  therefore produces a distinct identity. There is no backward equivalence
+  across field additions.
+- An unknown `schema_tag` encountered by a verifier MUST fail closed — no
+  fallback parsing.
+
+#### 1.4.4 Hash semantics (fail-only identity)
+
+- `H(x)` is an identity, not a lookup hint.
+- Collision resolution is undefined; any detected collision means the
+  system state is INVALID.
+- Truncated hashes, if ever displayed, MUST be presentation-only and MUST
+  NOT participate in equality checks.
+
+#### 1.4.5 Proof binding integrity
+
+Given `Proof(env, p)`, verification MUST:
+
+- recompute `H(env)` from the full `Env` object,
+- recompute `H(p)` from the full `ExecutionBundle` object,
+- fail closed on any mismatch.
+
+Forbidden:
+
+- accepting hash-only references without full object materialization,
+- "trusted external hash assertions,"
+- partial `Env` reconstruction from a hash alone.
+
+#### 1.4.6 Canonical test vectors (required for interop)
+
+Each implementation MUST publish, as normative interop anchors (not
+documentation):
+
+- at least 2 `Env` examples,
+- at least 2 `ExecutionBundle` examples,
+- at least 1 `Proof` example,
+
+each with its `canon(x)` output (hex or base64, fixed format) and its
+`H(x)` output (SHA-256 hex).
 
 ## 2. Environment Schema (`Env`)
 
