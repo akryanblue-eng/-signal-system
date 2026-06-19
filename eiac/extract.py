@@ -26,12 +26,18 @@ from typing import Optional
 from eiac.canon import hash_of
 from eiac.schema import Env, ExecutionBundle, KNOWN_WITNESS_TAGS, Proof
 
+REASON_SCHEMA_TAG_MISMATCH = "SCHEMA_TAG_MISMATCH"
 REASON_ENV_HASH_MISMATCH = "ENV_HASH_MISMATCH"
 REASON_BUNDLE_HASH_MISMATCH = "BUNDLE_HASH_MISMATCH"
 REASON_GLUE_ADAPTER_SET_MISMATCH = "GLUE_ADAPTER_SET_MISMATCH"
 REASON_GLUE_PARTITION_INVALID = "GLUE_PARTITION_INVALID"
 REASON_LOCAL_PROOF_INVALID = "LOCAL_PROOF_INVALID"
 REASON_COUPLING_WITNESS_INVALID = "COUPLING_WITNESS_INVALID"
+
+_EXPECTED_ENV_TAG = "EIAC/ENV/v1"
+_EXPECTED_BUNDLE_TAG = "EIAC/P/v1"
+_EXPECTED_PROOF_TAG = "EIAC/PROOF/v1"
+_EXPECTED_GLUE_TAG = "EIAC/GLUE/v1"
 
 
 @dataclass(frozen=True)
@@ -53,6 +59,14 @@ def _reject(reason: str) -> ExtractResult:
 
 
 def extract(env: Env, p: ExecutionBundle, proof: Proof) -> ExtractResult:
+    if (
+        env.schema_tag != _EXPECTED_ENV_TAG
+        or p.schema_tag != _EXPECTED_BUNDLE_TAG
+        or proof.schema_tag != _EXPECTED_PROOF_TAG
+        or proof.glue.schema_tag != _EXPECTED_GLUE_TAG
+    ):
+        return _reject(REASON_SCHEMA_TAG_MISMATCH)
+
     if proof.env_hash != hash_of(env):
         return _reject(REASON_ENV_HASH_MISMATCH)
 
@@ -70,6 +84,7 @@ def extract(env: Env, p: ExecutionBundle, proof: Proof) -> ExtractResult:
         return _reject(REASON_GLUE_ADAPTER_SET_MISMATCH)
 
     bundle_op_ids = {op.op_id for op in p.ops}
+    op_adapter_by_id = {op.op_id: op.adapter for op in p.ops}
     partition_op_ids: list[str] = []
     for part in proof.glue.op_partition:
         partition_op_ids.extend(part["op_ids"])
@@ -77,6 +92,10 @@ def extract(env: Env, p: ExecutionBundle, proof: Proof) -> ExtractResult:
         return _reject(REASON_GLUE_PARTITION_INVALID)
     if set(partition_op_ids) != bundle_op_ids:
         return _reject(REASON_GLUE_PARTITION_INVALID)
+    for part in proof.glue.op_partition:
+        for op_id in part["op_ids"]:
+            if op_adapter_by_id[op_id] != part["adapter"]:
+                return _reject(REASON_GLUE_PARTITION_INVALID)
 
     for witness in proof.coupling:
         if witness.schema_tag not in KNOWN_WITNESS_TAGS:
