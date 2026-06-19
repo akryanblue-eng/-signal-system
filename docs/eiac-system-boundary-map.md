@@ -3,6 +3,11 @@
 Version: v1.0 (isolated spec artifact)
 Scope: Structural semantics only (no execution layer, no ESS, no runtime binding)
 
+> This document visualizes `docs/eiac-stratified-admissibility-v0.1.md` (the
+> spec). If anything here conflicts with that spec, the spec wins. This doc
+> is non-normative; it should not introduce new constraints. Drift rule: any
+> change that alters meaning is made in the spec first, then mirrored here.
+
 ---
 
 ## 0. Purpose

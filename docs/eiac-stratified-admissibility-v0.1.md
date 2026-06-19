@@ -177,7 +177,25 @@ membership in that subset, normalization quotients the resulting proof
 fibers, and topology plus criticality classify the structural stability of
 the resulting quotient geometry.
 
-## 6. Explicitly Not Covered Here
+## 6. Visualization Pointers
+
+`docs/eiac-system-boundary-map.md` is a reader-facing, diagram-oriented
+restatement of this spec. This document is authoritative; the boundary map
+is non-normative. Drift rule: any change that alters meaning is made here
+first, then mirrored there.
+
+Section correspondence:
+
+- §2 L0–L1 (Source / Compilation) → boundary map §1
+- §2 L2 (Governance Filter) → boundary map §2–§3
+- §2 L3 (Proof-Carrying Layer) → boundary map §4
+- §2 L4 (Proof Normalization) → boundary map §5
+- §2 L5 (Cost Topology) → boundary map §6
+- §2 L6 (Criticality Layer) → boundary map §7
+- §3 (Dependency Graph) → boundary map §8
+- §4 (Boundary Invariants) → boundary map §9
+
+## 7. Explicitly Not Covered Here
 
 - Execution-semantics / monitoring layer (GateStatus, Reasons, hash-drift
   detection) — intentionally deferred, not part of this abstraction.
