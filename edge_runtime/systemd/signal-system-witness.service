@@ -1,0 +1,32 @@
+[Unit]
+Description=signal-system CVP witness run
+# After=network.target only to avoid racing host network bring-up at boot —
+# the gate suite itself performs no network I/O (see PrivateNetwork below).
+After=network.target
+
+[Service]
+Type=oneshot
+User=signal-system
+Group=signal-system
+WorkingDirectory=/opt/signal-system
+Environment=SIGNAL_SYSTEM_WITNESS_DIR=/var/lib/signal-system/witnesses
+ExecStart=/usr/bin/python3 -m edge_runtime.agent /opt/signal-system/transition_morphism.json
+
+# Resource caps sized for Jetson Orin Nano class hardware (4-8 GB RAM,
+# 6 CPU cores). The gate suite is pure-CPU hashing/string work — no GPU,
+# no network, no large working set.
+MemoryMax=256M
+CPUQuota=50%
+Restart=on-failure
+RestartSec=30
+
+# Hardening — the gate suite needs no privileges beyond its own data dir.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateNetwork=true
+ReadWritePaths=/var/lib/signal-system
+
+[Install]
+WantedBy=multi-user.target
