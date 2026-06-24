@@ -145,41 +145,17 @@ generic-URI form. Output: the canonical URL string.
 ### 7.1 Path dot-segment normalization (used by §7)
 
 Split the path on `/`, noting whether it originally started with `/` (the
-"leading slash" flag). Unlike §6 step 5, splitting here is *not* followed
-by an "empty segment contributes nothing" rule — a leading `/` produces an
-empty-string first segment that is pushed onto the stack exactly like any
-other segment (see the worked example below for why this matters). Process
-segments left to right against a stack:
+"leading slash" flag). Process segments left to right against a stack:
 
 - A segment equal to `.` contributes nothing.
 - A segment equal to `..`: if the stack is non-empty and its top is not
-  itself `..`, pop the stack (cancelling the previous segment — note this
-  applies even when the top of the stack is the empty segment produced by
-  a leading `/`, since that segment is, per the rule above, an ordinary
-  pushed segment like any other). Otherwise (stack empty, or top is `..`),
-  push `..` literally — unlike §6, a `..` that has nothing left to cancel
-  is preserved rather than rejected.
+  itself `..`, pop the stack (cancelling the previous segment). Otherwise
+  (stack empty, or top is `..`), push `..` literally — unlike §6, a leading
+  or repeated `..` is preserved rather than rejected.
 - Any other segment is pushed.
 
 Join the remaining stack with `/`; if the leading-slash flag was set and
 the result does not already start with `/`, prepend `/`.
-
-**Worked example (this is intentional, not an oversight):** for the rooted
-path `/../a`, splitting on `/` yields `["", "..", "a"]`. The empty first
-segment is pushed (stack: `[""]`); `..` then cancels it per the rule above
-(stack: `[]`); `a` is pushed (stack: `["a"]`). The leading-slash flag
-reattaches a `/`, giving `/a` — the leading `..` is *not* preserved in
-this case, because it had the synthetic empty segment available to cancel
-against. Contrast `/../../a`: `["", "..", "..", "a"]` → push `""` → first
-`..` cancels it (stack `[]`) → second `..` has nothing to cancel, so it is
-pushed literally (stack `[".."]`) → push `a` → result `/../a`. A relative
-path's leading `..` (e.g. `../a`, no leading slash, so no synthetic empty
-segment exists to cancel against) is preserved from the first `..`
-onward. The general principle is exactly the bullet list above, applied
-literally and without a special case for the leading-slash-produced empty
-segment; "preserved" describes what happens once a `..` has no segment
-left on the stack to cancel, not a blanket guarantee about every leading
-`..` regardless of context.
 
 ## 8. Hash Domain
 
