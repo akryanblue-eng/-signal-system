@@ -228,6 +228,108 @@
         "raw_url": "http://example.com/x"
       },
       "expect": "http://example.com/x"
+    },
+    {
+      "id": "canon-005",
+      "category": "canonical",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": true
+    },
+    {
+      "id": "adv-006",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-007",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]},
+          "extra_field": "nope"
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-008",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "md5",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-009",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "filesystem",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-010",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "WARN",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
     }
   ]
 }

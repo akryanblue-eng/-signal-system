@@ -24,6 +24,7 @@ from src.nic_v1 import (
     compute_witness_hash,
     glob_match,
 )
+from src.proof_v1 import verify_proof_schema
 
 CORPUS_PATH = Path(__file__).parent.parent / "golden_corpus" / "cases.json"
 
@@ -51,6 +52,8 @@ def _run_op(op: str, args: dict):
         edges = [Edge(from_=e["from_"], type=e["type"], to=e["to"]) for e in args["edges"]]
         waived = frozenset(args["waived_edge_ids"])
         return check_no_unknown_edges(edges, waived_edge_ids=waived)
+    if op == "verify_proof_schema":
+        return verify_proof_schema(args["obj"])
     raise NotImplementedError(f"Unknown op {op!r} in golden corpus")
 
 
