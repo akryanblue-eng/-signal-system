@@ -37,8 +37,11 @@ identical edge_ids and hashes given the same snapshot.
       caller-supplied witness order (no re-sorting).
 
   Hash Algorithm Registry
-      HASH_ALG is fixed to sha256. No runtime negotiation. Changing it
-      requires a NIC version bump, not a configuration option.
+      HASH_ALG is fixed to sha256, DIGEST_LEN_BYTES fixed to 32. No runtime
+      negotiation. These constants are embedded in the proof schema itself
+      (see proof_v1.py) — a proof plus a verifier must be sufficient for
+      validation, never proof + verifier + external configuration. Changing
+      either value requires a NIC version bump, not a configuration option.
 """
 import hashlib
 import json
@@ -51,6 +54,7 @@ from typing import Iterable, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 HASH_ALG = "sha256"
+DIGEST_LEN_BYTES = 32
 
 
 class NICError(Exception):
