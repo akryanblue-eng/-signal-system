@@ -127,3 +127,25 @@ def compute_proof_id(proof: ProofV1) -> str:
     digest = hashlib.sha256(canonical)
     assert digest.digest_size == DIGEST_LEN_BYTES
     return digest.hexdigest()
+
+
+def schema_descriptor() -> dict:
+    """
+    Canonical description of the frozen schema surface — the field set and
+    every closed vocabulary. Used to derive proof_schema_hash so a manifest
+    can attest "validated against schema X" without embedding source code.
+    """
+    return {
+        "spec_version": SPEC_VERSION,
+        "hash_alg_id": HASH_ALG,
+        "required_fields": sorted(_REQUIRED_FIELDS),
+        "snapshot_modes": sorted(_SNAPSHOT_MODES),
+        "results": sorted(_RESULTS),
+    }
+
+
+def compute_proof_schema_hash() -> str:
+    canonical = json.dumps(
+        schema_descriptor(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
