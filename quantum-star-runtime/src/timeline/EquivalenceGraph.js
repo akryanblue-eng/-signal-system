@@ -112,6 +112,22 @@ export class EquivalenceGraph {
       }
     }
 
+    // ── Step 5: exploration pressure φ = D × log(1 + E) ──────────────────────
+    // D = average replay window across live branches (structural depth)
+    // E = beat-tape event density (events per second, measure of perturbation)
+    // gss (single-run proxy) = equivalence compression rate under this mode
+    const replayWindows = live.map(id => {
+      const branch    = graph.getBranch(id);
+      const startNode = graph.getNode(branch?.fromNodeId);
+      return startNode ? Math.max(0, targetT - startNode.t) : 0;
+    });
+    const D   = replayWindows.length > 0 ? replayWindows.reduce((s, v) => s + v, 0) / replayWindows.length : 0;
+    const E   = targetT > 0 ? (tapes.beat?.length ?? 0) / targetT : 0;
+    const phi = D * Math.log(1 + E);
+    // gss: fraction of live branches that share a component with at least one other branch.
+    // 0 = all singletons (equivalence does nothing), 1 = all branches in one component.
+    const gss = live.length > 0 ? 1 - components.length / live.length : 0;
+
     return Object.freeze({
       mode,
       canonicalizerVersion,
@@ -119,6 +135,9 @@ export class EquivalenceGraph {
       branchCount:    frozenBranchIds.length,
       liveCount:      live.length,
       componentCount: components.length,
+      phi,           // exploration pressure — used by PhaseBoundaryDetector
+      gss,           // single-run stability proxy — used by SAL data collection
+      worlds,        // Map<branchId, world> — exposed for ComponentStability signatures
       edgeSet,       // Map<branchId, Set<branchId>> — symmetric adjacency list
       components,    // Array<Set<branchId>> — partition of live branches
       violations,    // Array<{a, b, c, type}> — transitivity violations (diagnostic)

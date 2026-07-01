@@ -1,15 +1,17 @@
-import { TimelineClock }              from './clock/TimelineClock.js';
-import { BeatTape }                  from './tapes/BeatTape.js';
-import { PhysicsTape }               from './tapes/PhysicsTape.js';
-import { VisualTape }                from './tapes/VisualTape.js';
-import { MetaTape }                  from './tapes/MetaTape.js';
-import { MultiTapeBus }              from './core/MultiTapeBus.js';
-import { TimelineGraph }             from './timeline/TimelineGraph.js';
-import { BranchExecutor }            from './timeline/BranchExecutor.js';
-import { equals, branchEvents }      from './timeline/CausalEquivalence.js';
-import { EquivalenceGraph }          from './timeline/EquivalenceGraph.js';
-import { BeatManiaSkin }             from './systems/SkinRuntime.js';
-import { render }                    from './render/render.js';
+import { TimelineClock }                          from './clock/TimelineClock.js';
+import { BeatTape }                              from './tapes/BeatTape.js';
+import { PhysicsTape }                           from './tapes/PhysicsTape.js';
+import { VisualTape }                            from './tapes/VisualTape.js';
+import { MetaTape }                              from './tapes/MetaTape.js';
+import { MultiTapeBus }                          from './core/MultiTapeBus.js';
+import { TimelineGraph }                         from './timeline/TimelineGraph.js';
+import { BranchExecutor }                        from './timeline/BranchExecutor.js';
+import { equals, branchEvents }                  from './timeline/CausalEquivalence.js';
+import { EquivalenceGraph }                      from './timeline/EquivalenceGraph.js';
+import { componentStabilityFunction }            from './analysis/ComponentStability.js';
+import { detectPhaseBoundary, crossRunConsistency } from './analysis/PhaseBoundaryDetector.js';
+import { BeatManiaSkin }                         from './systems/SkinRuntime.js';
+import { render }                                from './render/render.js';
 
 // ─── Runtime instances ───────────────────────────────────────────────────────
 const clock = new TimelineClock();
@@ -59,6 +61,15 @@ function maybeCheckpoint(world, t) {
   lastCheckpointT = t;
   updateGraphHUD();
 }
+
+// ─── RunStore — accumulates EquivalenceGraph snapshots across E-key presses ──
+// Each E press = one "run." CSF, SAL, PBD, and CRφC operate over this history.
+// Reset on X. Not persisted across browser sessions.
+const runStore = {
+  runs:        [],   // [{ eg, worlds }] — one entry per canonical E-press
+  salData:     [],   // [{ phi, gss }]  — one point per canonical E-press
+  phi0History: [],   // [phi0]          — one per successful PBD detection
+};
 
 // ─── Main loop ───────────────────────────────────────────────────────────────
 function loop() {
@@ -182,39 +193,83 @@ document.addEventListener('keydown', e => {
     setTimeout(() => setMode(clock.isRunning ? 'LIVE' : 'PAUSED'), 1500);
   }
 
-  // E = equivalence graph over all branches at current t (all three modes, frozen snapshot)
+  // E = full analysis pipeline: EquivalenceGraph (3 modes) → CSF → SAL → PBD → CRφC
   if (e.code === 'KeyE') {
     const t   = clock.cursor;
-    const ids = graph.getBranchIds();  // snapshot before build — no mutation during construction
+    const ids = graph.getBranchIds();  // frozen snapshot — no mutation during construction
     if (ids.length < 2) { setMode('NEED ≥2 BRANCHES — press F or R first'); return; }
-    setMode('BUILDING EQUIVALENCE GRAPH…');
+    setMode('RUNNING ANALYSIS PIPELINE…');
 
-    const results = {};
+    // ── Layer 1: EquivalenceGraph (3 modes, same frozen snapshot) ──────────────
+    const eg = {};
     for (const mode of ['exact', 'canonical', 'structural']) {
       try {
-        const eg = EquivalenceGraph.build(ids, graph, executor, tapes, t, { mode });
-        results[mode] = {
-          components:  eg.componentCount,
-          violations:  eg.violations.length,
-          live:        eg.liveCount,
-          detail:      eg,
-        };
+        eg[mode] = EquivalenceGraph.build(ids, graph, executor, tapes, t, { mode });
       } catch (err) {
-        results[mode] = { error: err.message };
+        eg[mode] = { error: err.message };
       }
     }
 
-    const canonical = results.canonical?.detail;
-    const summary = canonical
-      ? `${canonical.liveCount} branches → ${canonical.componentCount} class(es), ${canonical.violations.length} violation(s)`
-      : 'error';
+    const canon = eg.canonical;
+    if (!canon?.components) {
+      console.error('[QSR] EquivalenceGraph failed', eg);
+      setMode('ANALYSIS ERROR');
+      return;
+    }
 
-    console.log('[QSR] EquivalenceGraph @ t=' + t.toFixed(2), results);
-    setMode(`EQ-GRAPH: ${summary}`);
-    setTimeout(() => setMode(clock.isRunning ? 'LIVE' : 'PAUSED'), 2500);
+    // ── Layer 2: RunStore accumulation ─────────────────────────────────────────
+    runStore.runs.push({ eg: canon, worlds: canon.worlds });
+    runStore.salData.push({ phi: canon.phi, gss: canon.gss });
+
+    // ── Layer 3: CSF (requires ≥2 runs) ────────────────────────────────────────
+    const csfResult = runStore.runs.length >= 2
+      ? componentStabilityFunction(runStore.runs)
+      : null;
+
+    // ── Layer 4: PBD (requires ≥4 SAL data points) ─────────────────────────────
+    const pbdResult = runStore.salData.length >= 4
+      ? detectPhaseBoundary(runStore.salData)
+      : null;
+
+    if (pbdResult?.phi0 !== null && pbdResult?.isValid) {
+      runStore.phi0History.push(pbdResult.phi0);
+    }
+
+    // ── Layer 5: CRφC (requires ≥2 φ₀ detections) ─────────────────────────────
+    const crphicResult = runStore.phi0History.length >= 2
+      ? crossRunConsistency(runStore.phi0History)
+      : null;
+
+    // ── Log structured results ─────────────────────────────────────────────────
+    console.log('[QSR] Analysis Pipeline @ t=' + t.toFixed(2) + ' | run #' + runStore.runs.length, {
+      equivalenceGraph: {
+        exact:      { components: eg.exact?.componentCount,      violations: eg.exact?.violations?.length },
+        canonical:  { components: canon.componentCount,           violations: canon.violations.length,
+                      phi: +canon.phi.toFixed(4), gss: +canon.gss.toFixed(4) },
+        structural: { components: eg.structural?.componentCount, violations: eg.structural?.violations?.length },
+      },
+      csf:    csfResult
+        ? { gss: csfResult.globalStabilityScore, unique: csfResult.uniqueComponents,
+            emergent: csfResult.emergentCount, vanished: csfResult.vanishedCount,
+            driftMatrix: csfResult.driftMatrix }
+        : `(need ${2 - runStore.runs.length} more run(s))`,
+      pbd:    pbdResult ?? `(need ${Math.max(0, 4 - runStore.salData.length)} more run(s))`,
+      crphic: crphicResult ?? `(need ${Math.max(0, 2 - runStore.phi0History.length)} valid φ₀ detection(s))`,
+    });
+
+    // HUD summary — canonical component count drives the status line
+    const modeCompare = [
+      `exact:${eg.exact?.componentCount ?? '?'}`,
+      `canon:${canon.componentCount}`,
+      `struct:${eg.structural?.componentCount ?? '?'}`,
+    ].join(' ');
+    const csfSuffix = csfResult ? ` | GSS=${csfResult.globalStabilityScore.toFixed(3)}` : '';
+    const pbdSuffix = pbdResult?.isValid ? ` | φ₀=${pbdResult.phi0.toFixed(2)}` : '';
+    setMode(`EQ: ${modeCompare}${csfSuffix}${pbdSuffix}`);
+    setTimeout(() => setMode(clock.isRunning ? 'LIVE' : 'PAUSED'), 3000);
   }
 
-  // X = full reset
+  // X = full reset (clears RunStore too — fresh measurement session)
   if (e.code === 'KeyX') {
     clock.pause();
     clock.seek(0);
@@ -222,6 +277,9 @@ document.addEventListener('keydown', e => {
     lastCheckpointT = 0;
     Object.values(tapes).forEach(tape => tape.reset());
     bus = new MultiTapeBus();
+    runStore.runs.length        = 0;
+    runStore.salData.length     = 0;
+    runStore.phi0History.length = 0;
     setMode('PAUSED');
     updateGraphHUD();
   }
