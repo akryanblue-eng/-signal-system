@@ -7,6 +7,7 @@ import { MultiTapeBus }              from './core/MultiTapeBus.js';
 import { TimelineGraph }             from './timeline/TimelineGraph.js';
 import { BranchExecutor }            from './timeline/BranchExecutor.js';
 import { equals, branchEvents }      from './timeline/CausalEquivalence.js';
+import { EquivalenceGraph }          from './timeline/EquivalenceGraph.js';
 import { BeatManiaSkin }             from './systems/SkinRuntime.js';
 import { render }                    from './render/render.js';
 
@@ -179,6 +180,38 @@ document.addEventListener('keydown', e => {
                 'at t=', nearestNode.t.toFixed(2), '| graph:', graph.status());
     setMode(`FORK created (${graph.branchCount} branches)`);
     setTimeout(() => setMode(clock.isRunning ? 'LIVE' : 'PAUSED'), 1500);
+  }
+
+  // E = equivalence graph over all branches at current t (all three modes, frozen snapshot)
+  if (e.code === 'KeyE') {
+    const t   = clock.cursor;
+    const ids = graph.getBranchIds();  // snapshot before build — no mutation during construction
+    if (ids.length < 2) { setMode('NEED ≥2 BRANCHES — press F or R first'); return; }
+    setMode('BUILDING EQUIVALENCE GRAPH…');
+
+    const results = {};
+    for (const mode of ['exact', 'canonical', 'structural']) {
+      try {
+        const eg = EquivalenceGraph.build(ids, graph, executor, tapes, t, { mode });
+        results[mode] = {
+          components:  eg.componentCount,
+          violations:  eg.violations.length,
+          live:        eg.liveCount,
+          detail:      eg,
+        };
+      } catch (err) {
+        results[mode] = { error: err.message };
+      }
+    }
+
+    const canonical = results.canonical?.detail;
+    const summary = canonical
+      ? `${canonical.liveCount} branches → ${canonical.componentCount} class(es), ${canonical.violations.length} violation(s)`
+      : 'error';
+
+    console.log('[QSR] EquivalenceGraph @ t=' + t.toFixed(2), results);
+    setMode(`EQ-GRAPH: ${summary}`);
+    setTimeout(() => setMode(clock.isRunning ? 'LIVE' : 'PAUSED'), 2500);
   }
 
   // X = full reset

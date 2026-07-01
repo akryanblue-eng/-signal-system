@@ -83,6 +83,7 @@
     <div class="ctrl"><kbd>G</kbd> manual checkpoint</div>
     <div class="ctrl"><kbd>R</kbd> branch + verify replay</div>
     <div class="ctrl"><kbd>F</kbd> fork what-if branch</div>
+    <div class="ctrl"><kbd>E</kbd> equivalence graph</div>
     <div class="ctrl"><kbd>X</kbd> reset</div>
   </div>
 
@@ -91,6 +92,7 @@
     &nbsp;&nbsp;↓ <span class="pl">MultiTapeBus</span> → ZapRuntime | PhysicsRuntime | VisualRuntime<br>
     &nbsp;&nbsp;↓ WorldSnapshot → <span class="pl-new">TimelineGraph</span> (checkpoint every 5s)<br>
     &nbsp;&nbsp;↓ <span class="pl-new">BranchExecutor</span> (fork · replay · compare · diff)<br>
+    &nbsp;&nbsp;↓ <span class="pl-new">EquivalenceGraph</span> (exact · canonical · structural · [semantic])<br>
     &nbsp;&nbsp;↓ SkinRuntime → render
   </div>
 

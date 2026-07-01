@@ -95,6 +95,11 @@ export class TimelineGraph {
     return b ? this.#nodes.get(b.headNodeId) : null;
   }
 
+  // Snapshot all branch IDs at this moment — returns a plain Array (not a live view).
+  // Callers must take this snapshot before passing to EquivalenceGraph.build() so
+  // graph mutations during construction cannot affect the result.
+  getBranchIds()    { return [...this.#branches.keys()]; }
+
   get nodeCount()   { return this.#nodes.size; }
   get branchCount() { return this.#branches.size; }
 
