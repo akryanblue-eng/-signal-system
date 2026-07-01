@@ -1,0 +1,222 @@
+{
+  "schema_version": "qlog.v1",
+  "experiment_id": "NIC-CLEANROOM-001",
+  "entries": [
+    {
+      "id": "Q1",
+      "section": "§3",
+      "type": "UNDERSPECIFIED",
+      "claim": {
+        "summary": "§3 specifies integer formatting as 'base-10 ASCII digits, no leading zeros, no decimal point' but never addresses negative integers — whether they appear in-domain or how the minus sign interacts with the no-leading-zeros rule.",
+        "interpretation": "Implemented standard signed-decimal formatting (i64::to_string() in Rust): negative values emit a leading minus sign followed by digits with no leading zeros; 0 emits as the single digit '0'. No negative integer ever appears in any op this spec defines, so this choice is never exercised by any corpus case."
+      },
+      "evidence": {
+        "source": "SPEC",
+        "note": "Implementer scanned all hashed values across every op in §11.1 and confirmed no negative integer appears; the formatter still required a defined behavior for the i64 type."
+      },
+      "resolution": {
+        "status": "ACCEPTED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": false,
+        "note": "Latent gap: the spec's guarantee that negatives 'never appear' does not constitute a formatting rule for the case where they do. A future registry or proof document containing a negative integer would expose this underspecification."
+      },
+      "classification_rationale": "The spec defines integer formatting for the positive/zero case via 'no leading zeros, no decimal point' but treats non-integer numbers as 'not defined' rather than addressing negatives explicitly. Negatives are integers, not non-integers, so they are not covered by the 'not defined' clause — and not covered by the formatting rule either. This is a genuine gap: the implementer introduced sign-handling logic that has no explicit spec anchor."
+    },
+    {
+      "id": "Q2",
+      "section": "§3",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "§3 specifies object key sorting by 'ordinary string comparison (UTF-16 code-unit order)'. Is the parenthetical literally UTF-16 code-unit order (which diverges from UTF-8 byte/codepoint order for supplementary-plane codepoints), or a casual synonym for 'the usual way'?",
+        "interpretation": "Implemented literal UTF-16 code-unit-order comparison (Vec<u16> lexicographic, via str::encode_utf16). This diverges from UTF-8 byte order only for codepoints above U+FFFF; the explicit parenthetical is read as a deliberate disambiguation, not a redundant gloss."
+      },
+      "evidence": {
+        "source": "SPEC",
+        "note": "The spec introduces the parenthetical specifically after 'ordinary string comparison' — signaling the author considered the ambiguity and chose to name a specific ordering rather than leave it to convention."
+      },
+      "resolution": {
+        "status": "CONFIRMED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": false,
+        "note": "No corpus case uses object keys containing supplementary-plane codepoints (U+10000+), so this distinction is not corpus-testable with the current golden corpus — a corpus gap."
+      },
+      "classification_rationale": "The spec explicitly and parenthetically names 'UTF-16 code-unit order' after 'ordinary string comparison' — the parenthetical exists specifically to disambiguate from the casual reading. This is the highest-signal phrasing in all of §3: the author wrote a parenthetical precisely because 'ordinary comparison' is ambiguous between UTF-8-byte order and UTF-16 code-unit order, and chose to resolve it. No inference required beyond literal reading of the named ordering."
+    },
+    {
+      "id": "Q3",
+      "section": "§6 step 1",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "STRUCTURALLY_DETERMINED",
+      "cause": ["type_system_guarantee", "language_conditioned"],
+      "claim": {
+        "summary": "§6 step 1 says 'if the input is already text, reject if it contains an unpaired UTF-16 surrogate.' Rust's String/str cannot represent unpaired surrogates at the type level — what does this rule mean in a language where violations are structurally unreachable?",
+        "interpretation": "RawPath::Text(&str) performs no explicit surrogate check — Rust's type system provides the guarantee vacuously (no &str can contain a surrogate). The bytes variant (RawPath::Bytes) genuinely exercises the 'decode strictly as UTF-8' half of step 1."
+      },
+      "evidence": {
+        "source": "SPEC",
+        "note": "The spec's rule is fully correct and precisely stated. The language's type system provides a stronger guarantee than the rule requires, making the check trivially satisfiable without explicit code."
+      },
+      "resolution": {
+        "status": "VACUOUSLY_SATISFIED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": false,
+        "note": "IMPORTANT — language-specific caveat: this entry is classified WELL_SPECIFIED_CONFIRMED for a Rust implementation specifically. In a JavaScript or Java implementation, the same rule is an active, non-vacuous check requiring explicit code. A future cross-language comparison of Q-logs should flag this: the classification depends on language type-system semantics, not purely on spec text. This is not a spec defect — the spec was written with JS/Java in mind and is correct — but it means this entry's classification is language-conditioned."
+      },
+      "classification_rationale": "The spec rule is unambiguous: reject text containing unpaired UTF-16 surrogates. Rust's type invariant for &str makes this check vacuously true for all representable inputs — the precondition for a violation is unreachable in well-typed Rust code. The specification fully determines the behavior (reject on surrogate); the Rust implementation provides a free proof that no such rejection is ever needed. Classified WELL_SPECIFIED_CONFIRMED because no inference about the rule's *intent* was needed — only about how to satisfy an already-clear rule in a type-safe language."
+    },
+    {
+      "id": "Q4",
+      "section": "§6 step 4",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["frozen_step_order", "direct_spec_text"],
+      "claim": {
+        "summary": "§6 step 4 lists two rejection conditions as sequential sentences: 'if starts with /, reject (absolute path). If the first segment contains :, reject (drive-qualified path).' For an input satisfying both (e.g. /C:/x), which rejection fires?",
+        "interpretation": "Implemented in exactly the written order: absolute-path check first (short-circuits), drive-qualified check second. An input like /C:/x is always rejected as 'absolute path'; the drive check is never reached."
+      },
+      "evidence": {
+        "source": "SPEC"
+      },
+      "resolution": {
+        "status": "CONFIRMED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": false,
+        "note": "No corpus case is simultaneously absolute and drive-qualified. The step-order freeze ('The step order below is frozen — every step is mandatory, none may be skipped') applies within a step as well as across steps."
+      },
+      "classification_rationale": "The broader §6 framing explicitly freezes step order and prohibits recovery or reordering. Within step 4, the two conditions are written as consecutive, independent conditional sentences with no 'or', 'either', or 'whichever applies' language. Sequential conditional sentences in a frozen-order specification unambiguously prescribe sequential evaluation. The question dissolved on re-reading; no inference was needed."
+    },
+    {
+      "id": "Q5",
+      "section": "§5",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text", "explicit_exclusion"],
+      "claim": {
+        "summary": "§5's fail-closed disallowed-syntax rejection ([]{} !) is stated for 'a pattern containing...' — does this restriction also apply to the path argument of glob_match?",
+        "interpretation": "Only the pattern argument is checked against the disallowed set. The path argument is matched as literal data with no character-set restriction; [, ], {, }, ! are legal filesystem characters and never function as glob operators in path."
+      },
+      "evidence": {
+        "source": "SPEC"
+      },
+      "resolution": {
+        "status": "CONFIRMED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": true,
+        "note": "Corpus includes expect_error cases for patterns containing disallowed characters; none test the path argument's character set."
+      },
+      "classification_rationale": "The spec text says precisely 'a pattern containing any of []{} !', not 'a pattern or path.' The entire §5 grammar section defines what operators are recognized in the pattern argument — path is never parsed for operators and therefore has no operator-syntax restriction to enforce. The disallowed-syntax rule's stated purpose is fail-closed safety against unrecognized operator syntax; that purpose is not relevant to literal-data path arguments. No inference required."
+    },
+    {
+      "id": "Q6",
+      "section": "§5",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "STRUCTURALLY_DETERMINED",
+      "cause": ["grammar_impossibility"],
+      "claim": {
+        "summary": "§5 defines a pattern segment that is exactly '**' as unconditionally the directory-crossing wildcard, with no escape syntax defined anywhere. A path segment literally named '**' therefore cannot be matched by a non-wildcard literal pattern — is this intentional?",
+        "interpretation": "No special-casing of '**' in path. Only pattern segments exactly equal to '**' get directory-crossing treatment. A real path segment named '**' can only match incidentally (via the wildcard itself, or via * or ? operators in the pattern), never via an exact-literal pattern token."
+      },
+      "evidence": {
+        "source": "SPEC"
+      },
+      "resolution": {
+        "status": "CONFIRMED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": false,
+        "note": "Flagged as a 'surprising but faithful consequence' in QUESTIONS.md. The absence of an escape mechanism is itself a deliberate specification: §5's fail-closed clause ('it is never treated as a literal character or partially honored') applies to the disallowed characters, but the absence of escaping for * and ** in patterns has the same effect for this edge case — no escape means no way to match a literal ** segment via non-wildcard syntax. Adding escape syntax would be inventing behavior the spec does not define."
+      },
+      "classification_rationale": "The spec defines ** as a property of pattern syntax exclusively and is silent on path syntax (path is never parsed for operators). The unmatchability of a literal ** path segment follows mechanically from two spec facts: (a) any pattern segment that is exactly '**' is the wildcard, and (b) no escape mechanism is defined. Both facts are explicit. The resulting edge case is a logical consequence, not an inference about missing constraints — the implementer is not filling a gap, just following the rules to their logical end."
+    },
+    {
+      "id": "Q7",
+      "section": "§7.1",
+      "type": "SPEC_DEFECT",
+      "claim": {
+        "summary": "§7.1's prose states 'a leading or repeated '..' is preserved rather than rejected' (contrasting with §6's rejection rule), but the literal algorithm, which processes the empty segment from a leading '/' like any other segment, silently absorbs a single leading '..' in a rooted path: /../a → /a, not /../a.",
+        "interpretation": "Implemented the literal algorithm exactly as written — the empty segment from a leading '/' is pushed onto the stack and a leading '..' cancels it. Verified by hand-tracing: /../a → /a; /../../a → /../a; ../a → ../a (relative path, no empty segment, leading .. is preserved). The implementer initially wrote unit tests encoding the prose-intuition expectation (/../a → /../a) — those tests FAILED against the literal-algorithm implementation, which was taken as confirmation that the prose was wrong, not the algorithm."
+      },
+      "evidence": {
+        "source": "HYBRID",
+        "note": "Implementer used spec algorithm text and noticed the prose/algorithm tension. Orchestrator cross-checked against the Python reference implementation after freeze: _normalize_url_dot_segments('/../a') returns '/a', confirming the literal-algorithm reading is correct and matches the reference. The prose is wrong, not the algorithm."
+      },
+      "resolution": {
+        "status": "FIXED",
+        "spec_patch_applied": true,
+        "corpus_exercises_this": false,
+        "note": "§7.1 prose was rewritten with an explicit worked example: /../a → /a (empty segment is pushed, leading .. cancels it); /../../a → /../a (first .. absorbed, second .. has nothing left to cancel, so preserved); ../a → ../a (relative path, no synthetic empty segment, preserved from the first ..). The 'preserved rather than rejected' framing now applies accurately to the cases it actually covers (relative-path leading .., repeated .. beyond what can be cancelled in rooted paths). Corpus gap noted: no existing case tests a URL path with a leading '..' — this defect would not have been caught by corpus testing alone."
+      },
+      "classification_rationale": "This is a SPEC_DEFECT rather than UNDERSPECIFIED because the divergence is not between the implementer's reading and a gap in the spec — it is between two parts of the spec itself: the bullet-list algorithm and the prose summary in the same paragraph. An implementer who trusts the prose will implement different behavior from one who trusts the algorithm, with no tiebreaker available within the section. The reference implementation resolves the tie (algorithm wins), and the prose was wrong. This is the canonical example of a SPEC_DEFECT: not 'the spec didn't cover this' but 'the spec said two different things.'"
+    },
+    {
+      "id": "Q8",
+      "section": "§7",
+      "type": "UNDERSPECIFIED",
+      "claim": {
+        "summary": "§7 describes URL canonicalization for well-formed inputs only. Five authority and percent-encoding edge cases are unaddressed: (a) multiple @ in authority; (b) IPv6-bracketed hosts; (c) non-numeric/malformed ports; (d) missing scheme (no ':'); (e) malformed percent-encoding (% not followed by two hex digits).",
+        "interpretation": "Conservative choices throughout: (a) split authority on last @ (host/port can't contain @); (b) treat bracketed [token] as opaque host and lowercase it; (c) keep malformed port verbatim rather than erroring; (d) return parse error on missing scheme (grammar unconditionally requires it); (e) pass malformed %-sequences through unchanged."
+      },
+      "evidence": {
+        "source": "SPEC",
+        "note": "The spec's silence on these cases is the evidence of underspecification. Each sub-case was resolved by reasoning from §7's overall character ('preserve verbatim,' 'never decoded and NEVER re-encoded') rather than from an explicit rule."
+      },
+      "resolution": {
+        "status": "ACCEPTED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": false,
+        "note": "All five sub-cases are latent: the golden corpus uses only well-formed URL inputs. A different implementer applying the same general principle ('conservative, preserve-verbatim') could still make different defensible choices for any of the five. Sub-cases (a)-(b)-(c)-(e) are genuinely open; sub-case (d) (missing scheme) is arguably derivable from the grammar unconditionally requiring a scheme, making it closer to WELL_SPECIFIED_CONFIRMED — but bundled here because it arose in the same 'authority parsing edge cases' investigation."
+      },
+      "classification_rationale": "The spec describes the well-formed case exhaustively but defines no validation or rejection policy for malformed input beyond the grammar requirement for a scheme colon. Each sub-case required the implementer to introduce a handling policy not present in the spec text, derived from general principles about the spec's character. This is textbook UNDERSPECIFIED: the spec is not internally inconsistent (no SPEC_DEFECT), but it is incomplete with respect to inputs that violate its preconditions."
+    },
+    {
+      "id": "Q9",
+      "section": "§9",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["explicit_exclusion"],
+      "claim": {
+        "summary": "§9's table says proof_payload has type 'object' and is 'not further constrained here.' Does this mean type-check only (verify the JSON value is an object), or recursive well-formedness validation of its contents?",
+        "interpretation": "Type-check only: verify the JSON value's kind is 'object' (serde_json::Value::is_object()). No recursive validation of contents."
+      },
+      "evidence": {
+        "source": "SPEC"
+      },
+      "resolution": {
+        "status": "CONFIRMED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": true,
+        "note": "Corpus includes verify_proof_schema cases testing field constraints; none test proof_payload internals. The 'not further constrained here' language is the direct textual resolution."
+      },
+      "classification_rationale": "The spec's own words — 'not further constrained here' — directly answer the question by explicitly scoping the constraint to the type check. This is the clearest possible negative instruction in the table: the schema layer's jurisdiction ends at proving the value is an object. No inference required; the question dissolved on re-reading the exact phrase. This is the prototypical WELL_SPECIFIED_CONFIRMED case: the spec doesn't just permit type-only checking, it explicitly prohibits going further."
+    },
+    {
+      "id": "Q10",
+      "section": "§10, §3",
+      "type": "UNDERSPECIFIED",
+      "claim": {
+        "summary": "§3 states non-integer/non-finite numbers' canon_json encoding 'is not defined.' §10 says hash the registry 'exactly as loaded.' What should happen if a loaded registry document actually contains a non-integer number (e.g. 1.5 or 1.0)?",
+        "interpretation": "Return an explicit error (RegistryError) for any JSON number not representable as i64. Fail loudly rather than invent a fallback encoding that has no normative meaning and that two conforming implementations would likely compute differently."
+      },
+      "evidence": {
+        "source": "SPEC"
+      },
+      "resolution": {
+        "status": "ACCEPTED",
+        "spec_patch_applied": false,
+        "corpus_exercises_this": false,
+        "note": "The spec's 'not defined' is a guarantee about inputs, not a behavior rule for when the guarantee is violated. Choosing to fail loudly is defensible but is an inference — the spec does not say 'return an error if a registry contains a non-integer number.' A different implementer might silently round, or truncate, or produce a decimal-point string (each would be equally spec-underspecified). The loud-failure choice was made because producing a hash with no normative meaning is strictly worse than refusing to produce one at all."
+      },
+      "classification_rationale": "§3 explicitly declines to define the encoding for non-integer/non-finite numbers, framing it as a guarantee that such values 'never appear in any value this specification hashes.' §10 then requires hashing the registry 'exactly as loaded,' with no exception for registry documents that violate §3's assumption. This is a two-section interaction that creates a gap: neither section defines what to do when their preconditions conflict. The implementer filled this gap with an explicit error policy — a genuine inference, not a derivation from spec text."
+    }
+  ],
+  "coverage": {
+    "well_specified_count": 6,
+    "underspecified_count": 3,
+    "defect_count": 1,
+    "total": 10,
+    "well_specified_ratio": 0.6,
+    "underspecified_ratio": 0.3,
+    "defect_ratio": 0.1
+  }
+}

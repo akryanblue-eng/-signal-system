@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "qlog-schema.v1.json",
+  "title": "NIC Q-Log File Schema v1",
+  "description": "Structured log of implementer questions raised during a clean-room conformance experiment. Each entry records whether a spec section was fully determinate (WELL_SPECIFIED_CONFIRMED), required an inference to fill a gap (UNDERSPECIFIED), or contained an internal inconsistency (SPEC_DEFECT). Aggregating these across runs produces a spec-illumination map: which regions are fully determined, which are dark, and whether defects decrease over time.",
+  "type": "object",
+  "required": ["schema_version", "experiment_id", "entries", "coverage"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "qlog.v1",
+      "description": "Frozen identifier for this schema version. Increment if fields are added or semantics change."
+    },
+    "experiment_id": {
+      "type": "string",
+      "description": "Cross-reference to the experiment record (e.g. docs/experiments/nic-cleanroom-001.md)."
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/QLogEntry" }
+    },
+    "coverage": { "$ref": "#/$defs/CoverageStats" }
+  },
+  "$defs": {
+    "QLogEntry": {
+      "type": "object",
+      "required": [
+        "id", "section", "type", "claim", "evidence", "resolution",
+        "classification_rationale"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^Q[0-9]+$",
+          "description": "Unique identifier within this experiment's log, matching the implementer's own numbering."
+        },
+        "section": {
+          "type": "string",
+          "description": "Spec section(s) the question is anchored to (e.g. '§3', '§7.1', '§10, §3')."
+        },
+        "type": {
+          "enum": ["WELL_SPECIFIED_CONFIRMED", "UNDERSPECIFIED", "SPEC_DEFECT"],
+          "description": "WELL_SPECIFIED_CONFIRMED: the spec fully determines behavior; the implementer confirmed this by reading the text — no inference required beyond literal interpretation or vacuous proof. UNDERSPECIFIED: behavior had to be inferred or reconciled; the spec is silent, ambiguous, or only guarantees the well-formed case. SPEC_DEFECT: internal inconsistency in the spec (prose contradicts algorithm, two sections conflict, etc.) — an implementer who trusts one part cannot safely trust another."
+        },
+        "subtype": {
+          "enum": ["EXPLICIT_SPECIFIED", "STRUCTURALLY_DETERMINED"],
+          "description": "Required when type is WELL_SPECIFIED_CONFIRMED; omit for UNDERSPECIFIED and SPEC_DEFECT. EXPLICIT_SPECIFIED: behavior is directly stated as a rule or constraint in the spec text — a future implementer reading the same sentence should reach the same conclusion. These are candidates for behavioral equivalence proofs: 'this implementation computes what the spec text prescribes.' STRUCTURALLY_DETERMINED: behavior is forced by grammar, type-system invariants, or formal structure independent of any spec sentence — the spec rule holds or is unreachable by construction, not because the text says so. These are candidates for invariance-by-construction proofs. IMPORTANT: STRUCTURALLY_DETERMINED entries may be language-conditioned — a rule vacuously satisfied by Rust's type system might require active enforcement in JavaScript. The 'language_conditioned' flag in 'cause' should be set when this applies."
+        },
+        "cause": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of causal anchors explaining why this classification holds. Recommended vocabulary (not exhaustive): 'direct_spec_text' (a spec sentence directly resolves this), 'frozen_step_order' (§6's or similar frozen-order framing resolves sequential evaluation questions), 'grammar_impossibility' (the spec's grammar makes the case structurally unreachable), 'type_system_guarantee' (the implementation language's type system enforces the property by construction), 'explicit_exclusion' (spec text explicitly scopes out or marks unconstrained: 'not further constrained,' 'never appears,' etc.), 'logical_consequence' (follows by combining multiple explicit spec rules, no single sentence suffices), 'language_conditioned' (classification would differ for a different implementation language — should flag this when type_system_guarantee is in the list)."
+        },
+        "claim": {
+          "type": "object",
+          "required": ["summary", "interpretation"],
+          "additionalProperties": false,
+          "properties": {
+            "summary": {
+              "type": "string",
+              "description": "One- or two-sentence statement of the question exactly as the implementer would have phrased it."
+            },
+            "interpretation": {
+              "type": "string",
+              "description": "What the implementer chose to do and why. Omit or leave empty for WELL_SPECIFIED_CONFIRMED entries where no interpretation was needed."
+            }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "required": ["source"],
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "enum": ["SPEC", "CORPUS", "REFERENCE_IMPL", "HYBRID"],
+              "description": "What the implementer could use to resolve the question. SPEC: spec text alone answered it. CORPUS: required seeing test cases. REFERENCE_IMPL: required seeing a reference implementation. HYBRID: multiple sources needed (typically: implementer used SPEC; orchestrator later cross-checked with REFERENCE_IMPL)."
+            },
+            "note": {
+              "type": "string",
+              "description": "Any additional detail about how evidence was applied, especially for HYBRID cases."
+            }
+          }
+        },
+        "resolution": {
+          "type": "object",
+          "required": ["status"],
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "CONFIRMED",
+                "VACUOUSLY_SATISFIED",
+                "ACCEPTED",
+                "FIXED",
+                "REJECTED"
+              ],
+              "description": "CONFIRMED: the implementer's reading was directly validated by the corpus (or is trivially correct per spec). VACUOUSLY_SATISFIED: the spec rule holds trivially due to a language guarantee (no inference, no test case needed). ACCEPTED: for UNDERSPECIFIED entries — implementer made a defensible choice; corpus passed with that choice; no defect in the spec itself. FIXED: for SPEC_DEFECT entries — the spec was corrected. REJECTED: the implementer's choice turned out to be wrong per corpus or reference; requires a follow-up."
+            },
+            "spec_patch_applied": {
+              "type": "boolean",
+              "description": "True if the resolution involved editing the spec document (only applicable to SPEC_DEFECT entries)."
+            },
+            "corpus_exercises_this": {
+              "type": "boolean",
+              "description": "True if at least one case in the golden corpus exercises the behavior this question is about. False means this is a 'dark spot' in the corpus that would not be caught by corpus testing alone."
+            },
+            "note": {
+              "type": "string",
+              "description": "Any additional resolution detail, including what changed in the spec if spec_patch_applied is true."
+            }
+          }
+        },
+        "classification_rationale": {
+          "type": "string",
+          "description": "Why this entry is classified as its type (not as either of the other two). Should make it possible for a future reviewer to verify the classification independently."
+        }
+      }
+    },
+    "CoverageStats": {
+      "type": "object",
+      "required": [
+        "well_specified_count", "underspecified_count", "defect_count", "total",
+        "well_specified_ratio", "underspecified_ratio", "defect_ratio"
+      ],
+      "additionalProperties": false,
+      "description": "Derived metric over the entries array. Computed at file creation time; re-compute if entries change.",
+      "properties": {
+        "well_specified_count": { "type": "integer", "minimum": 0 },
+        "underspecified_count": { "type": "integer", "minimum": 0 },
+        "defect_count": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "well_specified_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "underspecified_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "defect_ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}
