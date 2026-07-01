@@ -1,13 +1,14 @@
-import { TimelineClock }   from './clock/TimelineClock.js';
-import { BeatTape }        from './tapes/BeatTape.js';
-import { PhysicsTape }     from './tapes/PhysicsTape.js';
-import { VisualTape }      from './tapes/VisualTape.js';
-import { MetaTape }        from './tapes/MetaTape.js';
-import { MultiTapeBus }    from './core/MultiTapeBus.js';
-import { TimelineGraph }   from './timeline/TimelineGraph.js';
-import { BranchExecutor }  from './timeline/BranchExecutor.js';
-import { BeatManiaSkin }   from './systems/SkinRuntime.js';
-import { render }          from './render/render.js';
+import { TimelineClock }              from './clock/TimelineClock.js';
+import { BeatTape }                  from './tapes/BeatTape.js';
+import { PhysicsTape }               from './tapes/PhysicsTape.js';
+import { VisualTape }                from './tapes/VisualTape.js';
+import { MetaTape }                  from './tapes/MetaTape.js';
+import { MultiTapeBus }              from './core/MultiTapeBus.js';
+import { TimelineGraph }             from './timeline/TimelineGraph.js';
+import { BranchExecutor }            from './timeline/BranchExecutor.js';
+import { equals, branchEvents }      from './timeline/CausalEquivalence.js';
+import { BeatManiaSkin }             from './systems/SkinRuntime.js';
+import { render }                    from './render/render.js';
 
 // ─── Runtime instances ───────────────────────────────────────────────────────
 const clock = new TimelineClock();
@@ -133,7 +134,7 @@ document.addEventListener('keydown', e => {
     setTimeout(() => setMode(clock.isRunning ? 'LIVE' : 'PAUSED'), 1200);
   }
 
-  // R = fork branch from nearest checkpoint, replay to current t, compare
+  // R = fork branch from nearest checkpoint, replay to current t, three-axis comparison
   if (e.code === 'KeyR') {
     const t           = clock.cursor;
     const nearestNode = graph.getNearestNodeBefore(t);
@@ -142,25 +143,29 @@ document.addEventListener('keydown', e => {
     clock.pause();
     setMode('VERIFYING BRANCH…');
 
-    // Fork a read-only verification branch from the checkpoint
     const forkId    = graph.createBranch(nearestNode.id, `verify@${t.toFixed(1)}`);
     const forkWorld = executor.executeBranch(forkId, tapes, t);
     updateGraphHUD();
 
-    const liveCore = lastWorld.zap.core;
-    const forkCore = forkWorld?.zap.core;
-    const match    = forkCore &&
-                     liveCore.score    === forkCore.score &&
-                     liveCore.hitCount === forkCore.hitCount;
+    const liveEvs = branchEvents(mainBranch, graph, tapes, t);
+    const forkEvs = branchEvents(forkId,     graph, tapes, t);
+
+    const eq = forkWorld ? {
+      exact:      equals.exact(lastWorld, forkWorld),
+      canonical:  equals.canonical(lastWorld, forkWorld),
+      structural: equals.structural(liveEvs, forkEvs),
+      semantic:   equals.semantic(lastWorld, forkWorld), // null — deferred
+    } : null;
 
     console.log('[QSR] Branch verification (from checkpoint t=' + nearestNode.t.toFixed(2) + ')', {
-      match,
-      live:  { score: liveCore.score,    hits: liveCore.hitCount },
-      fork:  { score: forkCore?.score,   hits: forkCore?.hitCount },
+      equivalence: eq,
+      live:     { score: lastWorld.zap.core.score,    hits: lastWorld.zap.core.hitCount },
+      fork:     { score: forkWorld?.zap.core.score,   hits: forkWorld?.zap.core.hitCount },
       checksum: nearestNode.checksum,
     });
 
-    setMode(match ? `BRANCH ✓ (from ${nearestNode.t.toFixed(1)}s)` : 'BRANCH ✗ DIVERGED');
+    const verified = eq?.canonical ?? false;
+    setMode(verified ? `BRANCH ✓ (from ${nearestNode.t.toFixed(1)}s)` : 'BRANCH ✗ DIVERGED');
     setTimeout(() => { clock.play(); setMode('LIVE'); }, 1200);
   }
 

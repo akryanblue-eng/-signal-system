@@ -1,11 +1,10 @@
-// Deterministic state fingerprint — content-addressed, not time-addressed.
-// Identifies ZapCore uniquely so branch divergence is detectable.
-function stateChecksum(zapCore) {
-  const z = zapCore.zap;
-  return [zapCore.t, zapCore.score, zapCore.hitCount, zapCore.comboCount,
-          z.force, z.flow, z.chaos, z.focus]
-    .map(v => (typeof v === 'number' ? v.toFixed(8) : String(v)))
-    .join(':');
+import { canonicalize } from './CausalEquivalence.js';
+
+// Deterministic state fingerprint via canonical view — content-addressed, not time-addressed.
+// hash(canonicalize(state)) — never hash(raw state) — so float ordering and key insertion
+// order cannot cause divergence between node creation and later comparison.
+export function stateChecksum(zapCore) {
+  return JSON.stringify(canonicalize(zapCore));
 }
 
 let _seq = 0;
