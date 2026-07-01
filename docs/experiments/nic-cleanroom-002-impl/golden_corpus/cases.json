@@ -1,0 +1,358 @@
+{
+  "version": "golden_corpus.v1",
+  "corpus_release": "v1.1",
+  "spec_version": "nic.v1.1",
+  "description": "Fixed snapshots and fixed expected outputs for NIC v1.1 primitives. Any conforming implementation, in any language, must reproduce every `expect` value (or `expect_error` substring) bit-for-bit given the same `op` and `args`.",
+  "cases": [
+    {
+      "id": "canon-001",
+      "category": "canonical",
+      "op": "canonical_path",
+      "args": {
+        "raw": "src/foo.py"
+      },
+      "expect": "7372632f666f6f2e7079"
+    },
+    {
+      "id": "canon-002",
+      "category": "canonical",
+      "op": "glob_match",
+      "args": {
+        "pattern": "*.py",
+        "path": "foo.py"
+      },
+      "expect": true
+    },
+    {
+      "id": "canon-003",
+      "category": "canonical",
+      "op": "canonicalize_url",
+      "args": {
+        "raw_url": "http://example.com/x"
+      },
+      "expect": "http://example.com/x"
+    },
+    {
+      "id": "canon-004",
+      "category": "canonical",
+      "op": "compute_edge_id",
+      "args": {
+        "from_": "a.py",
+        "type": "import",
+        "to": "b.py"
+      },
+      "expect": "6ffc4774d53dfb4a057b51fcaf06f6d87f8814acdddeea90d00624846e7a69de"
+    },
+    {
+      "id": "bound-001",
+      "category": "boundary",
+      "op": "canonical_path",
+      "args": {
+        "raw": "café.py"
+      },
+      "expect": "636166c3a92e7079"
+    },
+    {
+      "id": "bound-002",
+      "category": "boundary",
+      "op": "canonical_path",
+      "args": {
+        "raw": "./a/../b/./c"
+      },
+      "expect": "622f63"
+    },
+    {
+      "id": "bound-003",
+      "category": "boundary",
+      "op": "canonicalize_url",
+      "args": {
+        "raw_url": "http://example.com/a%2fb"
+      },
+      "expect": "http://example.com/a%2Fb"
+    },
+    {
+      "id": "bound-004",
+      "category": "boundary",
+      "op": "glob_match",
+      "args": {
+        "pattern": "**/*.py",
+        "path": "c.py"
+      },
+      "expect": true
+    },
+    {
+      "id": "bound-005",
+      "category": "boundary",
+      "op": "check_no_unknown_edges",
+      "args": {
+        "edges": [
+          {
+            "from_": "a.py",
+            "type": "UNKNOWN",
+            "to": "???"
+          }
+        ],
+        "waived_edge_ids": []
+      },
+      "expect": false
+    },
+    {
+      "id": "bound-006",
+      "category": "boundary",
+      "op": "check_no_unknown_edges",
+      "args": {
+        "edges": [
+          {
+            "from_": "a.py",
+            "type": "UNKNOWN",
+            "to": "???"
+          }
+        ],
+        "waived_edge_ids": [
+          "a9279bc2dcf687811479f6d24e850aaa040d761b2806bc59ddd64a2934dc3c15"
+        ]
+      },
+      "expect": true
+    },
+    {
+      "id": "adv-001",
+      "category": "adversarial",
+      "op": "canonical_path",
+      "args": {
+        "raw": "a/../../b"
+      },
+      "expect_error": "escapes repo root"
+    },
+    {
+      "id": "adv-002",
+      "category": "adversarial",
+      "op": "canonical_path",
+      "args": {
+        "raw": "a\\b/c"
+      },
+      "expect": "612f622f63"
+    },
+    {
+      "id": "adv-003",
+      "category": "adversarial",
+      "op": "compute_set_hash",
+      "args": {
+        "edge_ids": [
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+        ]
+      },
+      "expect": "7f6c9f5c64976669e0cb95e7020f31c2e810c158d521ac338da25754805bef74"
+    },
+    {
+      "id": "adv-004",
+      "category": "adversarial",
+      "op": "compute_witness_hash",
+      "args": {
+        "edge_ids": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      },
+      "expect": "fa0dafbf43f1f551e536353e9d1a942a8e86e41a0b58dfeaf264ef217f6b862a"
+    },
+    {
+      "id": "adv-005",
+      "category": "adversarial",
+      "op": "compute_witness_hash",
+      "args": {
+        "edge_ids": [
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expect": "85bd847f072a1a7c2d0a0497416c0d823b478aeb77dccddadbb37bd0f51c47a2"
+    },
+    {
+      "id": "equiv-001a",
+      "category": "equivalence",
+      "op": "compute_set_hash",
+      "args": {
+        "edge_ids": [
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "b20dd8bdd812e18599a5f4b49437265f5ef51619181f1b0f6f57775bf1fbae60"
+    },
+    {
+      "id": "equiv-001b",
+      "category": "equivalence",
+      "op": "compute_set_hash",
+      "args": {
+        "edge_ids": [
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      },
+      "expect": "b20dd8bdd812e18599a5f4b49437265f5ef51619181f1b0f6f57775bf1fbae60"
+    },
+    {
+      "id": "equiv-002a",
+      "category": "equivalence",
+      "op": "canonical_path",
+      "args": {
+        "raw": "café.py"
+      },
+      "expect": "636166c3a92e7079"
+    },
+    {
+      "id": "equiv-002b",
+      "category": "equivalence",
+      "op": "canonical_path",
+      "args": {
+        "raw": "café.py"
+      },
+      "expect": "636166c3a92e7079"
+    },
+    {
+      "id": "equiv-003a",
+      "category": "equivalence",
+      "op": "canonicalize_url",
+      "args": {
+        "raw_url": "HTTP://Example.COM:80/x"
+      },
+      "expect": "http://example.com/x"
+    },
+    {
+      "id": "equiv-003b",
+      "category": "equivalence",
+      "op": "canonicalize_url",
+      "args": {
+        "raw_url": "http://example.com/x"
+      },
+      "expect": "http://example.com/x"
+    },
+    {
+      "id": "canon-005",
+      "category": "canonical",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": true
+    },
+    {
+      "id": "adv-006",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-007",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]},
+          "extra_field": "nope"
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-008",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "md5",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-009",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "filesystem",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "PASS",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "adv-010",
+      "category": "adversarial",
+      "op": "verify_proof_schema",
+      "args": {
+        "obj": {
+          "spec_version": "nic.proof.v1",
+          "hash_alg_id": "sha256",
+          "snapshot_mode": "git_tree",
+          "snapshot_id": "abc123",
+          "extractor_version": "deadbeef",
+          "result": "WARN",
+          "proof_payload": {"edge_ids": ["x"]}
+        }
+      },
+      "expect": false
+    },
+    {
+      "id": "bound-007",
+      "category": "boundary",
+      "op": "canonicalize_url",
+      "args": {"raw_url": "http://example.com/../a"},
+      "expect": "http://example.com/a"
+    },
+    {
+      "id": "bound-008",
+      "category": "boundary",
+      "op": "canonicalize_url",
+      "args": {"raw_url": "http://example.com/../../a"},
+      "expect": "http://example.com/../a"
+    },
+    {
+      "id": "bound-009",
+      "category": "boundary",
+      "op": "canonicalize_url",
+      "args": {"raw_url": "http://example.com/../b/../c"},
+      "expect": "http://example.com/c"
+    }
+  ]
+}

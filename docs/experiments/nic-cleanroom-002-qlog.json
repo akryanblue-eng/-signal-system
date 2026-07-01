@@ -1,0 +1,375 @@
+{
+  "schema_version": "qlog.v1",
+  "experiment_id": "NIC-CLEANROOM-002",
+  "entries": [
+    {
+      "id": "Q1",
+      "section": "§3",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text", "logical_consequence"],
+      "claim": {
+        "summary": "Object key sorting by UTF-16 code-unit order is identical to Go's byte-level sort for the ASCII-only keys this spec actually hashes; is the generic UTF-16 comparison actually needed?",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "Implemented generic UTF-16 code-unit comparison (toUTF16Units + utf16Less); the spec's explicit parenthetical '(UTF-16 code-unit order)' settles this."
+      },
+      "classification_rationale": "A spec sentence directly states the sort order; the implementer confirmed it and implemented accordingly. No inference required beyond reading the parenthetical."
+    },
+    {
+      "id": "Q2",
+      "section": "§3",
+      "type": "UNDERSPECIFIED",
+      "subtype": null,
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "The spec says control characters (U+0000–U+001F) are 'escaped per the JSON grammar' but does not specify whether the \\uXXXX hex digits should be lowercase or uppercase.",
+        "interpretation": "Chose lowercase (\\u%04x, fmt.Sprintf convention); this is a divergence risk if the reference uses uppercase. The spec's percent-encoding rule (§7) explicitly mandates uppercase %XX but no analogous rule exists for \\uXXXX."
+      },
+      "evidence": { "source": "SPEC", "note": "Spec text says 'escaped per the JSON grammar' but JSON RFC 8259 §7 permits both cases." },
+      "resolution": {
+        "status": "ACCEPTED",
+        "corpus_exercises_this": false,
+        "note": "No corpus case hashes a string containing control characters; dark spot. The choice of lowercase is defensible but unverified against reference."
+      },
+      "classification_rationale": "The spec delegates to 'the JSON grammar' but the JSON grammar is ambiguous on hex digit case for \\uXXXX. An inference (convention choice) was required. Not a SPEC_DEFECT because no two spec sections conflict; the spec simply did not specify fully."
+    },
+    {
+      "id": "Q3",
+      "section": "§3",
+      "type": "UNDERSPECIFIED",
+      "subtype": null,
+      "cause": ["direct_spec_text", "language_conditioned"],
+      "claim": {
+        "summary": "Go's json.Unmarshal produces float64 for all JSON numbers, but the spec only defines integer encoding; the conversion path from float64 to int64 is not specified.",
+        "interpretation": "Convert float64 to int64 if the value is an exact integer (float64(int64(v)) == v), error otherwise. This is a Go-specific concern — in Rust, serde_json can deserialize directly to i64; in Python, json.loads produces int natively."
+      },
+      "evidence": { "source": "SPEC", "note": "Spec says 'Non-integer or non-finite numbers never appear in any value this specification hashes, and are not defined.' The Go float64 intermediate representation is a Go-specific artifact of the language runtime, not addressed by the spec." },
+      "resolution": {
+        "status": "ACCEPTED",
+        "corpus_exercises_this": false,
+        "note": "No corpus case exercises integer values being canon_json-encoded. The float64 exact-integer check is the minimal safe approach. Corresponds to run #1 Q1's negative-integer question — same §3 region, different language-conditioned surface."
+      },
+      "classification_rationale": "The spec text explicitly declares non-integers 'not defined' (which settles whether to error) but does not address the float64 intermediate form that Go's runtime produces. An implementation-specific inference was required to bridge the gap. UNDERSPECIFIED rather than SPEC_DEFECT because no two spec sections conflict."
+    },
+    {
+      "id": "Q4",
+      "section": "§11.1",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "The canonical_path op result is the canonical path's UTF-8 bytes, hex-encoded — is the hex step in §11.1 or §6?",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "§6 step 6 says 'encode as UTF-8 bytes'; §11.1 table says 'result is the canonical path bytes, hex-encoded'. Both contribute; hex.EncodeToString is the correct Go call."
+      },
+      "classification_rationale": "Two spec sentences together specify the behavior without ambiguity. No inference required."
+    },
+    {
+      "id": "Q5",
+      "section": "§11.1",
+      "type": "UNDERSPECIFIED",
+      "subtype": null,
+      "cause": ["direct_spec_text", "explicit_exclusion"],
+      "claim": {
+        "summary": "Whether the glob_match 'path' argument must be re-canonicalized via §6 before matching, or is already treated as a canonical path string.",
+        "interpretation": "Treat the path argument as already canonical; §11.1 does not say to re-run §6, and doing so would double-canonicalize. The op table entry for glob_match makes no mention of §6."
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "ACCEPTED",
+        "corpus_exercises_this": false,
+        "note": "No corpus case provides a non-canonical path to glob_match (all test paths are clean). The choice is defensible: §5 says matching is against 'the canonical path' but the §11.1 op table does not say to apply §6 to the argument."
+      },
+      "classification_rationale": "The spec is silent on this integration point (§5 says to match against canonical paths, but §11.1 doesn't say to invoke §6 on the argument). Inference was required to choose between two interpretations. Not SPEC_DEFECT because no sections conflict; the spec simply doesn't address the integration."
+    },
+    {
+      "id": "Q6",
+      "section": "§8",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "STRUCTURALLY_DETERMINED",
+      "cause": ["direct_spec_text", "logical_consequence"],
+      "claim": {
+        "summary": "The set_hash of an empty edge_id collection: does 'feed each one's ASCII bytes into a single SHA-256 hash in sorted order with no separator' produce SHA-256 of zero bytes for an empty input?",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": false,
+        "note": "The algorithm feeds bytes sequentially; for an empty sequence, no bytes are fed, so the SHA-256 digest is over the empty message. This follows directly from the spec's algorithm without requiring any special case."
+      },
+      "classification_rationale": "The algorithm's literal execution on empty input is structurally determined: no bytes to feed → empty-message SHA-256. The spec does not need to special-case it; the algorithm is complete as written."
+    },
+    {
+      "id": "Q7",
+      "section": "§8",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "check_no_unknown_edges must compute the edge_id for each UNKNOWN edge and look it up in the waived set — not compare raw field values.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "§8 says 'that edge's edge_id appears in the caller-supplied waived-edge-id set'. The use of 'edge_id' (a computed value) rather than 'the edge' (the raw tuple) is explicit."
+      },
+      "classification_rationale": "Spec text directly states the comparison is by edge_id (the computed hash), not by raw edge field values. No inference required."
+    },
+    {
+      "id": "Q8",
+      "section": "§9.1",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "proof_payload must be a JSON object (not a string, array, null, or number).",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "§9 table says proof_payload is 'object | any well-formed JSON object'. 'object' is the type; 'any well-formed JSON object' is the value constraint. Requires map[string]interface{} in Go."
+      },
+      "classification_rationale": "Spec table explicitly specifies the type as 'object'. The phrase 'not further constrained' clarifies that recursive content is unconstrained, not that the type itself is unconstrained."
+    },
+    {
+      "id": "Q9",
+      "section": "§9.2",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "The required_fields, snapshot_modes, and results arrays in the schema_descriptor must be sorted as strings.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": false,
+        "note": "§9.2 explicitly tags each array with 'sorted': 'the 7 field names above, sorted as strings'. Hardcoded in ASCII-lexicographic order; canonJSONObject also re-sorts the descriptor's top-level keys. Manifest hash parity confirmed after corpus reveal."
+      },
+      "classification_rationale": "The spec explicitly says 'sorted as strings' for each of the three arrays. No inference required."
+    },
+    {
+      "id": "Q10",
+      "section": "§7",
+      "type": "UNDERSPECIFIED",
+      "subtype": null,
+      "cause": ["direct_spec_text", "explicit_exclusion"],
+      "claim": {
+        "summary": "What should canonicalize_url do when the input contains no ':' separator (no scheme component), which the §7 grammar requires but the spec doesn't explicitly say how to handle its absence?",
+        "interpretation": "Return an error ('no scheme found in URL'), consistent with the spec's overall fail-closed orientation and the generic URI grammar which requires a scheme."
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "ACCEPTED",
+        "corpus_exercises_this": false,
+        "note": "No corpus case provides a schemeless URL. The error-on-missing-scheme choice is the fail-closed interpretation. This is a subset of run #1's Q8 'authority edge cases' bundle — the Go implementer surfaced it as a separate entry."
+      },
+      "classification_rationale": "The spec describes the URI grammar with scheme as a required component but does not specify an explicit error path for a malformed input lacking a scheme. Inference required. Not SPEC_DEFECT because there is no internal inconsistency."
+    },
+    {
+      "id": "Q11",
+      "section": "§7",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "The '//authority' prefix is omitted if and only if there is no authority component.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "§7 reassembly rule says 'Omit the authority's // prefix only when there is no authority component to render.' All 7 corpus URL cases have authority and correctly include '//'."
+      },
+      "classification_rationale": "Spec sentence directly states when to omit '//'. No inference required."
+    },
+    {
+      "id": "Q12",
+      "section": "§7",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "The '?' separator is omitted entirely when the post-normalization query string is empty.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "§7 says 'omit the ? entirely if the (post-normalization) query is empty'. All corpus URL cases have no query; the '?' is always omitted, verified by corpus output strings."
+      },
+      "classification_rationale": "Spec sentence directly states the condition. No inference required."
+    },
+    {
+      "id": "Q13",
+      "section": "§7.1",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text", "logical_consequence"],
+      "claim": {
+        "summary": "The leading-slash reattachment step: 'if the leading-slash flag was set and the result does not already start with /, prepend /' — does this prevent double-slashing when the stack already begins with /?",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "The conditional '!strings.HasPrefix(result, \"/\")' is implicit in the spec sentence 'if... does not already start with /'. Corpus cases bound-007/008/009 exercise this."
+      },
+      "classification_rationale": "The spec's 'if the result does not already start with /' is explicit. The negation is directly stated, not inferred."
+    },
+    {
+      "id": "Q14",
+      "section": "§7.1",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "The §7.1 worked example: does /../../a → /../a (second .. pushed literally) or → /a (both .. cancelled)?",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "The worked example in the updated §7.1 prose explicitly traces /../../a → /../a step by step. bound-008 confirms: http://example.com/../../a → http://example.com/../a. This is the Q7 defect fix from run #1 — the worked example eliminated the ambiguity."
+      },
+      "classification_rationale": "The updated §7.1 spec text includes a verbatim worked example that traces the exact algorithm for this case. No inference required. This entry validates that the Q7 prose fix was effective for a second implementer."
+    },
+    {
+      "id": "Q15",
+      "section": "§5",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "'a/**' must match 'a' itself (zero trailing segments), per '** matches zero or more complete path segments'.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "§5 says '** matches zero or more complete path segments'. Zero is explicitly included. bound-004 exercises **/*.py matching c.py (** matches zero leading segments)."
+      },
+      "classification_rationale": "The spec explicitly says 'zero or more'. The implementation tries all suffix lengths including the empty suffix."
+    },
+    {
+      "id": "Q16",
+      "section": "§5",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "'**' appearing within a segment alongside other characters (e.g. foo**bar) is the ordinary single-segment wildcard, not the directory-crossing operator.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": false,
+        "note": "§5 explicitly says 'A * that appears within a segment alongside other characters... is the ordinary single-segment operator; only a segment consisting of exactly ** gets directory-crossing behavior.' No corpus case exercises foo**bar patterns."
+      },
+      "classification_rationale": "Spec text explicitly states the condition ('only a segment consisting of exactly **'). No inference required."
+    },
+    {
+      "id": "Q17",
+      "section": "§8",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "'Ordinary lexicographic order' for edge_id strings (64-char lowercase hex) is equivalent to Go's sort.Strings (byte-level UTF-8 order).",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "Edge IDs are 64-character ASCII hex strings; for ASCII, byte-order = codepoint-order = UTF-16 code-unit order = Go sort.Strings. The spec says 'plain strings (ordinary lexicographic order)'. adv-003 and equiv-001a/b test order invariance."
+      },
+      "classification_rationale": "Spec text says 'ordinary lexicographic order'. For the ASCII strings that are edge IDs, this is unambiguous and directly maps to sort.Strings."
+    },
+    {
+      "id": "Q18",
+      "section": "§6",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text", "frozen_step_order"],
+      "claim": {
+        "summary": "Step 4's drive-qualified check operates on the post-step-3 text (after backslash-to-slash normalization), not on the raw input.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": true,
+        "note": "§6 says 'The step order below is frozen — every step is mandatory.' Step 3 (backslash → slash) runs before step 4 (drive check), so C:\\Users becomes C:/Users; step 4 catches C: in the first segment. adv-002 exercises step 3 before step 4."
+      },
+      "classification_rationale": "The spec's frozen-step-order framing directly determines evaluation order. Step 4 says 'If the text (post step 3)'."
+    },
+    {
+      "id": "Q19",
+      "section": "§6",
+      "type": "UNDERSPECIFIED",
+      "subtype": null,
+      "cause": ["direct_spec_text", "logical_consequence"],
+      "claim": {
+        "summary": "Whether the empty string is a valid canonical path output for inputs that reduce to zero segments (e.g. '.' or './').",
+        "interpretation": "The algorithm produces empty string for inputs that reduce to no segments; the spec does not reject this case. Treat empty string as a valid canonical path."
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "ACCEPTED",
+        "corpus_exercises_this": false,
+        "note": "No corpus case inputs a path that reduces to empty string. The algorithm's literal output is empty string; explicit rejection would require adding a rule that is not in the spec."
+      },
+      "classification_rationale": "The spec describes the algorithm fully but does not say what to do when the stack is empty at step 6 (the join produces ''). Inference was required to not add an explicit rejection. Not SPEC_DEFECT because no sections conflict."
+    },
+    {
+      "id": "Q20",
+      "section": "§10",
+      "type": "WELL_SPECIFIED_CONFIRMED",
+      "subtype": "EXPLICIT_SPECIFIED",
+      "cause": ["direct_spec_text"],
+      "claim": {
+        "summary": "registry_hash is sha256(canon_json(parsed registry document)) — parse then re-serialize canonically — not sha256 of the raw JSON bytes.",
+        "interpretation": ""
+      },
+      "evidence": { "source": "SPEC" },
+      "resolution": {
+        "status": "CONFIRMED",
+        "corpus_exercises_this": false,
+        "note": "§10 says 'sha256(canon_json(<the entire registry document, exactly as loaded>))'. 'canon_json' means applying §3 canonical JSON encoding, which requires parsing. Raw bytes are not used. Manifest hash parity confirmed."
+      },
+      "classification_rationale": "The spec explicitly invokes 'canon_json' which is defined as a serialization function in §3. The word 'loaded' means the parsed value, not the raw bytes. Direct spec text."
+    }
+  ],
+  "coverage": {
+    "well_specified_count": 15,
+    "underspecified_count": 5,
+    "defect_count": 0,
+    "total": 20,
+    "well_specified_ratio": 0.75,
+    "underspecified_ratio": 0.25,
+    "defect_ratio": 0.0
+  }
+}

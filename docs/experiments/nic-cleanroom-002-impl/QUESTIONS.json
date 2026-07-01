@@ -1,0 +1,202 @@
+[
+  {
+    "id": "Q1",
+    "section": "§3",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text", "logical_consequence"],
+    "claim_summary": "Object key sorting by UTF-16 code-unit order is identical to Go byte-level sort for the ASCII-only keys this spec actually hashes.",
+    "resolution_summary": "Implemented generic UTF-16 code-unit comparison (toUTF16Units + utf16Less) to be correct for any key, since the spec's explicit rule is UTF-16 order.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q2",
+    "section": "§3",
+    "type": "UNDERSPECIFIED",
+    "subtype": null,
+    "cause": ["direct_spec_text", "logical_consequence"],
+    "claim_summary": "The spec says control characters are 'escaped per the JSON grammar' but does not specify whether the \\uXXXX hex digits should be lowercase or uppercase.",
+    "resolution_summary": "Chose lowercase \\u%04x (fmt.Sprintf convention), consistent with common JSON practice; this is a divergence risk if the reference uses uppercase.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q3",
+    "section": "§3",
+    "type": "UNDERSPECIFIED",
+    "subtype": null,
+    "cause": ["direct_spec_text", "language_conditioned"],
+    "claim_summary": "Go's json.Unmarshal produces float64 for all JSON numbers, but the spec only defines integer encoding; the conversion from float64 to int64 is not specified.",
+    "resolution_summary": "Convert float64 to int64 if the value is an exact integer (float64(int64(v)) == v), error otherwise; this is a Go-specific concern absent in Python.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q4",
+    "section": "§11.1",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "The canonical_path op result is the canonical path's UTF-8 bytes, hex-encoded.",
+    "resolution_summary": "§6 step 6 says 'encode as UTF-8 bytes' and §11.1 says 'hex-encoded', so hex.EncodeToString([]byte(canonPathString)) is correct.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q5",
+    "section": "§11.1",
+    "type": "UNDERSPECIFIED",
+    "subtype": null,
+    "cause": ["direct_spec_text", "explicit_exclusion"],
+    "claim_summary": "Whether the glob_match 'path' argument must be re-canonicalized via §6 before matching, or is already treated as a canonical path string.",
+    "resolution_summary": "Treat the path argument as already canonical; §11.1 does not say to re-run §6, and doing so would double-canonicalize.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q6",
+    "section": "§8",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "STRUCTURALLY_DETERMINED",
+    "cause": ["direct_spec_text", "logical_consequence"],
+    "claim_summary": "The set_hash of an empty edge_id collection is the SHA-256 of zero bytes.",
+    "resolution_summary": "The spec's algorithm feeds each edge_id's bytes in sequence with no separator; for an empty sequence no bytes are fed, giving SHA-256 of the empty message.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q7",
+    "section": "§8",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "check_no_unknown_edges must compute edge_ids for UNKNOWN edges and compare against the waived_edge_ids set (hex digest strings), not compare raw edge fields.",
+    "resolution_summary": "§8 says 'that edge's edge_id appears in the caller-supplied waived-edge-id set', so call compute_edge_id for each UNKNOWN edge and look it up.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q8",
+    "section": "§9.1",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "proof_payload must be a JSON object (not a string, array, null, or number), as stated by 'any well-formed JSON object'.",
+    "resolution_summary": "Require proof_payload to be map[string]interface{} in Go; any non-object value fails verification.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q9",
+    "section": "§9.2",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "The required_fields array in the schema_descriptor must contain the 7 field names sorted as strings, and snapshot_modes and results must also be sorted.",
+    "resolution_summary": "Hardcoded the arrays in ASCII-lexicographic sorted order (verified manually); canonJSONObject sorts the descriptor's own keys automatically.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q10",
+    "section": "§7",
+    "type": "UNDERSPECIFIED",
+    "subtype": null,
+    "cause": ["direct_spec_text", "explicit_exclusion"],
+    "claim_summary": "What to do when a URL has no scheme (no ':' separator), which the spec does not address.",
+    "resolution_summary": "Return an error ('no scheme found in URL'), consistent with the spec's overall fail-closed orientation.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q11",
+    "section": "§7",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "The '//authority' prefix is omitted if and only if there is no authority component, per the spec's reassembly rule.",
+    "resolution_summary": "Only emit '//' when the URL had a '//' authority prefix in the input (hasAuthority flag).",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q12",
+    "section": "§7",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "The '?' separator is omitted entirely when the post-normalization query string is empty.",
+    "resolution_summary": "§7 explicitly says 'omit the ? entirely if the (post-normalization) query is empty'; implemented as 'only emit ?query if query != \"\"'.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q13",
+    "section": "§7.1",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text", "logical_consequence"],
+    "claim_summary": "The leading-slash reattachment rule guards against double-slashing with '!strings.HasPrefix(result, \"/\")'.",
+    "resolution_summary": "The spec says 'if the leading-slash flag was set and the result does not already start with /', prepend '/'; the conditional prevents double-slash.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q14",
+    "section": "§7.1",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "The worked example for /../../a (normalizes to /../a) verifies that consecutive '..' after consuming the leading empty segment are pushed literally.",
+    "resolution_summary": "Implemented the algorithm exactly as the spec's bullet list states: '..' with empty stack or top-is-'..' pushes '..' literally; the worked example confirms correctness.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q15",
+    "section": "§5",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "'a/**' matches exactly 'a' (zero trailing segments) because '**' matches zero or more complete path segments.",
+    "resolution_summary": "In matchSegments, when pSeg=='**', try all suffixes from sSegs[0:] through sSegs[len(sSegs):], so the empty suffix satisfies zero segments.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q16",
+    "section": "§5",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "'**' within a segment (e.g. foo**bar) is treated as two ordinary single-segment '*' wildcards, not a cross-directory glob.",
+    "resolution_summary": "§5 explicitly states 'only a segment consisting of exactly ** gets directory-crossing behavior'; the segment-split approach handles this structurally.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q17",
+    "section": "§8",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "'Ordinary lexicographic order' for edge_id strings (which are lowercase hex) is equivalent to Go's sort.Strings (byte-level UTF-8 order).",
+    "resolution_summary": "Edge IDs are 64-character ASCII hex strings; byte-order, codepoint-order, and UTF-16-order are all identical for ASCII; sort.Strings is correct.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q18",
+    "section": "§6",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text", "frozen_step_order"],
+    "claim_summary": "Step 4 (drive-qualified check) operates on the post-step-3 text (after backslash-to-slash conversion), per the frozen step order.",
+    "resolution_summary": "The spec says 'The step order below is frozen'; step 3 runs before step 4, so C:\\Users becomes C:/Users and the 'C:' first segment is caught.",
+    "corpus_exercises_this": true
+  },
+  {
+    "id": "Q19",
+    "section": "§6",
+    "type": "UNDERSPECIFIED",
+    "subtype": null,
+    "cause": ["direct_spec_text", "logical_consequence"],
+    "claim_summary": "Whether the empty string is a valid canonical path output (e.g. for inputs '.' or './').",
+    "resolution_summary": "The algorithm produces empty string for inputs that reduce to no segments; the spec does not reject this; treat empty string as a valid canonical path.",
+    "corpus_exercises_this": false
+  },
+  {
+    "id": "Q20",
+    "section": "§10",
+    "type": "WELL_SPECIFIED_CONFIRMED",
+    "subtype": "EXPLICIT_SPECIFIED",
+    "cause": ["direct_spec_text"],
+    "claim_summary": "registry_hash is sha256(canon_json(parsed registry document)), not sha256 of the raw JSON bytes.",
+    "resolution_summary": "The spec uses 'canon_json(<the entire registry document>)' which means parse then re-serialize canonically; raw bytes are not used.",
+    "corpus_exercises_this": false
+  }
+]
