@@ -12,7 +12,8 @@
 //     { eg: equivGraph2, worlds: equivGraph2.worlds },
 //   ]);
 
-import { canonicalize } from '../timeline/CausalEquivalence.js';
+import { canonicalize }   from '../timeline/CausalEquivalence.js';
+import { makeProvenance } from './Provenance.js';
 
 // Canonical component signature: hash of SORTED set of canonical branch states.
 // Permutation-invariant — identity depends only on member state set, not ordering.
@@ -39,8 +40,9 @@ function jaccardSimilarity(sigsA, sigsB) {
 
 // CSF: Component Stability Function.
 // runs: Array<{ eg: EquivalenceGraph result, worlds: Map<branchId, world> }>
+// provenance: optional Provenance descriptor (from makeProvenance) — carried on result
 // Requires ≥2 runs. Returns null if insufficient data.
-export function componentStabilityFunction(runs) {
+export function componentStabilityFunction(runs, provenance = null) {
   if (!runs || runs.length < 2) return null;
 
   // Build (sig, size) lists per run
@@ -89,6 +91,7 @@ export function componentStabilityFunction(runs) {
   );
 
   return Object.freeze({
+    provenance:     provenance ?? makeProvenance({ mode: runs[0]?.eg?.mode }),
     totalRuns,
     uniqueComponents:     sigPresence.size,
     globalStabilityScore: +gss.toFixed(6),

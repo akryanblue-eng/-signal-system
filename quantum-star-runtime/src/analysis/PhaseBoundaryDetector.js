@@ -28,21 +28,26 @@ function variance(arr) {
   return arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length;
 }
 
+import { makeProvenance } from './Provenance.js';
+
 // ── Phase Boundary Detector ──────────────────────────────────────────────────────
 
 // Detect φ₀ from SAL data.
 // data: Array<{ phi: number, gss: number }> — at least 4 points required.
+// provenance: optional Provenance descriptor — carried on result unchanged.
 // Returns null if data is insufficient or system shows no variance.
-export function detectPhaseBoundary(data) {
+export function detectPhaseBoundary(data, provenance = null) {
   if (!data || data.length < 4) return null;
 
   const sorted  = [...data].sort((a, b) => a.phi - b.phi);
   const allGSS  = sorted.map(d => d.gss);
   const totalVar = variance(allGSS);
 
+  const prov = provenance ?? makeProvenance();
+
   // No variance → system fully stable across this φ range (no boundary detectable yet)
   if (totalVar < 1e-10) {
-    return Object.freeze({ phi0: null, stable: true, score: 0, totalVariance: totalVar });
+    return Object.freeze({ provenance: prov, phi0: null, stable: true, score: 0, totalVariance: totalVar });
   }
 
   // Find the split point k that maximizes explained variance (= Var(all) - Var(left) - Var(right))
@@ -70,6 +75,7 @@ export function detectPhaseBoundary(data) {
   // φ₀ semantic: not "the system collapses here" but "your equivalence relation stops
   // being a stable projector of state space beyond this point"
   return Object.freeze({
+    provenance:     prov,
     phi0,
     score:          +bestScore.toFixed(6),
     leftVariance:   +leftVar.toFixed(6),
@@ -81,7 +87,6 @@ export function detectPhaseBoundary(data) {
     totalVariance:  +totalVar.toFixed(6),
     sampleCount:    data.length,
     isValid,
-    // Direction tells you whether you're entering or leaving a stable regime
     regime:         leftMean > rightMean ? 'stable→unstable' : 'unstable→stable',
   });
 }
@@ -93,7 +98,7 @@ export function detectPhaseBoundary(data) {
 //                                  high → φ₀ is a sampling artifact.
 // phi0Values: Array<number> — one per independent run (or implementation).
 // Requires ≥2 values.
-export function crossRunConsistency(phi0Values) {
+export function crossRunConsistency(phi0Values, provenance = null) {
   if (!phi0Values || phi0Values.length < 2) return null;
   const valid = phi0Values.filter(v => v !== null && isFinite(v));
   if (valid.length < 2) return null;
@@ -116,6 +121,7 @@ export function crossRunConsistency(phi0Values) {
   }
 
   return Object.freeze({
+    provenance:  provenance ?? makeProvenance(),
     CRphiC:      +CRphiC.toFixed(6),
     mean:        +mu.toFixed(6),
     variance:    +v.toFixed(6),

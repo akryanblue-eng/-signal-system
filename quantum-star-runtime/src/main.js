@@ -10,6 +10,7 @@ import { equals, branchEvents }                  from './timeline/CausalEquivale
 import { EquivalenceGraph }                      from './timeline/EquivalenceGraph.js';
 import { componentStabilityFunction }            from './analysis/ComponentStability.js';
 import { detectPhaseBoundary, crossRunConsistency } from './analysis/PhaseBoundaryDetector.js';
+import { makeProvenance }                        from './analysis/Provenance.js';
 import { BeatManiaSkin }                         from './systems/SkinRuntime.js';
 import { render }                                from './render/render.js';
 
@@ -221,14 +222,24 @@ document.addEventListener('keydown', e => {
     runStore.runs.push({ eg: canon, worlds: canon.worlds });
     runStore.salData.push({ phi: canon.phi, gss: canon.gss });
 
+    // Provenance for this run — shared across all derived metrics from this press.
+    // Carries canonicalizerVersion, mode, specVersion, implementation, and runIndex
+    // so any future shift in CSF/PBD/CRφC is attributable to a specific change,
+    // not just labeled "the system changed."
+    const runProv = makeProvenance({
+      mode:               'canonical',
+      runIndex:           runStore.runs.length - 1,
+      canonicalizerVersion: canon.canonicalizerVersion,
+    });
+
     // ── Layer 3: CSF (requires ≥2 runs) ────────────────────────────────────────
     const csfResult = runStore.runs.length >= 2
-      ? componentStabilityFunction(runStore.runs)
+      ? componentStabilityFunction(runStore.runs, runProv)
       : null;
 
     // ── Layer 4: PBD (requires ≥4 SAL data points) ─────────────────────────────
     const pbdResult = runStore.salData.length >= 4
-      ? detectPhaseBoundary(runStore.salData)
+      ? detectPhaseBoundary(runStore.salData, runProv)
       : null;
 
     if (pbdResult?.phi0 !== null && pbdResult?.isValid) {
@@ -237,7 +248,7 @@ document.addEventListener('keydown', e => {
 
     // ── Layer 5: CRφC (requires ≥2 φ₀ detections) ─────────────────────────────
     const crphicResult = runStore.phi0History.length >= 2
-      ? crossRunConsistency(runStore.phi0History)
+      ? crossRunConsistency(runStore.phi0History, runProv)
       : null;
 
     // ── Log structured results ─────────────────────────────────────────────────

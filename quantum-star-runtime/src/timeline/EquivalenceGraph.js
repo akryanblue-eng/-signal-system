@@ -22,6 +22,7 @@
 //                                   to equivalent intermediates then diverged
 
 import { equals, branchEvents }  from './CausalEquivalence.js';
+import { makeProvenance }        from '../analysis/Provenance.js';
 
 const CANONICALIZER_VERSION = 'v1';
 
@@ -128,9 +129,12 @@ export class EquivalenceGraph {
     // 0 = all singletons (equivalence does nothing), 1 = all branches in one component.
     const gss = live.length > 0 ? 1 - components.length / live.length : 0;
 
+    const provenance = makeProvenance({ mode, canonicalizerVersion });
+
     return Object.freeze({
       mode,
       canonicalizerVersion,
+      provenance,    // immutable descriptor — attribute metric shifts to specific change
       targetT,
       branchCount:    frozenBranchIds.length,
       liveCount:      live.length,
