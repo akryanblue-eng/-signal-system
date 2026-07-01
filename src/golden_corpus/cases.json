@@ -1,5 +1,7 @@
 {
   "version": "golden_corpus.v1",
+  "corpus_release": "v1.1",
+  "spec_version": "nic.v1.1",
   "description": "Fixed snapshots and fixed expected outputs for NIC v1.1 primitives. Any conforming implementation, in any language, must reproduce every `expect` value (or `expect_error` substring) bit-for-bit given the same `op` and `args`.",
   "cases": [
     {
